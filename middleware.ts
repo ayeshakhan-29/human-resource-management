@@ -1,24 +1,36 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-// This function can be marked `async` if using `await` inside
+const publicPaths = ['/login', '/signup', '/forgot-password', '/reset-password']
+const protectedPaths = ['/dashboard']
+
 export function middleware(request: NextRequest) {
-  const path = request.nextUrl.pathname;
-  const isPublicPath = path === "/login" || path === "/signup";
-  const token = request.cookies.get("next-auth.session-token")?.value || "";
+  const { pathname } = request.nextUrl
+  const token = request.cookies.get('user')?.value
+  const isPublicPath = publicPaths.some(path => 
+    pathname.toLowerCase() === path.toLowerCase() || 
+    pathname.toLowerCase().startsWith(`${path.toLowerCase()}/`)
+  )
+  const isProtectedPath = protectedPaths.some(path => 
+    pathname.toLowerCase() === path.toLowerCase() || 
+    pathname.toLowerCase().startsWith(`${path.toLowerCase()}/`)
+  )
 
-  // Redirect to login if not authenticated and not on a public path
-  if (!isPublicPath && !token) {
-    return NextResponse.redirect(new URL("/login", request.url));
+  // If there's a token and trying to access public path, redirect to dashboard
+  if (token && isPublicPath) {
+    return NextResponse.redirect(new URL('/dashboard', request.url))
   }
 
-  // Redirect to dashboard if authenticated and trying to access public paths
-  if (isPublicPath && token) {
-    return NextResponse.redirect(new URL("/dashboard", request.url));
+  // If no token and trying to access protected path, redirect to login
+  if (!token && isProtectedPath) {
+    return NextResponse.redirect(new URL('/login', request.url))
   }
+
+  return NextResponse.next()
 }
 
-// See "Matching Paths" below to learn more
 export const config = {
-  matcher: ["/", "/dashboard/:path*", "/login", "/signup"],
-};
+  matcher: [
+    '/((?!api|_next/static|_next/image|favicon.ico).*)',
+  ],
+}
