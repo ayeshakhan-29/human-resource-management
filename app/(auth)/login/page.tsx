@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useAuth } from "@/context/AuthContext";
+import { useAuth, UserRole } from "@/context/AuthContext";
 import Link from "next/link";
 import { Eye, EyeOff, Building2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -16,9 +16,9 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { loginUserAction } from "@/lib/actions/auth.actions";
 
 export default function LoginPage() {
-  const { login } = useAuth();
   const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -28,26 +28,43 @@ export default function LoginPage() {
     password: "",
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
 
-    // Simple validation
     if (!formData.email || !formData.password) {
       setError("Please fill in all fields");
       return;
     }
 
-    // Mock login - in a real app, you would call your API here
+    setIsLoading(true);
+
     try {
-      login({
+      const result = await loginUserAction({
         email: formData.email,
-        name: formData.email.split("@")[0], // Simple way to generate a name from email
+        password: formData.password,
       });
-      router.push("/dashboard");
-    } catch (err) {
-      setError("Failed to log in");
-      console.error("Login error:", err);
+
+      if ("error" in result) {
+        setError(result.message || result.error);
+        return;
+      }
+
+      // Login using AuthContext which will handle token storage and redirection
+      const { login } = useAuth();
+      login(
+        {
+          email: result.user.email,
+          name: result.user.fullName || result.user.email,
+          token: result.token
+        },
+        (result.user.role?.toLowerCase() || 'employee') as UserRole
+      );
+    } catch (error) {
+      console.error("Login error:", error);
+      setError("An unexpected error occurred. Please try again.");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -130,10 +147,7 @@ export default function LoginPage() {
           </form>
 
           <div className="mt-6 text-center text-sm text-gray-600">
-            <p>Demo accounts:</p>
-            <p className="text-xs mt-1">
-              Admin: admin@company.com | Employee: john@company.com
-            </p>
+            <p>Don't have an account? Contact your administrator.</p>
           </div>
         </CardContent>
       </Card>

@@ -112,7 +112,7 @@ export default function AdminDashboard() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Today's Summary</CardTitle>
+              <CardTitle>Today&apos;s Summary</CardTitle>
               <CardDescription>Current day overview</CardDescription>
             </CardHeader>
             <CardContent>
