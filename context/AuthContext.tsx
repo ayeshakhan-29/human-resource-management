@@ -1,75 +1,76 @@
 'use client';
 
 import { createContext, useContext, ReactNode, useState, useEffect } from 'react';
-import { useRouter, usePathname } from 'next/navigation';
+import { useRouter } from 'next/navigation';
+
+export type UserRole = 'admin' | 'employee';
 
 type User = {
   id: string;
   email: string;
   name: string;
+  role: UserRole;
 } | null;
 
-type AuthContextType = {
+interface AuthContextType {
   user: User;
-  login: (userData: Omit<NonNullable<User>, 'id'>) => void;
+  login: (userData: { email: string; name: string }, role: UserRole) => void;
   logout: () => void;
   isAuthenticated: boolean;
-};
+  isLoading: boolean;
+}
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
-  const pathname = usePathname();
 
+  // Initialize auth state from localStorage
   useEffect(() => {
-    // Check for user in localStorage on initial load
-    if (typeof window !== 'undefined') {
-      const storedUser = localStorage.getItem('user');
-      if (storedUser) {
-        setUser(JSON.parse(storedUser));
-      }
+    if (typeof window === 'undefined') return;
+    
+    const storedUser = localStorage.getItem('user');
+    if (storedUser) {
+      setUser(JSON.parse(storedUser));
     }
+    setIsLoading(false);
   }, []);
 
-  const login = (userData: Omit<NonNullable<User>, 'id'>) => {
-    const newUser = { ...userData, id: Date.now().toString() };
+  const login = (userData: { email: string; name: string }, role: UserRole) => {
+    const newUser = { 
+      ...userData, 
+      id: Date.now().toString(),
+      role 
+    };
+    
+    // Update state and localStorage
     setUser(newUser);
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('user', JSON.stringify(newUser));
-    }
+    localStorage.setItem('user', JSON.stringify(newUser));
+    
+    // Redirect to appropriate dashboard based on role
+    const redirectPath = role === 'admin' ? '/admin/dashboard' : '/employee/dashboard';
+    window.location.href = redirectPath;
   };
 
   const logout = () => {
     setUser(null);
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('user');
-    }
-    router.push('/login');
+    localStorage.removeItem('user');
+    window.location.href = '/login';
   };
 
-  const isAuthenticated = !!user;
-
-  // Protected routes
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    
-    const protectedRoutes = ['/dashboard'];
-    const publicRoutes = ['/login', '/signup'];
-
-    if (!isAuthenticated && protectedRoutes.some(route => pathname.startsWith(route))) {
-      router.push('/login');
-    }
-
-    if (isAuthenticated && publicRoutes.includes(pathname)) {
-      router.push('/dashboard');
-    }
-  }, [isAuthenticated, pathname, router]);
-
+  const contextValue: AuthContextType = {
+    user,
+    login,
+    logout,
+    isAuthenticated: !!user,
+    isLoading,
+  };
+  
   return (
-    <AuthContext.Provider value={{ user, login, logout, isAuthenticated }}>
-      {children}
+    <AuthContext.Provider value={contextValue}>
+      {!isLoading && children}
     </AuthContext.Provider>
   );
 }
