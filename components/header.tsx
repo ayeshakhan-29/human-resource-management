@@ -22,7 +22,6 @@ interface PageHeaderProps {
 
 export function Header({ breadcrumbs }: PageHeaderProps) {
   const { user, logout } = useAuth();
-  const router = useRouter();
 
   const handleSignOut = () => {
     console.log("Sign out button clicked");
