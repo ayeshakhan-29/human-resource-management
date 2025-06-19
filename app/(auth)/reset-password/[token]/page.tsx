@@ -38,7 +38,7 @@ export default function ResetPasswordPage() {
       try {
         await new Promise((resolve) => setTimeout(resolve, 1000));
         setIsValidToken(true);
-      } catch (err) {
+      } catch {
         setError("Invalid or expired reset link.");
       } finally {
         setIsValidating(false);
@@ -72,7 +72,7 @@ export default function ResetPasswordPage() {
       setTimeout(() => {
         window.location.href = "/login";
       }, 2000);
-    } catch (err) {
+    } catch {
       setError("Failed to reset password. Please try again.");
     } finally {
       setIsLoading(false);
@@ -122,7 +122,7 @@ export default function ResetPasswordPage() {
                 Password Reset Successfully!
               </h2>
               <p className="text-gray-600 mb-4">
-                Your password has been updated. You'll be redirected to the
+                Your password has been updated. You&apos;ll be redirected to the
                 login page shortly.
               </p>
             </div>
