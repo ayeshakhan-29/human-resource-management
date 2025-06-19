@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { useAuth, UserRole } from "@/context/AuthContext";
 import Link from "next/link";
 import { Eye, EyeOff, Building2 } from "lucide-react";
@@ -19,7 +18,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { loginUserAction } from "@/lib/actions/auth.actions";
 
 export default function LoginPage() {
-  const router = useRouter();
+  const { login } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
@@ -51,7 +50,6 @@ export default function LoginPage() {
       }
 
       // Login using AuthContext which will handle token storage and redirection
-      const { login } = useAuth();
       login(
         {
           email: result.user.email,
@@ -147,7 +145,7 @@ export default function LoginPage() {
           </form>
 
           <div className="mt-6 text-center text-sm text-gray-600">
-            <p>Don't have an account? Contact your administrator.</p>
+            <p>Don&apos;t have an account? Contact your administrator.</p>
           </div>
         </CardContent>
       </Card>
