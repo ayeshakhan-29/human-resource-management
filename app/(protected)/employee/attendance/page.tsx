@@ -23,12 +23,6 @@ import {
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Header } from "@/components/header";
 
-const mockEmployee = {
-  name: "John Smith",
-  email: "john@company.com",
-  employeeId: "EMP001",
-};
-
 const mockAttendanceHistory = [
   {
     date: "2024-03-01",
@@ -215,7 +209,7 @@ export default function EmployeeAttendancePage() {
           {/* Today's Summary */}
           <Card>
             <CardHeader>
-              <CardTitle>Today's Summary</CardTitle>
+              <CardTitle>Today&apos;s Summary</CardTitle>
               <CardDescription>Your work summary for today</CardDescription>
             </CardHeader>
             <CardContent>

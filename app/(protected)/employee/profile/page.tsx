@@ -39,7 +39,7 @@ export default function EmployeeDashboard() {
             Welcome back, {mockEmployee.name.split(" ")[0]}!
           </h2>
           <p className="text-gray-600">
-            Here's your dashboard overview for today.
+            Here&apos;s your dashboard overview for today.
           </p>
         </div>
 
@@ -48,7 +48,7 @@ export default function EmployeeDashboard() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
-                Today's Status
+                Today&apos;s Status
               </CardTitle>
               <Clock className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
@@ -118,7 +118,7 @@ export default function EmployeeDashboard() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Today's Summary</CardTitle>
+              <CardTitle>Today&apos;s Summary</CardTitle>
               <CardDescription>Your work summary for today</CardDescription>
             </CardHeader>
             <CardContent>
