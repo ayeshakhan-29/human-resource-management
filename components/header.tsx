@@ -25,8 +25,9 @@ export function Header({ breadcrumbs }: PageHeaderProps) {
   const router = useRouter();
 
   const handleSignOut = () => {
+    console.log("Sign out button clicked");
     logout();
-    router.push('/login');
+    // router.push("/login");
   };
 
   return (
@@ -38,8 +39,12 @@ export function Header({ breadcrumbs }: PageHeaderProps) {
           <BreadcrumbList>
             {breadcrumbs.map((crumb, index) => (
               <div key={crumb.label} className="flex items-center">
-                {index > 0 && <BreadcrumbSeparator className="hidden md:block" />}
-                <BreadcrumbItem className={index === 0 ? "hidden md:block" : ""}>
+                {index > 0 && (
+                  <BreadcrumbSeparator className="hidden md:block" />
+                )}
+                <BreadcrumbItem
+                  className={index === 0 ? "hidden md:block" : ""}
+                >
                   {crumb.href ? (
                     <BreadcrumbLink href={crumb.href}>
                       {crumb.label}
