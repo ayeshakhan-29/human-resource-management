@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { CheckCircle, XCircle, Loader2 } from "lucide-react";
+import { CheckCircle, XCircle } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { toast } from "sonner";
 
@@ -77,7 +77,7 @@ const mockAttendanceHistory = [
 export default function EmployeeAttendancePage() {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [isCheckedIn, setIsCheckedIn] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true); // Used in button disabled state
   const [checkInTime, setCheckInTime] = useState<Date | null>(null);
   const [workingHours, setWorkingHours] = useState(0);
   const [showSuccess, setShowSuccess] = useState(false);
@@ -116,7 +116,7 @@ export default function EmployeeAttendancePage() {
           setCheckInTime(null);
           setWorkingHours(0);
         }
-      } catch (error) {
+      } catch (error: unknown) {
         console.error("Error checking attendance status:", error);
         setIsCheckedIn(false);
         setCheckInTime(null);
@@ -169,19 +169,17 @@ export default function EmployeeAttendancePage() {
           description: `You've successfully checked in at ${clockIn}`,
         });
       }
-    } catch (error: any) {
+    } catch (error) {
+      const err = error as Error;
       console.error("Check-in error details:", {
-        message: error.message,
-        name: error.name,
-        stack: error.stack,
+        message: err.message,
+        name: err.name,
+        stack: err.stack,
         timestamp: new Date().toISOString(),
       });
 
       // If unauthorized, suggest re-login
-      if (
-        error.message.includes("401") ||
-        error.message.includes("Unauthorized")
-      ) {
+      if (err.message.includes("401") || err.message.includes("Unauthorized")) {
         console.warn("Authentication issue detected. Current auth state:", {
           token:
             typeof window !== "undefined"
@@ -206,8 +204,12 @@ export default function EmployeeAttendancePage() {
           },
         });
       } else {
+        const errorMessage =
+          error instanceof Error
+            ? error.message
+            : "Failed to check in. Please try again.";
         toast.error("Check-in failed", {
-          description: error.message || "Failed to check in. Please try again.",
+          description: errorMessage,
         });
       }
     } finally {
@@ -236,10 +238,11 @@ export default function EmployeeAttendancePage() {
       }
 
       setTimeout(() => setShowSuccess(false), 3000);
-    } catch (error: any) {
-      console.error("Check-out error:", error);
+    } catch (error) {
+      const err = error as Error;
+      console.error("Check-out error:", err);
       toast.error("Check-out failed", {
-        description: error.message || "Failed to check out. Please try again.",
+        description: err.message || "Failed to check out. Please try again.",
       });
     } finally {
       setIsLoading(false);

@@ -10,18 +10,30 @@ import { getAuthToken } from "../auth/token";
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5005/api";
 
+interface ApiError extends Error {
+  status?: number;
+  response?: {
+    message?: string;
+    [key: string]: unknown;
+  };
+  message: string;
+  stack?: string;
+}
+
 // Helper to handle API errors
-const handleApiError = (error: any, defaultMessage: string) => {
+const handleApiError = (error: unknown, defaultMessage: string): { error: string; status?: number } => {
+  const apiError = error as ApiError;
+  
   console.error("API Error:", {
-    message: error.message,
-    status: error.status,
-    response: error.response,
-    stack: error.stack,
+    message: apiError.message,
+    status: apiError.status,
+    response: apiError.response,
+    stack: apiError.stack,
   });
 
   return {
-    error: error.response?.message || error.message || defaultMessage,
-    status: error.status,
+    error: apiError.response?.message || apiError.message || defaultMessage,
+    status: apiError.status,
   };
 };
 
@@ -54,7 +66,7 @@ export async function clockInAction(token: string): Promise<{
 
     const data = await response.json();
     return { data };
-  } catch (error: any) {
+  } catch (error) {
     const { error: errorMessage, status } = handleApiError(
       error,
       "Failed to clock in. Please try again."
@@ -99,7 +111,7 @@ export async function clockOutAction(token: string | null): Promise<{
 
     const data = await response.json();
     return { data };
-  } catch (error: any) {
+  } catch (error) {
     const { error: errorMessage, status } = handleApiError(
       error,
       "Failed to clock out. Please try again."
@@ -142,11 +154,10 @@ export async function getTodaysAttendance(token?: string): Promise<{
       }
 
       const errorData = await response.json().catch(() => ({}));
-      throw {
-        status: response.status,
-        message: errorData.message || "Failed to fetch today's attendance",
-        response: errorData,
-      };
+      const error = new Error(errorData.message || "Failed to fetch today's attendance") as ApiError;
+      error.status = response.status;
+      error.response = errorData;
+      throw error;
     }
 
     const data = (await response.json()) as AttendanceData;
@@ -157,7 +168,7 @@ export async function getTodaysAttendance(token?: string): Promise<{
     }
 
     return { data };
-  } catch (error: any) {
+  } catch (error: unknown) {
     const { error: errorMessage, status } = handleApiError(
       error,
       "Failed to fetch today's attendance."
