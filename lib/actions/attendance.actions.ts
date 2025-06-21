@@ -115,17 +115,14 @@ export async function clockOutAction(token: string | null): Promise<{
   }
 }
 
-// Add more attendance-related actions here as needed
-// export async function getAttendanceRecords() {...}
-
-export async function getTodaysAttendance(): Promise<{
+export async function getTodaysAttendance(token?: string): Promise<{
   data?: AttendanceData;
   error?: string;
   status?: number;
 }> {
   try {
-    const token = getAuthToken();
-    if (!token) {
+    const authToken = token || getAuthToken();
+    if (!authToken) {
       throw new Error("No authentication token found");
     }
 
@@ -133,21 +130,32 @@ export async function getTodaysAttendance(): Promise<{
       method: "GET",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
+        Authorization: `Bearer ${authToken}`,
       },
+      cache: "no-store", // Prevent caching to get fresh data
     });
 
     if (!response.ok) {
+      // If 404, return empty data instead of error (no attendance record for today)
+      if (response.status === 404) {
+        return { data: undefined };
+      }
+
       const errorData = await response.json().catch(() => ({}));
       throw {
         status: response.status,
-        message: errorData.message || "Failed to fetch attendance",
+        message: errorData.message || "Failed to fetch today's attendance",
         response: errorData,
       };
     }
 
-    const data = await response.json();
-    console.log("Today's attendance:", data);
+    const data = (await response.json()) as AttendanceData;
+
+    // Ensure the response has the expected format
+    if (!data || typeof data !== "object") {
+      throw new Error("Invalid attendance data received from server");
+    }
+
     return { data };
   } catch (error: any) {
     const { error: errorMessage, status } = handleApiError(
