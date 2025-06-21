@@ -1,7 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { CheckCircle, XCircle } from "lucide-react";
+import { CheckCircle, XCircle, Loader2 } from "lucide-react";
+import { format, parseISO } from "date-fns";
+import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -22,6 +24,12 @@ import {
 } from "@/components/ui/table";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Header } from "@/components/header";
+import {
+  clockInAction,
+  clockOutAction,
+  getTodaysAttendance,
+} from "@/lib/actions/attendance.actions";
+import { getAuthToken } from "@/lib/auth/token";
 
 const mockAttendanceHistory = [
   {
@@ -69,37 +77,150 @@ const mockAttendanceHistory = [
 export default function EmployeeAttendancePage() {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [isCheckedIn, setIsCheckedIn] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [checkInTime, setCheckInTime] = useState<Date | null>(null);
   const [workingHours, setWorkingHours] = useState(0);
   const [showSuccess, setShowSuccess] = useState(false);
 
+  // Check attendance status on component mount
+  useEffect(() => {
+    const checkAttendanceStatus = async () => {
+      try {
+        const { data: attendance } = await getTodaysAttendance();
+        if (attendance?.clockIn && !attendance.clockOut) {
+          setIsCheckedIn(true);
+          setCheckInTime(parseISO(`${attendance.date}T${attendance.clockIn}`));
+        }
+      } catch (error) {
+        console.error("Error checking attendance status:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    checkAttendanceStatus();
+  }, []);
+
+  // Update working hours when checked in
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentTime(new Date());
       if (checkInTime) {
         const diff =
           (new Date().getTime() - checkInTime.getTime()) / (1000 * 60 * 60);
-        setWorkingHours(diff);
+        setWorkingHours(parseFloat(diff.toFixed(2)));
       }
     }, 1000);
 
     return () => clearInterval(timer);
   }, [checkInTime]);
 
-  const handleCheckIn = () => {
-    const now = new Date();
-    setCheckInTime(now);
-    setIsCheckedIn(true);
-    setShowSuccess(true);
-    setTimeout(() => setShowSuccess(false), 3000);
+  const handleCheckIn = async () => {
+    try {
+      console.log("=== Starting check-in process ===");
+      setIsLoading(true);
+
+      const token = getAuthToken();
+      if (!token) {
+        throw new Error("No authentication token found");
+      }
+
+      const { data, error, status } = await clockInAction(token);
+
+      console.log("Check-in response:", { data, error, status });
+
+      if (error || status === 401) {
+        throw new Error(error || "Authentication failed. Please log in again.");
+      }
+
+      if (data?.attendance) {
+        const { date, clockIn } = data.attendance;
+        const checkInDate = parseISO(`${date}T${clockIn}`);
+        console.log("Setting check-in time:", { date, clockIn, checkInDate });
+
+        setCheckInTime(checkInDate);
+        setIsCheckedIn(true);
+
+        toast.success("Checked in successfully!", {
+          description: `You've successfully checked in at ${clockIn}`,
+        });
+      }
+    } catch (error: any) {
+      console.error("Check-in error details:", {
+        message: error.message,
+        name: error.name,
+        stack: error.stack,
+        timestamp: new Date().toISOString(),
+      });
+
+      // If unauthorized, suggest re-login
+      if (
+        error.message.includes("401") ||
+        error.message.includes("Unauthorized")
+      ) {
+        console.warn("Authentication issue detected. Current auth state:", {
+          token:
+            typeof window !== "undefined"
+              ? localStorage.getItem("token")
+              : null,
+          user:
+            typeof window !== "undefined" ? localStorage.getItem("user") : null,
+        });
+
+        toast.error("Session Expired", {
+          description: "Your session has expired. Please log in again.",
+          action: {
+            label: "Log In",
+            onClick: () => {
+              // Clear auth data and redirect to login
+              if (typeof window !== "undefined") {
+                localStorage.removeItem("token");
+                localStorage.removeItem("user");
+                window.location.href = "/login";
+              }
+            },
+          },
+        });
+      } else {
+        toast.error("Check-in failed", {
+          description: error.message || "Failed to check in. Please try again.",
+        });
+      }
+    } finally {
+      setIsLoading(false);
+      console.log("=== Check-in process completed ===");
+    }
   };
 
-  const handleCheckOut = () => {
-    setIsCheckedIn(false);
-    setCheckInTime(null);
-    setWorkingHours(0);
-    setShowSuccess(true);
-    setTimeout(() => setShowSuccess(false), 3000);
+  const handleCheckOut = async () => {
+    try {
+      setIsLoading(true);
+      const token = getAuthToken();
+
+      const { data, error } = await clockOutAction(token);
+
+      if (error) throw new Error(error);
+
+      setIsCheckedIn(false);
+      setCheckInTime(null);
+      setWorkingHours(0);
+      setShowSuccess(true);
+
+      if (data?.attendance) {
+        toast.success("Checked out successfully!", {
+          description: `You've worked for ${data.attendance.totalHours} today.`,
+        });
+      }
+
+      setTimeout(() => setShowSuccess(false), 3000);
+    } catch (error: any) {
+      console.error("Check-out error:", error);
+      toast.error("Check-out failed", {
+        description: error.message || "Failed to check out. Please try again.",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const getStatusBadge = (status: string) => {
@@ -223,7 +344,7 @@ export default function EmployeeAttendancePage() {
                 <div className="flex justify-between items-center">
                   <span className="text-sm font-medium">Check-in Time:</span>
                   <span className="text-sm text-gray-600">
-                    {checkInTime ? checkInTime.toLocaleTimeString() : "-"}
+                    {checkInTime ? format(checkInTime, "h:mm a") : "-"}
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
