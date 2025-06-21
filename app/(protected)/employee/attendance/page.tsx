@@ -86,13 +86,41 @@ export default function EmployeeAttendancePage() {
   useEffect(() => {
     const checkAttendanceStatus = async () => {
       try {
-        const { data: attendance } = await getTodaysAttendance();
+        setIsLoading(true);
+
+        console.log("Calling getTodaysAttendance()...");
+        const token = getAuthToken();
+        if (!token) {
+          throw new Error("No authentication token found");
+        }
+        const { data: attendance, error } = await getTodaysAttendance(token);
+
+        if (error) {
+          console.error("Error in getTodaysAttendance:", error);
+          throw new Error(error);
+        }
+
         if (attendance?.clockIn && !attendance.clockOut) {
+          const checkInDateTime = parseISO(
+            `${attendance.date}T${attendance.clockIn}`
+          );
+          const now = new Date();
+          const diffHours =
+            (now.getTime() - checkInDateTime.getTime()) / (1000 * 60 * 60);
+
           setIsCheckedIn(true);
-          setCheckInTime(parseISO(`${attendance.date}T${attendance.clockIn}`));
+          setCheckInTime(checkInDateTime);
+          setWorkingHours(parseFloat(diffHours.toFixed(2)));
+        } else {
+          setIsCheckedIn(false);
+          setCheckInTime(null);
+          setWorkingHours(0);
         }
       } catch (error) {
         console.error("Error checking attendance status:", error);
+        setIsCheckedIn(false);
+        setCheckInTime(null);
+        setWorkingHours(0);
       } finally {
         setIsLoading(false);
       }
@@ -117,7 +145,6 @@ export default function EmployeeAttendancePage() {
 
   const handleCheckIn = async () => {
     try {
-      console.log("=== Starting check-in process ===");
       setIsLoading(true);
 
       const token = getAuthToken();
@@ -127,8 +154,6 @@ export default function EmployeeAttendancePage() {
 
       const { data, error, status } = await clockInAction(token);
 
-      console.log("Check-in response:", { data, error, status });
-
       if (error || status === 401) {
         throw new Error(error || "Authentication failed. Please log in again.");
       }
@@ -136,7 +161,6 @@ export default function EmployeeAttendancePage() {
       if (data?.attendance) {
         const { date, clockIn } = data.attendance;
         const checkInDate = parseISO(`${date}T${clockIn}`);
-        console.log("Setting check-in time:", { date, clockIn, checkInDate });
 
         setCheckInTime(checkInDate);
         setIsCheckedIn(true);
@@ -188,7 +212,6 @@ export default function EmployeeAttendancePage() {
       }
     } finally {
       setIsLoading(false);
-      console.log("=== Check-in process completed ===");
     }
   };
 
