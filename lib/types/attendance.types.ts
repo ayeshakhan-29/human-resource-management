@@ -9,7 +9,7 @@ export interface AttendanceData {
 
 export interface ClockInResponse {
   message: string;
-  attendance: Omit<AttendanceData, 'clockOut' | 'totalHours'> & {
+  attendance: Omit<AttendanceData, "clockOut" | "totalHours"> & {
     clockIn: string;
   };
 }
@@ -24,11 +24,57 @@ export interface ClockOutResponse {
 
 export interface AttendanceRecord {
   id: number;
+  userId: number;
+  fullName: string;
+  email: string;
   date: string;
   clockIn: string | null;
   clockOut: string | null;
+  totalHours: string | null;
+  formattedHours: string | null;
   status: string;
-  // Add other attendance-related fields as needed
+}
+
+export interface AllAttendanceResponse {
+  success: boolean;
+  date: string;
+  count: number;
+  data: Array<{
+    id: number;
+    fullName: string;
+    email: string;
+    date: string;
+    clockIn: string | null;
+    clockOut: string | null;
+    status: string;
+  }>;
+}
+
+export interface WeeklyAttendanceRecord {
+  id?: number;
+  date: string;
+  day: string;
+  status: string;
+  clockIn: string | null;
+  clockOut: string | null;
+  totalHours: number;
+  formattedHours: string;
+}
+
+export interface WeeklyAttendanceSummary {
+  totalDays: number;
+  presentDays: number;
+  absentDays: number;
+  totalHours: string;
+  formattedTotalHours: string;
+}
+
+export interface WeeklyAttendanceResponse {
+  success: boolean;
+  startDate: string;
+  endDate: string;
+  summary: WeeklyAttendanceSummary;
+  data: WeeklyAttendanceRecord[];
 }
 
 export interface AttendanceError {
