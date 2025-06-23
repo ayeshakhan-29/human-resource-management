@@ -4,6 +4,8 @@ import {
   AttendanceData,
   ClockInResponse,
   ClockOutResponse,
+  AllAttendanceResponse,
+  WeeklyAttendanceResponse,
 } from "@/lib/types/attendance.types";
 import { getAuthToken } from "../auth/token";
 
@@ -21,9 +23,12 @@ interface ApiError extends Error {
 }
 
 // Helper to handle API errors
-const handleApiError = (error: unknown, defaultMessage: string): { error: string; status?: number } => {
+const handleApiError = (
+  error: unknown,
+  defaultMessage: string
+): { error: string; status?: number } => {
   const apiError = error as ApiError;
-  
+
   console.error("API Error:", {
     message: apiError.message,
     status: apiError.status,
@@ -127,6 +132,89 @@ export async function clockOutAction(token: string | null): Promise<{
   }
 }
 
+export async function getAllAttendance(token?: string): Promise<{
+  data?: AllAttendanceResponse;
+  error?: string;
+  status?: number;
+}> {
+  try {
+    const authToken = token || getAuthToken();
+    if (!authToken) {
+      throw new Error("No authentication token found");
+    }
+
+    const response = await fetch(
+      `${API_BASE_URL}attendance/today-all-employees`,
+      {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${authToken}`,
+        },
+        cache: "no-store",
+      }
+    );
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      const error = new Error(
+        errorData.message || "Failed to fetch all attendance records"
+      ) as ApiError;
+      error.status = response.status;
+      error.response = errorData;
+      throw error;
+    }
+
+    const data: AllAttendanceResponse = await response.json();
+    return { data };
+  } catch (error) {
+    return handleApiError(
+      error,
+      "An error occurred while fetching attendance records"
+    );
+  }
+}
+
+export async function getWeeklyAttendance(token?: string): Promise<{
+  data?: WeeklyAttendanceResponse;
+  error?: string;
+  status?: number;
+}> {
+  try {
+    const authToken = token || getAuthToken();
+    if (!authToken) {
+      throw new Error("No authentication token found");
+    }
+
+    const response = await fetch(`${API_BASE_URL}/attendance/weekly`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${authToken}`,
+      },
+      cache: "no-store",
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw {
+        status: response.status,
+        message: errorData.message || "Failed to fetch weekly attendance",
+        response: errorData,
+      };
+    }
+
+    const data: WeeklyAttendanceResponse = await response.json();
+    return { data };
+  } catch (error) {
+    const { error: errorMessage, status } = handleApiError(
+      error,
+      "Failed to fetch weekly attendance. Please try again."
+    );
+    return { error: errorMessage, status };
+  }
+}
+
 export async function getTodaysAttendance(token?: string): Promise<{
   data?: AttendanceData;
   error?: string;
@@ -154,7 +242,9 @@ export async function getTodaysAttendance(token?: string): Promise<{
       }
 
       const errorData = await response.json().catch(() => ({}));
-      const error = new Error(errorData.message || "Failed to fetch today's attendance") as ApiError;
+      const error = new Error(
+        errorData.message || "Failed to fetch today's attendance"
+      ) as ApiError;
       error.status = response.status;
       error.response = errorData;
       throw error;
