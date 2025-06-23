@@ -32,10 +32,19 @@ export const getAllEmployees = async (): Promise<EmployeesResponse> => {
  * @param status - New status to set
  * @returns Promise with the updated employee or error
  */
+interface UpdateStatusResponse {
+  success: boolean;
+  data: {
+    id: number;
+    status: 'active' | 'inactive' | 'suspended';
+    updatedAt: string;
+  };
+}
+
 export const updateEmployeeStatus = async (
   employeeId: number,
   status: "active" | "inactive" | "suspended"
-): Promise<{ success: boolean; data: any }> => {
+): Promise<UpdateStatusResponse> => {
   const token = getAuthToken();
   if (!token) {
     throw new Error("No authentication token found");
