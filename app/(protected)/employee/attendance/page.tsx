@@ -1,9 +1,38 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { CheckCircle, XCircle } from "lucide-react";
-import { format, parseISO } from "date-fns";
+import { useEffect, useState } from "react";
+import {
+  Clock,
+  Loader2,
+  CheckCircle2,
+  AlertCircle,
+  Clock4,
+} from "lucide-react";
+import { format, parseISO, formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
+import useSWR from "swr";
+
+// SWR fetcher function
+const fetcher = async (url: string) => {
+  const token = getAuthToken();
+  if (!token) throw new Error("No authentication token found");
+
+  const res = await fetch(url, {
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!res.ok) {
+    const error = new Error("An error occurred while fetching the data.");
+    const errorData = await res.json().catch(() => ({}));
+    error.message = errorData.message || error.message;
+    throw error;
+  }
+
+  return res.json();
+};
 
 import { Button } from "@/components/ui/button";
 import {
@@ -28,59 +57,86 @@ import {
   clockInAction,
   clockOutAction,
   getTodaysAttendance,
+  getWeeklyAttendance,
 } from "@/lib/actions/attendance.actions";
+import { WeeklyAttendanceRecord } from "@/lib/types/attendance.types";
 import { getAuthToken } from "@/lib/auth/token";
 
-const mockAttendanceHistory = [
-  {
-    date: "2024-03-01",
-    checkIn: "09:00 AM",
-    checkOut: "05:30 PM",
-    totalHours: "8.5",
-    status: "present",
-    overtime: "0.5",
-  },
-  {
-    date: "2024-02-29",
-    checkIn: "08:45 AM",
-    checkOut: "05:15 PM",
-    totalHours: "8.5",
-    status: "present",
-    overtime: "0.5",
-  },
-  {
-    date: "2024-02-28",
-    checkIn: "09:15 AM",
-    checkOut: "05:45 PM",
-    totalHours: "8.5",
-    status: "late",
-    overtime: "0.5",
-  },
-  {
-    date: "2024-02-27",
-    checkIn: "09:00 AM",
-    checkOut: "05:00 PM",
-    totalHours: "8.0",
-    status: "present",
-    overtime: "0",
-  },
-  {
-    date: "2024-02-26",
-    checkIn: "08:30 AM",
-    checkOut: "04:30 PM",
-    totalHours: "8.0",
-    status: "early_leave",
-    overtime: "0",
-  },
-];
+interface AttendanceRecord {
+  id: string;
+  date: string;
+  clockIn: string;
+  clockOut: string | null;
+  totalHours: string;
+  status: string;
+  overtime: string;
+}
+
+// Helper function to format time from 24h to 12h format
+const formatTime = (timeString: string) => {
+  if (!timeString) return "";
+  const [hours, minutes] = timeString.split(":");
+  const hour = parseInt(hours, 10);
+  const ampm = hour >= 12 ? "PM" : "AM";
+  const formattedHour = hour % 12 || 12;
+  return `${formattedHour}:${minutes} ${ampm}`;
+};
 
 export default function EmployeeAttendancePage() {
   const [currentTime, setCurrentTime] = useState(new Date());
-  const [isCheckedIn, setIsCheckedIn] = useState(false);
-  const [isLoading, setIsLoading] = useState(true); // Used in button disabled state
+  const [attendanceStatus, setAttendanceStatus] = useState<'not_checked_in' | 'checked_in' | 'checked_out'>('not_checked_in');
+  const [isLoading, setIsLoading] = useState(true);
   const [checkInTime, setCheckInTime] = useState<Date | null>(null);
   const [workingHours, setWorkingHours] = useState(0);
   const [showSuccess, setShowSuccess] = useState(false);
+  // Use SWR for real-time data fetching with polling
+  const {
+    data: weeklyData,
+    error: weeklyError,
+    isLoading: isLoadingHistory,
+    mutate: mutateWeeklyData,
+  } = useSWR<{
+    success: boolean;
+    data: WeeklyAttendanceRecord[];
+    startDate: string;
+    endDate: string;
+    summary: {
+      totalDays: number;
+      presentDays: number;
+      absentDays: number;
+      totalHours: string;
+      formattedTotalHours: string;
+    };
+  }>(
+    `${
+      process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5005/api"
+    }/attendance/weekly`,
+    fetcher,
+    {
+      // Refresh every 1 seconds for near real-time updates
+      refreshInterval: 100,
+      // Keep refreshing even when window is not focused
+      refreshWhenHidden: true,
+      // Keep refreshing even when offline
+      refreshWhenOffline: true,
+      // Don't stop refreshing on error
+      shouldRetryOnError: true,
+      // Number of retries on error
+      errorRetryCount: 3,
+      // Shorter retry delay for faster recovery
+      errorRetryInterval: 1000,
+      // Disable deduping interval to ensure we always get fresh data
+      dedupingInterval: 0,
+    }
+  );
+
+  // Handle errors with toast
+  useEffect(() => {
+    if (weeklyError) {
+      console.error("Error fetching attendance history:", weeklyError);
+      toast.error(weeklyError.message || "Failed to load attendance history");
+    }
+  }, [weeklyError]);
 
   // Check attendance status on component mount
   useEffect(() => {
@@ -93,12 +149,17 @@ export default function EmployeeAttendancePage() {
         if (!token) {
           throw new Error("No authentication token found");
         }
-        const { data: attendance, error } = await getTodaysAttendance(token);
 
+        // Fetch today's attendance
+        const { data: attendance, error } = await getTodaysAttendance(token);
+        console.log(attendance, "attendance response");
         if (error) {
           console.error("Error in getTodaysAttendance:", error);
           throw new Error(error);
         }
+
+        // Mutate to refresh data
+        mutateWeeklyData();
 
         if (attendance?.clockIn && !attendance.clockOut) {
           const checkInDateTime = parseISO(
@@ -108,17 +169,23 @@ export default function EmployeeAttendancePage() {
           const diffHours =
             (now.getTime() - checkInDateTime.getTime()) / (1000 * 60 * 60);
 
-          setIsCheckedIn(true);
+          setAttendanceStatus('checked_in');
           setCheckInTime(checkInDateTime);
           setWorkingHours(parseFloat(diffHours.toFixed(2)));
+        } else if (attendance?.clockIn && attendance.clockOut) {
+          setAttendanceStatus('checked_out');
+          setCheckInTime(parseISO(`${attendance.date}T${attendance.clockIn}`));
+          const checkOutDateTime = parseISO(`${attendance.date}T${attendance.clockOut}`);
+          const diffHours = (checkOutDateTime.getTime() - parseISO(`${attendance.date}T${attendance.clockIn}`).getTime()) / (1000 * 60 * 60);
+          setWorkingHours(parseFloat(diffHours.toFixed(2)));
         } else {
-          setIsCheckedIn(false);
+          setAttendanceStatus('not_checked_in');
           setCheckInTime(null);
           setWorkingHours(0);
         }
       } catch (error: unknown) {
         console.error("Error checking attendance status:", error);
-        setIsCheckedIn(false);
+        setAttendanceStatus('not_checked_in');
         setCheckInTime(null);
         setWorkingHours(0);
       } finally {
@@ -143,10 +210,10 @@ export default function EmployeeAttendancePage() {
     return () => clearInterval(timer);
   }, [checkInTime]);
 
+  // Handle check in
   const handleCheckIn = async () => {
     try {
       setIsLoading(true);
-
       const token = getAuthToken();
       if (!token) {
         throw new Error("No authentication token found");
@@ -163,7 +230,7 @@ export default function EmployeeAttendancePage() {
         const checkInDate = parseISO(`${date}T${clockIn}`);
 
         setCheckInTime(checkInDate);
-        setIsCheckedIn(true);
+        setAttendanceStatus('checked_in');
 
         toast.success("Checked in successfully!", {
           description: `You've successfully checked in at ${clockIn}`,
@@ -226,7 +293,7 @@ export default function EmployeeAttendancePage() {
 
       if (error) throw new Error(error);
 
-      setIsCheckedIn(false);
+      setAttendanceStatus('checked_out');
       setCheckInTime(null);
       setWorkingHours(0);
       setShowSuccess(true);
@@ -252,15 +319,15 @@ export default function EmployeeAttendancePage() {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "present":
-        return <Badge className="bg-green-100 text-green-800">Present</Badge>;
+        return <Badge key="present" className="bg-green-100 text-green-800">Present</Badge>;
       case "late":
-        return <Badge className="bg-yellow-100 text-yellow-800">Late</Badge>;
+        return <Badge key="late" className="bg-yellow-100 text-yellow-800">Late</Badge>;
       case "early_leave":
         return (
-          <Badge className="bg-orange-100 text-orange-800">Early Leave</Badge>
+          <Badge key="early_leave" className="bg-orange-100 text-orange-800">Early Leave</Badge>
         );
       default:
-        return <Badge variant="secondary">{status}</Badge>;
+        return <Badge key={status} variant="secondary">{status}</Badge>;
     }
   };
 
@@ -284,9 +351,9 @@ export default function EmployeeAttendancePage() {
 
         {showSuccess && (
           <Alert className="mb-6 border-green-200 bg-green-50">
-            <CheckCircle className="h-4 w-4 text-green-600" />
+            <CheckCircle2 className="h-4 w-4 text-green-600" />
             <AlertDescription className="text-green-800">
-              {isCheckedIn
+              {attendanceStatus === 'checked_in'
                 ? "Successfully checked in!"
                 : "Successfully checked out!"}
             </AlertDescription>
@@ -313,10 +380,22 @@ export default function EmployeeAttendancePage() {
                 })}
               </div>
               <Badge
-                variant={isCheckedIn ? "default" : "secondary"}
+                variant={
+                  attendanceStatus === 'checked_in' 
+                    ? 'default' 
+                    : attendanceStatus === 'checked_out' 
+                      ? 'secondary' 
+                      : 'outline'
+                }
                 className="text-sm"
               >
-                {isCheckedIn ? "Checked In" : "Not Checked In"}
+                {
+                  attendanceStatus === 'checked_in' 
+                    ? 'Checked In' 
+                    : attendanceStatus === 'checked_out' 
+                      ? 'Checked Out' 
+                      : 'Not Checked In'
+                }
               </Badge>
             </CardContent>
           </Card>
@@ -328,20 +407,25 @@ export default function EmployeeAttendancePage() {
               <CardDescription>Mark your attendance for today</CardDescription>
             </CardHeader>
             <CardContent className="text-center space-y-4">
-              {!isCheckedIn ? (
+{attendanceStatus === 'not_checked_in' ? (
                 <Button onClick={handleCheckIn} className="w-full" size="lg">
-                  <CheckCircle className="mr-2 h-5 w-5" />
+                  <CheckCircle2 className="mr-2 h-5 w-5" />
                   Check In
                 </Button>
-              ) : (
-                <Button
-                  onClick={handleCheckOut}
-                  variant="destructive"
-                  className="w-full"
+              ) : attendanceStatus === 'checked_in' ? (
+                <Button 
+                  onClick={handleCheckOut} 
+                  variant="destructive" 
+                  className="w-full" 
                   size="lg"
                 >
-                  <XCircle className="mr-2 h-5 w-5" />
+                  <AlertCircle className="mr-2 h-5 w-5" />
                   Check Out
+                </Button>
+              ) : (
+                <Button disabled className="w-full" size="lg" variant="outline">
+                  <CheckCircle2 className="mr-2 h-5 w-5" />
+                  Already Checked Out
                 </Button>
               )}
               {checkInTime && (
@@ -363,8 +447,18 @@ export default function EmployeeAttendancePage() {
               <div className="space-y-3">
                 <div className="flex justify-between items-center">
                   <span className="text-sm font-medium">Status:</span>
-                  <Badge variant={isCheckedIn ? "default" : "secondary"}>
-                    {isCheckedIn ? "Working" : "Not Started"}
+                  <Badge variant={
+                  attendanceStatus === 'checked_in' 
+                    ? 'default' 
+                    : attendanceStatus === 'checked_out' 
+                      ? 'secondary' 
+                      : 'outline'
+                }>
+                    {attendanceStatus === 'checked_in' 
+                      ? 'Working' 
+                      : attendanceStatus === 'checked_out' 
+                        ? 'Completed' 
+                        : 'Not Started'}
                   </Badge>
                 </div>
                 <div className="flex justify-between items-center">
@@ -375,9 +469,16 @@ export default function EmployeeAttendancePage() {
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-sm font-medium">Hours Worked:</span>
-                  <span className="text-sm text-gray-600">
-                    {workingHours.toFixed(1)}h
-                  </span>
+                  <div className="flex items-center">
+                    <span className="text-sm text-gray-600">
+                      {workingHours.toFixed(1)}h
+                    </span>
+                    {workingHours > 8 && (
+                      <span className="ml-2 text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full">
+                        +{(workingHours - 8).toFixed(1)}h OT
+                      </span>
+                    )}
+                  </div>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-sm font-medium">Expected Hours:</span>
@@ -400,34 +501,58 @@ export default function EmployeeAttendancePage() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Date</TableHead>
+                    <TableHead>Day</TableHead>
                     <TableHead>Check In</TableHead>
                     <TableHead>Check Out</TableHead>
                     <TableHead>Total Hours</TableHead>
-                    <TableHead>Overtime</TableHead>
                     <TableHead>Status</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {mockAttendanceHistory.map((record, index) => (
-                    <TableRow key={index}>
-                      <TableCell className="font-medium">
-                        {new Date(record.date).toLocaleDateString()}
+                  {isLoadingHistory ? (
+                    <TableRow>
+                      <TableCell colSpan={6} className="text-center py-4">
+                        <div className="flex items-center justify-center">
+                          <Loader2 className="h-5 w-5 animate-spin mr-2" />
+                          Loading attendance history...
+                        </div>
                       </TableCell>
-                      <TableCell>{record.checkIn}</TableCell>
-                      <TableCell>{record.checkOut}</TableCell>
-                      <TableCell>{record.totalHours}h</TableCell>
-                      <TableCell>
-                        {record.overtime === "0" ? (
-                          <span className="text-gray-400">-</span>
-                        ) : (
-                          <span className="text-blue-600">
-                            {record.overtime}h
-                          </span>
-                        )}
-                      </TableCell>
-                      <TableCell>{getStatusBadge(record.status)}</TableCell>
                     </TableRow>
-                  ))}
+                  ) : weeklyData?.data && weeklyData.data.length > 0 ? (
+                    weeklyData.data.map((record) => (
+                      <TableRow key={record.id}>
+                        <TableCell>
+                          {new Date(record.date).toLocaleDateString("en-US", {
+                            year: "numeric",
+                            month: "short",
+                            day: "numeric",
+                          })}
+                        </TableCell>
+                        <TableCell className="font-medium">
+                          {record.day}
+                        </TableCell>
+                        <TableCell>
+                          {record.clockIn ? formatTime(record.clockIn) : "-"}
+                        </TableCell>
+                        <TableCell>
+                          {record.clockOut ? formatTime(record.clockOut) : "-"}
+                        </TableCell>
+                        <TableCell>{record.formattedHours}</TableCell>
+                        <TableCell>{getStatusBadge(record.status)}</TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell
+                        colSpan={6}
+                        className="text-center py-4 text-gray-500"
+                      >
+                        {weeklyError
+                          ? "Error loading attendance records"
+                          : "No attendance records found for this week"}
+                      </TableCell>
+                    </TableRow>
+                  )}
                 </TableBody>
               </Table>
             </div>
