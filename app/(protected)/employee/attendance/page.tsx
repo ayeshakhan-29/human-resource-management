@@ -3,14 +3,41 @@
 import { useEffect, useState } from "react";
 import {
   Clock,
-  Loader2,
+  Clock3,
+  Clock4,
+  Clock5,
+  Clock6,
+  Clock7,
+  Clock8,
+  Clock9,
   CheckCircle2,
   AlertCircle,
-  Clock4,
+  Loader2,
 } from "lucide-react";
-import { format, parseISO, formatDistanceToNow } from "date-fns";
+import { format, parseISO } from "date-fns";
 import { toast } from "sonner";
-import useSWR from "swr";
+import useSWR, { useSWRConfig } from "swr";
+import { getAuthToken } from "@/lib/auth/token";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Table, TableBody, TableCell } from "@/components/ui/table";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Header } from "@/components/header";
+import {
+  clockInAction,
+  clockOutAction,
+  getTodaysAttendance,
+  getWeeklyAttendance,
+} from "@/lib/actions/attendance.actions";
+import { WeeklyAttendanceRecord as BackendWeeklyRecord } from "@/lib/types/attendance.types";
+import { AttendanceHistoryTable } from "@/components/attendance/AttendanceHistoryTable";
 
 // SWR fetcher function
 const fetcher = async (url: string) => {
@@ -34,33 +61,23 @@ const fetcher = async (url: string) => {
   return res.json();
 };
 
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Header } from "@/components/header";
-import {
-  clockInAction,
-  clockOutAction,
-  getTodaysAttendance,
-  getWeeklyAttendance,
-} from "@/lib/actions/attendance.actions";
-import { WeeklyAttendanceRecord } from "@/lib/types/attendance.types";
-import { getAuthToken } from "@/lib/auth/token";
+type OptimisticAttendanceRecord = Omit<BackendWeeklyRecord, 'id' | 'overtime' | 'totalHours' | 'formattedHours' | 'status'> & {
+  id: string | number;
+  status: 'present' | 'absent' | 'half_day' | 'holiday' | 'weekend' | 'leave';
+  formattedHours: string;
+  totalHours: string;
+  overtime: string;
+};
+
+interface WeeklyAttendanceRecord {
+  id: string;
+  date: string;
+  day: string;
+  clockIn: string | null;
+  clockOut: string | null;
+  formattedHours: string;
+  status: string;
+}
 
 interface AttendanceRecord {
   id: string;
@@ -84,11 +101,15 @@ const formatTime = (timeString: string) => {
 
 export default function EmployeeAttendancePage() {
   const [currentTime, setCurrentTime] = useState(new Date());
-  const [attendanceStatus, setAttendanceStatus] = useState<'not_checked_in' | 'checked_in' | 'checked_out'>('not_checked_in');
+  const [attendanceStatus, setAttendanceStatus] = useState<
+    "not_checked_in" | "checked_in" | "checked_out"
+  >("not_checked_in");
   const [isLoading, setIsLoading] = useState(true);
   const [checkInTime, setCheckInTime] = useState<Date | null>(null);
   const [workingHours, setWorkingHours] = useState(0);
   const [showSuccess, setShowSuccess] = useState(false);
+  const { mutate: globalMutate } = useSWRConfig();
+  
   // Use SWR for real-time data fetching with polling
   const {
     data: weeklyData,
@@ -97,7 +118,7 @@ export default function EmployeeAttendancePage() {
     mutate: mutateWeeklyData,
   } = useSWR<{
     success: boolean;
-    data: WeeklyAttendanceRecord[];
+    data: BackendWeeklyRecord[];
     startDate: string;
     endDate: string;
     summary: {
@@ -113,8 +134,8 @@ export default function EmployeeAttendancePage() {
     }/attendance/weekly`,
     fetcher,
     {
-      // Refresh every 1 seconds for near real-time updates
-      refreshInterval: 100,
+      // Refresh every 5 seconds for near real-time updates
+      refreshInterval: 5000,
       // Keep refreshing even when window is not focused
       refreshWhenHidden: true,
       // Keep refreshing even when offline
@@ -169,23 +190,28 @@ export default function EmployeeAttendancePage() {
           const diffHours =
             (now.getTime() - checkInDateTime.getTime()) / (1000 * 60 * 60);
 
-          setAttendanceStatus('checked_in');
+          setAttendanceStatus("checked_in");
           setCheckInTime(checkInDateTime);
           setWorkingHours(parseFloat(diffHours.toFixed(2)));
         } else if (attendance?.clockIn && attendance.clockOut) {
-          setAttendanceStatus('checked_out');
+          setAttendanceStatus("checked_out");
           setCheckInTime(parseISO(`${attendance.date}T${attendance.clockIn}`));
-          const checkOutDateTime = parseISO(`${attendance.date}T${attendance.clockOut}`);
-          const diffHours = (checkOutDateTime.getTime() - parseISO(`${attendance.date}T${attendance.clockIn}`).getTime()) / (1000 * 60 * 60);
+          const checkOutDateTime = parseISO(
+            `${attendance.date}T${attendance.clockOut}`
+          );
+          const diffHours =
+            (checkOutDateTime.getTime() -
+              parseISO(`${attendance.date}T${attendance.clockIn}`).getTime()) /
+            (1000 * 60 * 60);
           setWorkingHours(parseFloat(diffHours.toFixed(2)));
         } else {
-          setAttendanceStatus('not_checked_in');
+          setAttendanceStatus("not_checked_in");
           setCheckInTime(null);
           setWorkingHours(0);
         }
       } catch (error: unknown) {
         console.error("Error checking attendance status:", error);
-        setAttendanceStatus('not_checked_in');
+        setAttendanceStatus("not_checked_in");
         setCheckInTime(null);
         setWorkingHours(0);
       } finally {
@@ -210,15 +236,41 @@ export default function EmployeeAttendancePage() {
     return () => clearInterval(timer);
   }, [checkInTime]);
 
-  // Handle check in
+  // Handle check in with SWR mutation
   const handleCheckIn = async () => {
+    const token = getAuthToken();
+    if (!token) {
+      throw new Error("No authentication token found");
+    }
+
+    // Optimistic UI update
+    if (!weeklyData) return;
+    
+    const today = new Date();
+    const optimisticRecord: OptimisticAttendanceRecord = {
+      id: 'temp-id',
+      date: today.toISOString().split('T')[0],
+      day: today.toLocaleDateString('en-US', { weekday: 'long' }),
+      clockIn: today.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' }),
+      clockOut: null,
+      formattedHours: '0h 0m',
+      status: 'present',
+      totalHours: '0',
+      overtime: '0'
+    };
+
+    const optimisticData = {
+      ...weeklyData,
+      data: [optimisticRecord as unknown as BackendWeeklyRecord, ...weeklyData.data.filter(r => r.id?.toString() !== 'temp-id').slice(0, 6)]
+    };
+
     try {
       setIsLoading(true);
-      const token = getAuthToken();
-      if (!token) {
-        throw new Error("No authentication token found");
-      }
-
+      
+      // Update the cache optimistically
+      await mutateWeeklyData(optimisticData, false);
+      
+      // Make the API call
       const { data, error, status } = await clockInAction(token);
 
       if (error || status === 401) {
@@ -229,8 +281,15 @@ export default function EmployeeAttendancePage() {
         const { date, clockIn } = data.attendance;
         const checkInDate = parseISO(`${date}T${clockIn}`);
 
+        // Update local state
         setCheckInTime(checkInDate);
-        setAttendanceStatus('checked_in');
+        setAttendanceStatus("checked_in");
+
+        // Revalidate the cache
+        await Promise.all([
+          globalMutate((key) => typeof key === 'string' && key.includes('/attendance/')),
+          mutateWeeklyData()
+        ]);
 
         toast.success("Checked in successfully!", {
           description: `You've successfully checked in at ${clockIn}`,
@@ -285,18 +344,55 @@ export default function EmployeeAttendancePage() {
   };
 
   const handleCheckOut = async () => {
+    const token = getAuthToken();
+    if (!token) {
+      throw new Error("No authentication token found");
+    }
+
+    // Optimistic UI update
+    if (!weeklyData) return;
+    
+    const optimisticData = {
+      ...weeklyData,
+      data: weeklyData.data.map(record => {
+        if (record.clockIn && !record.clockOut) {
+          const updatedRecord: OptimisticAttendanceRecord = {
+            ...record,
+            id: record.id || 'temp-id',
+            clockOut: new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' }),
+            status: 'present',
+            formattedHours: '8h 0m',
+            totalHours: '8',
+            overtime: '0'
+          };
+          return updatedRecord as unknown as BackendWeeklyRecord;
+        }
+        return record;
+      })
+    };
+
     try {
       setIsLoading(true);
-      const token = getAuthToken();
-
+      
+      // Update the cache optimistically
+      await mutateWeeklyData(optimisticData, false);
+      
+      // Make the API call
       const { data, error } = await clockOutAction(token);
 
       if (error) throw new Error(error);
 
-      setAttendanceStatus('checked_out');
+      // Update local state
+      setAttendanceStatus("checked_out");
       setCheckInTime(null);
       setWorkingHours(0);
       setShowSuccess(true);
+
+      // Revalidate the cache
+      await Promise.all([
+        globalMutate((key) => typeof key === 'string' && key.includes('/attendance/')),
+        mutateWeeklyData()
+      ]);
 
       if (data?.attendance) {
         toast.success("Checked out successfully!", {
@@ -313,21 +409,6 @@ export default function EmployeeAttendancePage() {
       });
     } finally {
       setIsLoading(false);
-    }
-  };
-
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "present":
-        return <Badge key="present" className="bg-green-100 text-green-800">Present</Badge>;
-      case "late":
-        return <Badge key="late" className="bg-yellow-100 text-yellow-800">Late</Badge>;
-      case "early_leave":
-        return (
-          <Badge key="early_leave" className="bg-orange-100 text-orange-800">Early Leave</Badge>
-        );
-      default:
-        return <Badge key={status} variant="secondary">{status}</Badge>;
     }
   };
 
@@ -353,7 +434,7 @@ export default function EmployeeAttendancePage() {
           <Alert className="mb-6 border-green-200 bg-green-50">
             <CheckCircle2 className="h-4 w-4 text-green-600" />
             <AlertDescription className="text-green-800">
-              {attendanceStatus === 'checked_in'
+              {attendanceStatus === "checked_in"
                 ? "Successfully checked in!"
                 : "Successfully checked out!"}
             </AlertDescription>
@@ -381,21 +462,19 @@ export default function EmployeeAttendancePage() {
               </div>
               <Badge
                 variant={
-                  attendanceStatus === 'checked_in' 
-                    ? 'default' 
-                    : attendanceStatus === 'checked_out' 
-                      ? 'secondary' 
-                      : 'outline'
+                  attendanceStatus === "checked_in"
+                    ? "default"
+                    : attendanceStatus === "checked_out"
+                    ? "secondary"
+                    : "outline"
                 }
                 className="text-sm"
               >
-                {
-                  attendanceStatus === 'checked_in' 
-                    ? 'Checked In' 
-                    : attendanceStatus === 'checked_out' 
-                      ? 'Checked Out' 
-                      : 'Not Checked In'
-                }
+                {attendanceStatus === "checked_in"
+                  ? "Checked In"
+                  : attendanceStatus === "checked_out"
+                  ? "Checked Out"
+                  : "Not Checked In"}
               </Badge>
             </CardContent>
           </Card>
@@ -407,16 +486,16 @@ export default function EmployeeAttendancePage() {
               <CardDescription>Mark your attendance for today</CardDescription>
             </CardHeader>
             <CardContent className="text-center space-y-4">
-{attendanceStatus === 'not_checked_in' ? (
+              {attendanceStatus === "not_checked_in" ? (
                 <Button onClick={handleCheckIn} className="w-full" size="lg">
                   <CheckCircle2 className="mr-2 h-5 w-5" />
                   Check In
                 </Button>
-              ) : attendanceStatus === 'checked_in' ? (
-                <Button 
-                  onClick={handleCheckOut} 
-                  variant="destructive" 
-                  className="w-full" 
+              ) : attendanceStatus === "checked_in" ? (
+                <Button
+                  onClick={handleCheckOut}
+                  variant="destructive"
+                  className="w-full"
                   size="lg"
                 >
                   <AlertCircle className="mr-2 h-5 w-5" />
@@ -447,18 +526,20 @@ export default function EmployeeAttendancePage() {
               <div className="space-y-3">
                 <div className="flex justify-between items-center">
                   <span className="text-sm font-medium">Status:</span>
-                  <Badge variant={
-                  attendanceStatus === 'checked_in' 
-                    ? 'default' 
-                    : attendanceStatus === 'checked_out' 
-                      ? 'secondary' 
-                      : 'outline'
-                }>
-                    {attendanceStatus === 'checked_in' 
-                      ? 'Working' 
-                      : attendanceStatus === 'checked_out' 
-                        ? 'Completed' 
-                        : 'Not Started'}
+                  <Badge
+                    variant={
+                      attendanceStatus === "checked_in"
+                        ? "default"
+                        : attendanceStatus === "checked_out"
+                        ? "secondary"
+                        : "outline"
+                    }
+                  >
+                    {attendanceStatus === "checked_in"
+                      ? "Working"
+                      : attendanceStatus === "checked_out"
+                      ? "Completed"
+                      : "Not Started"}
                   </Badge>
                 </div>
                 <div className="flex justify-between items-center">
@@ -497,64 +578,15 @@ export default function EmployeeAttendancePage() {
           </CardHeader>
           <CardContent>
             <div className="rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Day</TableHead>
-                    <TableHead>Check In</TableHead>
-                    <TableHead>Check Out</TableHead>
-                    <TableHead>Total Hours</TableHead>
-                    <TableHead>Status</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {isLoadingHistory ? (
-                    <TableRow>
-                      <TableCell colSpan={6} className="text-center py-4">
-                        <div className="flex items-center justify-center">
-                          <Loader2 className="h-5 w-5 animate-spin mr-2" />
-                          Loading attendance history...
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ) : weeklyData?.data && weeklyData.data.length > 0 ? (
-                    weeklyData.data.map((record) => (
-                      <TableRow key={record.id}>
-                        <TableCell>
-                          {new Date(record.date).toLocaleDateString("en-US", {
-                            year: "numeric",
-                            month: "short",
-                            day: "numeric",
-                          })}
-                        </TableCell>
-                        <TableCell className="font-medium">
-                          {record.day}
-                        </TableCell>
-                        <TableCell>
-                          {record.clockIn ? formatTime(record.clockIn) : "-"}
-                        </TableCell>
-                        <TableCell>
-                          {record.clockOut ? formatTime(record.clockOut) : "-"}
-                        </TableCell>
-                        <TableCell>{record.formattedHours}</TableCell>
-                        <TableCell>{getStatusBadge(record.status)}</TableCell>
-                      </TableRow>
-                    ))
-                  ) : (
-                    <TableRow>
-                      <TableCell
-                        colSpan={6}
-                        className="text-center py-4 text-gray-500"
-                      >
-                        {weeklyError
-                          ? "Error loading attendance records"
-                          : "No attendance records found for this week"}
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
+              <AttendanceHistoryTable
+                data={weeklyData?.data?.map((record) => ({
+                  ...record,
+                  id: record.id?.toString() || "",
+                  formattedHours: record.formattedHours || "0h 0m",
+                }))}
+                isLoading={isLoadingHistory}
+                error={weeklyError}
+              />
             </div>
           </CardContent>
         </Card>
