@@ -1,19 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import {
-  Clock,
-  Clock3,
-  Clock4,
-  Clock5,
-  Clock6,
-  Clock7,
-  Clock8,
-  Clock9,
-  CheckCircle2,
-  AlertCircle,
-  Loader2,
-} from "lucide-react";
+import { CheckCircle2, AlertCircle } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { toast } from "sonner";
 import useSWR, { useSWRConfig } from "swr";
@@ -27,7 +15,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Table, TableBody, TableCell } from "@/components/ui/table";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Header } from "@/components/header";
 import {
@@ -61,33 +48,16 @@ const fetcher = async (url: string) => {
   return res.json();
 };
 
-type OptimisticAttendanceRecord = Omit<BackendWeeklyRecord, 'id' | 'overtime' | 'totalHours' | 'formattedHours' | 'status'> & {
+type OptimisticAttendanceRecord = Omit<
+  BackendWeeklyRecord,
+  "id" | "overtime" | "totalHours" | "formattedHours" | "status"
+> & {
   id: string | number;
-  status: 'present' | 'absent' | 'half_day' | 'holiday' | 'weekend' | 'leave';
+  status: "present" | "absent" | "half_day" | "holiday" | "weekend" | "leave";
   formattedHours: string;
   totalHours: string;
   overtime: string;
 };
-
-interface WeeklyAttendanceRecord {
-  id: string;
-  date: string;
-  day: string;
-  clockIn: string | null;
-  clockOut: string | null;
-  formattedHours: string;
-  status: string;
-}
-
-interface AttendanceRecord {
-  id: string;
-  date: string;
-  clockIn: string;
-  clockOut: string | null;
-  totalHours: string;
-  status: string;
-  overtime: string;
-}
 
 // Helper function to format time from 24h to 12h format
 const formatTime = (timeString: string) => {
@@ -109,7 +79,7 @@ export default function EmployeeAttendancePage() {
   const [workingHours, setWorkingHours] = useState(0);
   const [showSuccess, setShowSuccess] = useState(false);
   const { mutate: globalMutate } = useSWRConfig();
-  
+
   // Use SWR for real-time data fetching with polling
   const {
     data: weeklyData,
@@ -245,31 +215,40 @@ export default function EmployeeAttendancePage() {
 
     // Optimistic UI update
     if (!weeklyData) return;
-    
+
     const today = new Date();
     const optimisticRecord: OptimisticAttendanceRecord = {
-      id: 'temp-id',
-      date: today.toISOString().split('T')[0],
-      day: today.toLocaleDateString('en-US', { weekday: 'long' }),
-      clockIn: today.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' }),
+      id: "temp-id",
+      date: today.toISOString().split("T")[0],
+      day: today.toLocaleDateString("en-US", { weekday: "long" }),
+      clockIn: today.toLocaleTimeString("en-US", {
+        hour12: false,
+        hour: "2-digit",
+        minute: "2-digit",
+      }),
       clockOut: null,
-      formattedHours: '0h 0m',
-      status: 'present',
-      totalHours: '0',
-      overtime: '0'
+      formattedHours: "0h 0m",
+      status: "present",
+      totalHours: "0",
+      overtime: "0",
     };
 
     const optimisticData = {
       ...weeklyData,
-      data: [optimisticRecord as unknown as BackendWeeklyRecord, ...weeklyData.data.filter(r => r.id?.toString() !== 'temp-id').slice(0, 6)]
+      data: [
+        optimisticRecord as unknown as BackendWeeklyRecord,
+        ...weeklyData.data
+          .filter((r) => r.id?.toString() !== "temp-id")
+          .slice(0, 6),
+      ],
     };
 
     try {
       setIsLoading(true);
-      
+
       // Update the cache optimistically
       await mutateWeeklyData(optimisticData, false);
-      
+
       // Make the API call
       const { data, error, status } = await clockInAction(token);
 
@@ -287,8 +266,10 @@ export default function EmployeeAttendancePage() {
 
         // Revalidate the cache
         await Promise.all([
-          globalMutate((key) => typeof key === 'string' && key.includes('/attendance/')),
-          mutateWeeklyData()
+          globalMutate(
+            (key) => typeof key === "string" && key.includes("/attendance/")
+          ),
+          mutateWeeklyData(),
         ]);
 
         toast.success("Checked in successfully!", {
@@ -351,32 +332,36 @@ export default function EmployeeAttendancePage() {
 
     // Optimistic UI update
     if (!weeklyData) return;
-    
+
     const optimisticData = {
       ...weeklyData,
-      data: weeklyData.data.map(record => {
+      data: weeklyData.data.map((record) => {
         if (record.clockIn && !record.clockOut) {
           const updatedRecord: OptimisticAttendanceRecord = {
             ...record,
-            id: record.id || 'temp-id',
-            clockOut: new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' }),
-            status: 'present',
-            formattedHours: '8h 0m',
-            totalHours: '8',
-            overtime: '0'
+            id: record.id || "temp-id",
+            clockOut: new Date().toLocaleTimeString("en-US", {
+              hour12: false,
+              hour: "2-digit",
+              minute: "2-digit",
+            }),
+            status: "present",
+            formattedHours: "8h 0m",
+            totalHours: "8",
+            overtime: "0",
           };
           return updatedRecord as unknown as BackendWeeklyRecord;
         }
         return record;
-      })
+      }),
     };
 
     try {
       setIsLoading(true);
-      
+
       // Update the cache optimistically
       await mutateWeeklyData(optimisticData, false);
-      
+
       // Make the API call
       const { data, error } = await clockOutAction(token);
 
@@ -390,8 +375,10 @@ export default function EmployeeAttendancePage() {
 
       // Revalidate the cache
       await Promise.all([
-        globalMutate((key) => typeof key === 'string' && key.includes('/attendance/')),
-        mutateWeeklyData()
+        globalMutate(
+          (key) => typeof key === "string" && key.includes("/attendance/")
+        ),
+        mutateWeeklyData(),
       ]);
 
       if (data?.attendance) {

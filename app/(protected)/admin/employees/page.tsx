@@ -1,7 +1,18 @@
 "use client";
 
 import { useState } from "react";
-import { Search, Plus, MoreHorizontal, Edit, Trash2 } from "lucide-react";
+import {
+  Search,
+  Plus,
+  MoreHorizontal,
+  Edit,
+  Trash2,
+  Loader2,
+  AlertCircle,
+} from "lucide-react";
+import { format } from "date-fns";
+import { toast } from "sonner";
+import useSWR from "swr";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -37,82 +48,104 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Header } from "@/components/header";
 import { AddEmployeeForm } from "@/components/add-employee-form";
+import {
+  getAllEmployees,
+  updateEmployeeStatus,
+} from "@/lib/actions/employee.actions";
+import { Employee } from "@/lib/types/employee.types";
 
-const mockEmployees = [
-  {
-    id: 1,
-    name: "John Smith",
-    email: "john@company.com",
-    department: "Engineering",
-    position: "Software Engineer",
-    employeeId: "EMP001",
-    status: "active",
-    joinDate: "2024-01-15",
-    phone: "+1 (555) 123-4567",
-    salary: "$75,000",
-  },
-  {
-    id: 2,
-    name: "Sarah Johnson",
-    email: "sarah@company.com",
-    department: "Marketing",
-    position: "Marketing Manager",
-    employeeId: "EMP002",
-    status: "active",
-    joinDate: "2024-02-01",
-    phone: "+1 (555) 234-5678",
-    salary: "$68,000",
-  },
-  {
-    id: 3,
-    name: "Mike Davis",
-    email: "mike@company.com",
-    department: "Sales",
-    position: "Sales Representative",
-    employeeId: "EMP003",
-    status: "active",
-    joinDate: "2024-01-20",
-    phone: "+1 (555) 345-6789",
-    salary: "$55,000",
-  },
-  {
-    id: 4,
-    name: "Emily Chen",
-    email: "emily@company.com",
-    department: "HR",
-    position: "HR Specialist",
-    employeeId: "EMP004",
-    status: "on_leave",
-    joinDate: "2023-11-10",
-    phone: "+1 (555) 456-7890",
-    salary: "$62,000",
-  },
-  {
-    id: 5,
-    name: "David Wilson",
-    email: "david@company.com",
-    department: "Engineering",
-    position: "Senior Developer",
-    employeeId: "EMP005",
-    status: "active",
-    joinDate: "2023-08-15",
-    phone: "+1 (555) 567-8901",
-    salary: "$85,000",
-  },
-];
+// SWR fetcher function
+const fetcher = async () => {
+  const response = await getAllEmployees();
+  return response.data;
+};
+
+// Format employee name for avatar
+const getInitials = (name: string) => {
+  return name
+    .split(" ")
+    .map((part) => part[0])
+    .join("")
+    .toUpperCase()
+    .substring(0, 2);
+};
+
+// Status badge component
+const StatusBadge = ({ status }: { status: string }) => {
+  const statusMap = {
+    active: { label: "Active", variant: "default" as const },
+    inactive: { label: "Inactive", variant: "secondary" as const },
+    suspended: { label: "Suspended", variant: "destructive" as const },
+  };
+
+  const { label, variant } = statusMap[status as keyof typeof statusMap] || {
+    label: status,
+    variant: "outline" as const,
+  };
+  return <Badge variant={variant}>{label}</Badge>;
+};
 
 export default function AdminEmployeesPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
 
-  const filteredEmployees = mockEmployees.filter(
-    (employee) =>
-      employee.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      employee.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      employee.department.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const {
+    data: employees,
+    error,
+    isLoading,
+    mutate,
+  } = useSWR<Employee[]>("employees", fetcher, {
+    revalidateOnFocus: true,
+    revalidateOnReconnect: true,
+  });
+
+  const handleStatusUpdate = async (
+    employeeId: number,
+    newStatus: "active" | "inactive" | "suspended"
+  ) => {
+    try {
+      await updateEmployeeStatus(employeeId, newStatus);
+      toast.success(`Employee status updated to ${newStatus}`);
+      mutate(); // Revalidate the data
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Failed to update employee status"
+      );
+    }
+  };
+
+  const filteredEmployees =
+    employees?.filter(
+      (employee) =>
+        employee.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        employee.email.toLowerCase().includes(searchTerm.toLowerCase())
+    ) || [];
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Alert className="max-w-md">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            Failed to load employees. Please try again later.
+          </AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
 
   return (
     <>
@@ -132,8 +165,8 @@ export default function AdminEmployeesPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{mockEmployees.length}</div>
-              <p className="text-xs text-muted-foreground">Active workforce</p>
+              <div className="text-2xl font-bold">{employees?.length || 0}</div>
+              <p className="text-xs text-muted-foreground">Total employees</p>
             </CardContent>
           </Card>
           <Card>
@@ -141,9 +174,11 @@ export default function AdminEmployeesPage() {
               <CardTitle className="text-sm font-medium">Departments</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">4</div>
-              <p className="text-xs text-muted-foreground">
-                Engineering, Marketing, Sales, HR
+              <div className="text-2xl font-bold">
+                {new Set(employees?.map(emp => emp.role)).size || 0}
+              </div>
+              <p className="text-xs text-muted-foreground truncate">
+                {Array.from(new Set(employees?.map(emp => emp.role))).join(', ') || 'No departments'}
               </p>
             </CardContent>
           </Card>
@@ -155,9 +190,9 @@ export default function AdminEmployeesPage() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {mockEmployees.filter((emp) => emp.status === "active").length}
+                {employees?.filter(emp => emp.status === "active").length || 0}
               </div>
-              <p className="text-xs text-muted-foreground">Currently working</p>
+              <p className="text-xs text-muted-foreground">Currently active</p>
             </CardContent>
           </Card>
           <Card>
@@ -166,12 +201,9 @@ export default function AdminEmployeesPage() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {
-                  mockEmployees.filter((emp) => emp.status === "on_leave")
-                    .length
-                }
+                {employees?.filter(emp => emp.status === "inactive").length || 0}
               </div>
-              <p className="text-xs text-muted-foreground">Temporary absence</p>
+              <p className="text-xs text-muted-foreground">Inactive accounts</p>
             </CardContent>
           </Card>
         </div>
@@ -186,112 +218,133 @@ export default function AdminEmployeesPage() {
                   Manage your team members and their details
                 </CardDescription>
               </div>
-              <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button>
-                    <Plus className="mr-2 h-4 w-4" />
-                    Add Employee
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="sm:max-w-[600px]">
-                  <DialogHeader>
-                    <DialogTitle>Add New Employee</DialogTitle>
-                    <DialogDescription>
-                      Enter the employee details to add them to the system.
-                    </DialogDescription>
-                  </DialogHeader>
-                  <AddEmployeeForm
-                    onSuccess={() => setIsAddDialogOpen(false)}
+              <div className="flex items-center gap-2">
+                <div className="relative">
+                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    type="search"
+                    placeholder="Search employees..."
+                    className="w-full pl-8 sm:w-[300px] md:w-[200px] lg:w-[300px]"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
                   />
-                </DialogContent>
-              </Dialog>
+                </div>
+                <Dialog
+                  open={isAddDialogOpen}
+                  onOpenChange={setIsAddDialogOpen}
+                >
+                  <DialogTrigger asChild>
+                    <Button>
+                      <Plus className="mr-2 h-4 w-4" /> Add Employee
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Add New Employee</DialogTitle>
+                      <DialogDescription>
+                        Fill in the details to add a new employee to the system.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <AddEmployeeForm
+                      onSuccess={() => {
+                        setIsAddDialogOpen(false);
+                        mutate(); // Refresh the list after adding
+                      }}
+                    />
+                  </DialogContent>
+                </Dialog>
+              </div>
             </div>
           </CardHeader>
           <CardContent>
-            <div className="flex items-center space-x-2 mb-6">
-              <Search className="h-4 w-4 text-gray-400" />
-              <Input
-                placeholder="Search employees by name, email, or department..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="max-w-sm"
-              />
-            </div>
-
             <div className="rounded-md border">
               <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead>Employee</TableHead>
-                    <TableHead>Employee ID</TableHead>
-                    <TableHead>Department</TableHead>
-                    <TableHead>Position</TableHead>
+                    <TableHead>Email</TableHead>
                     <TableHead>Status</TableHead>
-                    <TableHead>Join Date</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
+                    <TableHead>Last Login</TableHead>
+                    <TableHead>Created At</TableHead>
+                    <TableHead className="w-[100px]">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filteredEmployees.map((employee) => (
                     <TableRow key={employee.id}>
                       <TableCell className="font-medium">
-                        <div className="flex items-center space-x-3">
+                        <div className="flex items-center gap-3">
                           <Avatar>
                             <AvatarFallback>
-                              {employee.name
-                                .split(" ")
-                                .map((n) => n[0])
-                                .join("")}
+                              {getInitials(employee.fullName)}
                             </AvatarFallback>
                           </Avatar>
-                          <div>
-                            <p className="font-medium">{employee.name}</p>
-                            <p className="text-sm text-gray-500">
-                              {employee.email}
-                            </p>
-                          </div>
+                          {employee.fullName}
                         </div>
                       </TableCell>
-                      <TableCell>{employee.employeeId}</TableCell>
-                      <TableCell>{employee.department}</TableCell>
-                      <TableCell>{employee.position}</TableCell>
+                      <TableCell>{employee.email}</TableCell>
                       <TableCell>
-                        <Badge
-                          variant={
-                            employee.status === "active"
-                              ? "default"
-                              : "secondary"
-                          }
-                        >
-                          {employee.status === "active" ? "Active" : "On Leave"}
-                        </Badge>
+                        <StatusBadge status={employee.status} />
                       </TableCell>
                       <TableCell>
-                        {new Date(employee.joinDate).toLocaleDateString()}
+                        {employee.lastLogin
+                          ? format(
+                              new Date(employee.lastLogin),
+                              "MMM d, yyyy h:mm a"
+                            )
+                          : "Never logged in"}
                       </TableCell>
-                      <TableCell className="text-right">
+                      <TableCell>
+                        {format(new Date(employee.createdAt), "MMM d, yyyy")}
+                      </TableCell>
+                      <TableCell>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" className="h-8 w-8 p-0">
+                            <Button variant="ghost" size="icon">
                               <MoreHorizontal className="h-4 w-4" />
+                              <span className="sr-only">Actions</span>
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => {
+                                const newStatus =
+                                  employee.status === "active"
+                                    ? "inactive"
+                                    : "active";
+                                handleStatusUpdate(employee.id, newStatus);
+                              }}
+                            >
                               <Edit className="mr-2 h-4 w-4" />
-                              Edit Details
+                              {employee.status === "active"
+                                ? "Deactivate"
+                                : "Activate"}
                             </DropdownMenuItem>
-                            <DropdownMenuItem>View Profile</DropdownMenuItem>
                             <DropdownMenuSeparator />
-                            <DropdownMenuItem className="text-red-600">
+                            <DropdownMenuItem
+                              className="text-destructive"
+                              onClick={() =>
+                                handleStatusUpdate(employee.id, "suspended")
+                              }
+                            >
                               <Trash2 className="mr-2 h-4 w-4" />
-                              Remove Employee
+                              Suspend
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </TableCell>
                     </TableRow>
                   ))}
+                  {filteredEmployees.length === 0 && (
+                    <TableRow>
+                      <TableCell
+                        colSpan={6}
+                        className="text-center py-8 text-muted-foreground"
+                      >
+                        No employees found
+                      </TableCell>
+                    </TableRow>
+                  )}
                 </TableBody>
               </Table>
             </div>
