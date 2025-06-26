@@ -25,3 +25,15 @@ export interface ApiError {
   error: string;
   message?: string;
 }
+
+export interface InviteEmployeePayload {
+  fullName: string;
+  email: string;
+  role: string;
+}
+
+export interface InviteEmployeeResponse {
+  message: string;
+  userId: number;
+  resetToken: string;
+}
