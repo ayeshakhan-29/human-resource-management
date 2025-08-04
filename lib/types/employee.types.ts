@@ -3,15 +3,13 @@ export interface UserInfo {
   employeeId: number;
   phone?: string;
   address?: string;
-  dateOfBirth?: string;
-  gender?: string;
+  dob?: string;
   department?: string;
   position?: string;
   hireDate?: string;
-  emergencyContact?: string;
-  emergencyPhone?: string;
   createdAt: string;
   updatedAt: string;
+  startDate?: string;
 }
 
 export interface Employee {
@@ -34,26 +32,23 @@ export interface EmployeesResponse {
 
 export interface EmployeeFormData {
   // Personal Information
-  firstName: string;
-  lastName: string;
+  fullName: string;
   email: string;
-  phone: string;
-  dateOfBirth: string;
-  address: string;
-  city: string;
-  state: string;
+  contactNumber: string;
   cnic: string;
-  zipCode: string;
+  dob: string;
+  address: string;
 
   // Work Information
   employeeId: string;
   department: string;
   position: string;
-  manager: string;
+  reportingManager: string;
   startDate: string;
+  team: string;
   employmentType: string;
-  workLocation: string;
-  salary: string;
+  salary: string | number;
+  probationEndDate: string;
 
   // Bank Information
   bankName: string;
@@ -62,6 +57,7 @@ export interface EmployeeFormData {
   iban: string;
   branchCode: string;
   branchAddress: string;
+
   // Emergency Contact
   emergencyContactName: string;
   emergencyContactRelationship: string;
@@ -72,32 +68,62 @@ export interface EmployeeFormData {
 }
 
 export const initialEmployeeFormData: EmployeeFormData = {
-  firstName: "",
-  lastName: "",
+  // Personal Information
+  fullName: "",
   email: "",
-  phone: "",
-  dateOfBirth: "",
+  contactNumber: "",
+  cnic: "",
+  dob: "",
   address: "",
-  city: "",
-  state: "",
-  zipCode: "",
+
+  // Work Information
   employeeId: "",
   department: "",
   position: "",
-  manager: "",
+  reportingManager: "",
   startDate: "",
+  team: "",
   employmentType: "",
-  workLocation: "",
   salary: "",
-  cnic: "",
+  probationEndDate: "",
+
+  // Bank Information
   bankName: "",
   accountTitle: "",
   accountNumber: "",
   iban: "",
   branchCode: "",
   branchAddress: "",
+
+  // Emergency Contact
   emergencyContactName: "",
   emergencyContactRelationship: "",
   emergencyContactPhone: "",
+
+  // Additional Information
   notes: "",
 };
+
+export interface InviteEmployeeBody {
+  fullName: string;
+  email: string;
+  role: string;
+  cnic: string;
+  contactNumber: string;
+  address: string;
+  dob: string;
+  startDate: string;
+  department: string;
+  reportingManager: string;
+  probationEndDate: string;
+  employmentStatus: string;
+  salary: number;
+  designation: string;
+  team: string;
+}
+
+export interface InviteEmployeeResponse {
+  message: string;
+  userId: number;
+  resetToken: string;
+}
