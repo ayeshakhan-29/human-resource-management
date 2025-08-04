@@ -7,15 +7,10 @@ import { Card, CardContent } from "@/components/ui/card";
 
 interface FormSuccessProps {
   employeeName: string;
-  employeeId: string;
   onAddAnother: () => void;
 }
 
-export function FormSuccess({
-  employeeName,
-  employeeId,
-  onAddAnother,
-}: FormSuccessProps) {
+export function FormSuccess({ employeeName, onAddAnother }: FormSuccessProps) {
   return (
     <div className="flex items-center justify-center min-h-[400px]">
       <Card className="w-full max-w-md">
@@ -23,13 +18,11 @@ export function FormSuccess({
           <div className="text-center">
             <CheckCircle className="h-12 w-12 text-green-600 mx-auto mb-4" />
             <h2 className="text-xl font-semibold mb-2">
-              Employee Added Successfully!
+              Employee Added Successfully! They will receive login credentials
+              via email.
             </h2>
             <p className="text-gray-600 mb-4">
               {employeeName} has been added to the system.
-            </p>
-            <p className="text-sm text-gray-500 mb-6">
-              Employee ID: {employeeId}
             </p>
             <div className="space-y-2">
               <Button asChild className="w-full">

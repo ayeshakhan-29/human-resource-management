@@ -82,7 +82,7 @@ export const inviteEmployee = async (
     throw new Error("No authentication token found");
   }
 
-  const response = await fetch(`${API_BASE_URL}/auth/invite-employee`, {
+  const response = await fetch(`${API_BASE_URL}auth/invite-employee`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -93,8 +93,22 @@ export const inviteEmployee = async (
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
+    console.error("Error response:", errorData);
+
+    // Handle validation errors with more specific messages
+    if (errorData.errors && Array.isArray(errorData.errors)) {
+      const errorMessages = errorData.errors.map(
+        (err: any) =>
+          `${err.field ? `${err.field}: ` : ""}${
+            err.message || "Validation error"
+          }`
+      );
+      throw new Error(errorMessages.join("\n"));
+    }
+
     throw new Error(errorData.message || "Failed to invite employee");
   }
 
-  return response.json();
+  const responseData = await response.json();
+  return responseData;
 };

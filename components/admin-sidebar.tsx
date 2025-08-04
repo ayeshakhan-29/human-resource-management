@@ -70,11 +70,6 @@ const data = {
           icon: Users,
         },
         {
-          title: "Invite Employee",
-          url: "/admin/employees/invite",
-          icon: UserPlus,
-        },
-        {
           title: "Add Employee",
           url: "/admin/employees/add",
           icon: UserPlus,
