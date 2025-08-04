@@ -5,6 +5,7 @@ import {
   InviteEmployeeResponse,
 } from "@/lib/types/employee.types";
 import { BankInfo, BankInfoResponse } from "@/lib/types/user.types";
+import { UpdateBankDetailsResponse } from "@/lib/types/bank.types";
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5005/api";
@@ -50,17 +51,14 @@ export const updateEmployeeStatus = async (
     throw new Error("No authentication token found");
   }
 
-  const response = await fetch(
-    `${API_BASE_URL}/employee/${employeeId}/status`,
-    {
-      method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({ status }),
-    }
-  );
+  const response = await fetch(`${API_BASE_URL}employee/${employeeId}/status`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ status }),
+  });
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
@@ -205,4 +203,33 @@ export const EmployeeBankInfo = async (
     console.error("Error in EmployeeBankInfo:", error);
     throw new Error(error.message || "Failed to save bank information");
   }
+};
+
+export const updateEmployeeBankDetails = async (
+  employeeId: number,
+  bankDetails: Partial<BankInfo>
+): Promise<UpdateBankDetailsResponse> => {
+  const token = await getAuthToken();
+  if (!token) {
+    throw new Error("No authentication token found");
+  }
+
+  const response = await fetch(
+    `${API_BASE_URL}employee/${employeeId}/update-bank-details`,
+    {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(bankDetails),
+    }
+  );
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || "Failed to update bank details");
+  }
+
+  return response.json();
 };

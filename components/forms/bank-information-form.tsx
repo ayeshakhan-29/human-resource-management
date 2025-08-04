@@ -3,10 +3,8 @@
 import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import {
-  bankInformationSchema,
-  BankInformationFormValues,
-} from "@/lib/validations/bank-information-schema";
+import { bankInformationSchema } from "@/lib/validations/bank-information-schema";
+import { BankDetailsFormValues } from "@/lib/types/bank.types";
 
 const bankOptions = [
   { value: "hbl", label: "Habib Bank Limited (HBL)" },
@@ -44,8 +42,8 @@ import {
 } from "@/components/ui/select";
 
 interface BankInformationFormProps {
-  onSubmit: (data: BankInformationFormValues) => void;
-  defaultValues?: Partial<BankInformationFormValues>;
+  onSubmit: (data: BankDetailsFormValues) => void;
+  defaultValues?: Partial<BankDetailsFormValues>;
 }
 
 export function BankInformationForm({
@@ -60,7 +58,7 @@ export function BankInformationForm({
     trigger,
     reset,
     formState: { errors, isDirty, dirtyFields },
-  } = useForm<BankInformationFormValues>({
+  } = useForm<BankDetailsFormValues>({
     resolver: zodResolver(bankInformationSchema),
     mode: "onChange",
     defaultValues: {
