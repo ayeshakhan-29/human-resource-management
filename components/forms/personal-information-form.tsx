@@ -12,12 +12,11 @@ import {
 
 interface PersonalInformationFormProps {
   formData: {
-    firstName: string;
-    lastName: string;
+    fullName: string;
     email: string;
-    phone: string;
+    contactNumber: string;
     cnic: string;
-    dateOfBirth: string;
+    dob: string;
     address: string;
     city: string;
     state: string;
@@ -41,50 +40,40 @@ export function PersonalInformationForm({
       <CardContent className="space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label htmlFor="firstName">First Name *</Label>
+            <Label htmlFor="fullName">Full Name *</Label>
             <Input
-              id="firstName"
-              value={formData.firstName}
-              onChange={(e) => onInputChange("firstName", e.target.value)}
+              id="fullName"
+              value={formData.fullName}
+              placeholder="Ayesha"
+              onChange={(e) => onInputChange("fullName", e.target.value)}
               required
             />
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="lastName">Last Name *</Label>
-            <Input
-              id="lastName"
-              value={formData.lastName}
-              onChange={(e) => onInputChange("lastName", e.target.value)}
-              required
-            />
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label htmlFor="email">Email Address *</Label>
             <Input
               id="email"
               type="email"
               value={formData.email}
+              placeholder="ayesha@example.com"
               onChange={(e) => onInputChange("email", e.target.value)}
-              required
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="phone">Phone Number *</Label>
-            <Input
-              id="phone"
-              type="tel"
-              value={formData.phone}
-              onChange={(e) => onInputChange("phone", e.target.value)}
-              placeholder="+1 (555) 123-4567"
               required
             />
           </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="contactNumber">Phone Number *</Label>
+            <Input
+              id="contactNumber"
+              type="tel"
+              value={formData.contactNumber}
+              onChange={(e) => onInputChange("contactNumber", e.target.value)}
+              placeholder="+1 (555) 123-4567"
+              required
+            />
+          </div>
           <div className="space-y-2">
             <Label htmlFor="cnic">CNIC *</Label>
             <Input
@@ -95,19 +84,18 @@ export function PersonalInformationForm({
               required
             />
           </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="dateOfBirth">Date of Birth</Label>
-            <Input
-              id="dateOfBirth"
-              type="date"
-              value={formData.dateOfBirth}
-              onChange={(e) => onInputChange("dateOfBirth", e.target.value)}
-            />
-          </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="dob">Date of Birth</Label>
+            <Input
+              id="dob"
+              type="date"
+              value={formData.dob}
+              onChange={(e) => onInputChange("dob", e.target.value)}
+            />
+          </div>
           <div className="space-y-2">
             <Label htmlFor="address">Address</Label>
             <Input
@@ -115,32 +103,6 @@ export function PersonalInformationForm({
               value={formData.address}
               onChange={(e) => onInputChange("address", e.target.value)}
               placeholder="123 Main Street"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="city">City</Label>
-            <Input
-              id="city"
-              value={formData.city}
-              onChange={(e) => onInputChange("city", e.target.value)}
-            />
-          </div>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="state">State</Label>
-            <Input
-              id="state"
-              value={formData.state}
-              onChange={(e) => onInputChange("state", e.target.value)}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="zipCode">ZIP Code</Label>
-            <Input
-              id="zipCode"
-              value={formData.zipCode}
-              onChange={(e) => onInputChange("zipCode", e.target.value)}
             />
           </div>
         </div>
