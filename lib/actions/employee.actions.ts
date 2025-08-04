@@ -27,15 +27,10 @@ export const getAllEmployees = async (): Promise<EmployeesResponse> => {
     throw new Error(errorData.message || "Failed to fetch employees");
   }
 
-  return response.json();
+  const data = await response.json();
+  return data;
 };
 
-/**
- * Updates an employee's status
- * @param employeeId - ID of the employee to update
- * @param status - New status to set
- * @returns Promise with the updated employee or error
- */
 interface UpdateStatusResponse {
   success: boolean;
   data: {
