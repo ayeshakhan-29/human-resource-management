@@ -82,33 +82,49 @@ export const inviteEmployee = async (
     throw new Error("No authentication token found");
   }
 
-  const response = await fetch(`${API_BASE_URL}auth/invite-employee`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify(employeeData),
-  });
+  const url = `${API_BASE_URL}/auth/invite-employee`;
 
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    console.error("Error response:", errorData);
+  try {
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(employeeData),
+    });
 
-    // Handle validation errors with more specific messages
-    if (errorData.errors && Array.isArray(errorData.errors)) {
-      const errorMessages = errorData.errors.map(
-        (err: any) =>
-          `${err.field ? `${err.field}: ` : ""}${
-            err.message || "Validation error"
-          }`
-      );
-      throw new Error(errorMessages.join("\n"));
+    const responseText = await response.text();
+
+    let errorData;
+    try {
+      errorData = responseText ? JSON.parse(responseText) : {};
+    } catch (e) {
+      errorData = { message: "Invalid JSON response from server" };
     }
 
-    throw new Error(errorData.message || "Failed to invite employee");
-  }
+    if (!response.ok) {
+      if (errorData.errors && Array.isArray(errorData.errors)) {
+        const errorMessages = errorData.errors.map(
+          (err: any) =>
+            `${err.field ? `${err.field}: ` : ""}${
+              err.message || "Validation error"
+            }`
+        );
+        const errorMessage = errorMessages.join("\n");
+        throw new Error(errorMessage);
+      }
 
-  const responseData = await response.json();
-  return responseData;
+      const errorMessage =
+        errorData.message || `HTTP error! status: ${response.status}`;
+      throw new Error(errorMessage);
+    }
+
+    return errorData as InviteEmployeeResponse;
+  } catch (error) {
+    if (error instanceof Error) {
+      throw new Error(`Failed to invite employee: ${error.message}`);
+    }
+    throw new Error("An unknown error occurred while inviting employee");
+  }
 };

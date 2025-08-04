@@ -15,7 +15,6 @@ import {
 } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { CheckCircle, User } from "lucide-react";
-import { updateUserProfile } from "@/lib/api/users";
 import type { UserProfile } from "@/lib/types/user.types";
 
 interface ProfileSetupFormProps {
@@ -34,7 +33,6 @@ export function ProfileSetupForm({
     address: initialData?.address || "",
     city: initialData?.city || "",
     state: initialData?.state || "",
-    zipCode: initialData?.zipCode || "",
     phone: initialData?.phone || "",
     cnic: initialData?.cnic || "",
     dateOfBirth: initialData?.dateOfBirth || "",
@@ -154,26 +152,6 @@ export function ProfileSetupForm({
                 required
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="state">State</Label>
-              <Input
-                id="state"
-                value={formData.state}
-                onChange={(e) =>
-                  setFormData((prev) => ({ ...prev, state: e.target.value }))
-                }
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="zipCode">ZIP Code</Label>
-              <Input
-                id="zipCode"
-                value={formData.zipCode}
-                onChange={(e) =>
-                  setFormData((prev) => ({ ...prev, zipCode: e.target.value }))
-                }
-              />
-            </div>
           </div>
 
           <Button type="submit" className="w-full" disabled={isLoading}>
@@ -193,4 +171,7 @@ export function ProfileSetupForm({
       </CardContent>
     </Card>
   );
+}
+function updateUserProfile(formData: UserProfile) {
+  throw new Error("Function not implemented.");
 }

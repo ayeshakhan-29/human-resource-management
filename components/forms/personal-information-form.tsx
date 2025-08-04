@@ -1,5 +1,6 @@
 "use client";
 
+import * as React from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -18,17 +19,18 @@ interface PersonalInformationFormProps {
     cnic: string;
     dob: string;
     address: string;
-    city: string;
-    state: string;
-    zipCode: string;
   };
   onInputChange: (field: string, value: string) => void;
+  errors?: Record<string, { message?: string }>;
 }
 
 export function PersonalInformationForm({
   formData,
   onInputChange,
+  errors = {},
 }: PersonalInformationFormProps) {
+  const fieldHasError = (field: string) => !!errors?.[field]?.message;
+
   return (
     <Card>
       <CardHeader>
@@ -44,21 +46,26 @@ export function PersonalInformationForm({
             <Input
               id="fullName"
               value={formData.fullName}
-              placeholder="Ayesha"
               onChange={(e) => onInputChange("fullName", e.target.value)}
-              required
+              placeholder="Ayesha"
+              className={fieldHasError("fullName") ? "border-red-500" : ""}
             />
+            {fieldHasError("fullName") && (
+              <p className="text-red-500 text-sm">{errors.fullName?.message}</p>
+            )}
           </div>
           <div className="space-y-2">
             <Label htmlFor="email">Email Address *</Label>
             <Input
               id="email"
-              type="email"
               value={formData.email}
-              placeholder="ayesha@example.com"
               onChange={(e) => onInputChange("email", e.target.value)}
-              required
+              placeholder="ayesha@example.com"
+              className={fieldHasError("email") ? "border-red-500" : ""}
             />
+            {fieldHasError("email") && (
+              <p className="text-red-500 text-sm">{errors.email?.message}</p>
+            )}
           </div>
         </div>
 
@@ -67,12 +74,16 @@ export function PersonalInformationForm({
             <Label htmlFor="contactNumber">Phone Number *</Label>
             <Input
               id="contactNumber"
-              type="tel"
               value={formData.contactNumber}
               onChange={(e) => onInputChange("contactNumber", e.target.value)}
               placeholder="+1 (555) 123-4567"
-              required
+              className={fieldHasError("contactNumber") ? "border-red-500" : ""}
             />
+            {fieldHasError("contactNumber") && (
+              <p className="text-red-500 text-sm">
+                {errors.contactNumber?.message}
+              </p>
+            )}
           </div>
           <div className="space-y-2">
             <Label htmlFor="cnic">CNIC *</Label>
@@ -81,8 +92,11 @@ export function PersonalInformationForm({
               value={formData.cnic}
               onChange={(e) => onInputChange("cnic", e.target.value)}
               placeholder="12345-1234567-1"
-              required
+              className={fieldHasError("cnic") ? "border-red-500" : ""}
             />
+            {fieldHasError("cnic") && (
+              <p className="text-red-500 text-sm">{errors.cnic?.message}</p>
+            )}
           </div>
         </div>
 
@@ -94,7 +108,11 @@ export function PersonalInformationForm({
               type="date"
               value={formData.dob}
               onChange={(e) => onInputChange("dob", e.target.value)}
+              className={fieldHasError("dob") ? "border-red-500" : ""}
             />
+            {fieldHasError("dob") && (
+              <p className="text-red-500 text-sm">{errors.dob?.message}</p>
+            )}
           </div>
           <div className="space-y-2">
             <Label htmlFor="address">Address</Label>
@@ -103,7 +121,11 @@ export function PersonalInformationForm({
               value={formData.address}
               onChange={(e) => onInputChange("address", e.target.value)}
               placeholder="123 Main Street"
+              className={fieldHasError("address") ? "border-red-500" : ""}
             />
+            {fieldHasError("address") && (
+              <p className="text-red-500 text-sm">{errors.address?.message}</p>
+            )}
           </div>
         </div>
       </CardContent>

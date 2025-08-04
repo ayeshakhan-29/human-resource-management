@@ -19,7 +19,6 @@ export interface UserProfile {
   address?: string;
   city?: string;
   state?: string;
-  zipCode?: string;
   phone?: string;
   cnic?: string;
   dateOfBirth?: string;
@@ -32,7 +31,6 @@ export interface WorkInfo {
   manager?: string;
   joiningDate?: string;
   employmentType?: string;
-  workLocation?: string;
   salary?: string;
 }
 

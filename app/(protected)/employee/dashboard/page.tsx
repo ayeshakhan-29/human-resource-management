@@ -28,7 +28,6 @@ const mockEmployee = {
   email: "ayesha@company.com",
   department: "Engineering",
   position: "Software Engineer",
-  employeeId: "EMP001",
   joinDate: "January 15, 2024",
   phone: "+1 (555) 123-4567",
   address: "123 Main St, City, State 12345",

@@ -17,7 +17,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-// Define the allowed department and team values
 const DEPARTMENTS = [
   "development",
   "design",
@@ -43,26 +42,31 @@ const TEAMS = [
   "Team C2",
 ];
 
+type WorkInfoFormValues = {
+  employeeId: string;
+  department: string;
+  position: string;
+  reportingManager: string;
+  startDate: string;
+  employmentType: string;
+  salary: string | number;
+  team: string;
+  probationEndDate: string;
+};
+
 interface WorkInformationFormProps {
-  formData: {
-    employeeId: string;
-    department: string;
-    position: string;
-    reportingManager: string;
-    startDate: string;
-    employmentType: string;
-    workLocation: string;
-    salary: string | number;
-    team: string;
-    probationEndDate: string;
-  };
-  onInputChange: (field: string, value: string) => void;
+  formData: WorkInfoFormValues;
+  onInputChange: (field: string, value: string | number) => void;
+  errors?: Record<string, { message?: string }>;
 }
 
 export function WorkInformationForm({
   formData,
   onInputChange,
+  errors = {},
 }: WorkInformationFormProps) {
+  const fieldHasError = (field: string) => !!errors[field]?.message;
+
   return (
     <Card>
       <CardHeader>
@@ -73,29 +77,38 @@ export function WorkInformationForm({
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Department */}
           <div className="space-y-2">
-            <Label htmlFor="department">Department *</Label>
-            <Select
-              value={formData.department}
-              onValueChange={(value) => onInputChange("department", value)}
+            <Label>Department *</Label>
+            <div
+              className={
+                fieldHasError("department") ? "border-red-500 rounded-md" : ""
+              }
             >
-              <SelectTrigger>
-                <SelectValue placeholder="Select department" />
-              </SelectTrigger>
-              <SelectContent>
-                {DEPARTMENTS.map((dept) => (
-                  <SelectItem key={dept} value={dept}>
-                    {dept
-                      .split(" ")
-                      .map(
-                        (word) => word.charAt(0).toUpperCase() + word.slice(1)
-                      )
-                      .join(" ")}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              <Select
+                onValueChange={(value) => onInputChange("department", value)}
+                value={formData.department}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select department" />
+                </SelectTrigger>
+                <SelectContent>
+                  {DEPARTMENTS.map((dept) => (
+                    <SelectItem key={dept} value={dept}>
+                      {dept.charAt(0).toUpperCase() + dept.slice(1)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            {fieldHasError("department") && (
+              <p className="text-red-500 text-sm">
+                {errors.department?.message}
+              </p>
+            )}
           </div>
+
+          {/* Position */}
           <div className="space-y-2">
             <Label htmlFor="position">Position *</Label>
             <Input
@@ -103,53 +116,79 @@ export function WorkInformationForm({
               value={formData.position}
               onChange={(e) => onInputChange("position", e.target.value)}
               placeholder="Software Engineer"
-              required
+              className={fieldHasError("position") ? "border-red-500" : ""}
             />
+            {fieldHasError("position") && (
+              <p className="text-red-500 text-sm">{errors.position?.message}</p>
+            )}
           </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Reporting Manager */}
           <div className="space-y-2">
-            <Label htmlFor="reportingManager">Reporting Manager</Label>
+            <Label>Reporting Manager</Label>
             <Select
+              onValueChange={(value) =>
+                onInputChange("reportingManager", value)
+              }
               value={formData.reportingManager}
-              onValueChange={(value) => {
-                console.log("Selected reporting manager:", value);
-                onInputChange("reportingManager", value);
-              }}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Select manager" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="ayesha-rashid">Ayesha Rashid</SelectItem>
-                <SelectItem value="shamiam">Shamiam</SelectItem>
-                <SelectItem value="areej">Areej</SelectItem>
-                <SelectItem value="waleed">Waleed</SelectItem>
+                {["ayesha-rashid", "shamiam", "areej", "waleed"].map(
+                  (manager) => (
+                    <SelectItem key={manager} value={manager}>
+                      {manager
+                        .replace("-", " ")
+                        .replace(/\b\w/g, (c) => c.toUpperCase())}
+                    </SelectItem>
+                  )
+                )}
               </SelectContent>
             </Select>
           </div>
+
+          {/* Employment Type */}
           <div className="space-y-2">
-            <Label htmlFor="employmentType">Employment Type *</Label>
-            <Select
-              value={formData.employmentType}
-              onValueChange={(value) => onInputChange("employmentType", value)}
+            <Label>Employment Type *</Label>
+            <div
+              className={
+                fieldHasError("employmentType")
+                  ? "border-red-500 rounded-md"
+                  : ""
+              }
             >
-              <SelectTrigger>
-                <SelectValue placeholder="Select employment type" />
-              </SelectTrigger>
-              <SelectContent>
-                {EMPLOYMENT_TYPES.map((type) => (
-                  <SelectItem key={type} value={type}>
-                    {type.charAt(0).toUpperCase() + type.slice(1)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              <Select
+                onValueChange={(value) =>
+                  onInputChange("employmentType", value)
+                }
+                value={formData.employmentType}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select employment type" />
+                </SelectTrigger>
+                <SelectContent>
+                  {EMPLOYMENT_TYPES.map((type) => (
+                    <SelectItem key={type} value={type}>
+                      {type.charAt(0).toUpperCase() + type.slice(1)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            {fieldHasError("employmentType") && (
+              <p className="text-red-500 text-sm">
+                {errors.employmentType?.message}
+              </p>
+            )}
           </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Salary */}
           <div className="space-y-2">
             <Label htmlFor="salary">Monthly Salary</Label>
             <Input
@@ -158,10 +197,14 @@ export function WorkInformationForm({
               value={formData.salary}
               onChange={(e) => onInputChange("salary", e.target.value)}
               placeholder="50000"
-              min="0"
-              step="0.01"
+              className={fieldHasError("salary") ? "border-red-500" : ""}
             />
+            {fieldHasError("salary") && (
+              <p className="text-red-500 text-sm">{errors.salary?.message}</p>
+            )}
           </div>
+
+          {/* Start Date */}
           <div className="space-y-2">
             <Label htmlFor="startDate">Start Date *</Label>
             <Input
@@ -169,12 +212,18 @@ export function WorkInformationForm({
               type="date"
               value={formData.startDate}
               onChange={(e) => onInputChange("startDate", e.target.value)}
-              required
+              className={fieldHasError("startDate") ? "border-red-500" : ""}
             />
+            {fieldHasError("startDate") && (
+              <p className="text-red-500 text-sm">
+                {errors.startDate?.message}
+              </p>
+            )}
           </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Probation End Date */}
           <div className="space-y-2">
             <Label htmlFor="probationEndDate">Probation End Date</Label>
             <Input
@@ -184,14 +233,15 @@ export function WorkInformationForm({
               onChange={(e) =>
                 onInputChange("probationEndDate", e.target.value)
               }
-              required
             />
           </div>
+
+          {/* Team */}
           <div className="space-y-2">
             <Label htmlFor="team">Team</Label>
             <Select
-              value={formData.team}
               onValueChange={(value) => onInputChange("team", value)}
+              value={formData.team}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Select team" />
