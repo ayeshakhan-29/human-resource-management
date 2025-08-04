@@ -52,11 +52,12 @@ export default function LoginPage() {
       // Login using AuthContext which will handle token storage and redirection
       login(
         {
+          id: result.user.id.toString(),
           email: result.user.email,
           name: result.user.fullName || result.user.email,
-          token: result.token
+          token: result.token,
         },
-        (result.user.role?.toLowerCase() || 'employee') as UserRole
+        (result.user.role?.toLowerCase() || "employee") as UserRole
       );
     } catch (error) {
       console.error("Login error:", error);

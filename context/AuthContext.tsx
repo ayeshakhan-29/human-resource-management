@@ -22,7 +22,10 @@ type User = {
 interface AuthContextType {
   user: User;
   token: string | null;
-  login: (userData: { email: string; name: string; token: string }, role: UserRole) => void;
+  login: (
+    userData: { id: string; email: string; name: string; token: string },
+    role: UserRole
+  ) => void;
   logout: () => void;
   isAuthenticated: boolean;
   isLoading: boolean;
@@ -42,7 +45,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const storedUser = localStorage.getItem("user");
     const storedToken = localStorage.getItem("token");
-    
+
     if (storedUser && storedToken) {
       const parsedUser = JSON.parse(storedUser);
       setUser({ ...parsedUser, token: storedToken });
@@ -51,10 +54,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsLoading(false);
   }, []);
 
-  const login = (userData: { email: string; name: string; token: string }, role: UserRole) => {
+  const login = (
+    userData: { id: string; email: string; name: string; token: string },
+    role: UserRole
+  ) => {
     const newUser = {
       ...userData,
-      id: Date.now().toString(),
       role,
       token: userData.token,
     };

@@ -47,13 +47,9 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
+import { useAuth } from "@/context/AuthContext";
 
 const data = {
-  user: {
-    name: "Admin User",
-    email: "admin@company.com",
-    avatar: "AD",
-  },
   navMain: [
     {
       title: "Dashboard",
@@ -125,6 +121,7 @@ export function AdminSidebar({
   ...props
 }: React.ComponentProps<typeof Sidebar>) {
   const pathname = usePathname();
+  const { user } = useAuth();
 
   return (
     <Sidebar collapsible="icon" {...props}>
@@ -217,15 +214,13 @@ export function AdminSidebar({
                   className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
                 >
                   <Avatar className="h-8 w-8 rounded-lg">
-                    <AvatarFallback className="rounded-lg">
+                    {/* <AvatarFallback className="rounded-lg">
                       {data.user.avatar}
-                    </AvatarFallback>
+                    </AvatarFallback> */}
                   </Avatar>
                   <div className="grid flex-1 text-left text-sm leading-tight">
-                    <span className="truncate font-semibold">
-                      {data.user.name}
-                    </span>
-                    <span className="truncate text-xs">{data.user.email}</span>
+                    <span className="truncate font-semibold">{user?.name}</span>
+                    <span className="truncate text-xs">{user?.email}</span>
                   </div>
                   <ChevronUp className="ml-auto size-4" />
                 </SidebarMenuButton>

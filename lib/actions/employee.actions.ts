@@ -4,6 +4,7 @@ import {
   InviteEmployeeBody,
   InviteEmployeeResponse,
 } from "@/lib/types/employee.types";
+import { BankInfo, BankInfoResponse } from "@/lib/types/user.types";
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5005/api";
@@ -69,6 +70,50 @@ export const updateEmployeeStatus = async (
   return response.json();
 };
 
+export const getEmployeeBankDetails = async (employeeId: number) => {
+  const token = await getAuthToken();
+  const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
+
+  if (!API_BASE_URL) {
+    throw new Error("Backend URL is not configured");
+  }
+
+  try {
+    const response = await fetch(
+      `${API_BASE_URL}employee/${employeeId}/get-bank-details`,
+      {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        cache: "no-store",
+      }
+    );
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || "Failed to fetch bank details");
+    }
+
+    const data = await response.json();
+
+    // Transform the API response to match our form structure
+    if (data.success && data.data) {
+      return {
+        ...data.data,
+        // Map IBAN to iban for the form
+        iban: data.data.IBAN || "",
+      };
+    }
+
+    return null;
+  } catch (error) {
+    console.error("Error fetching bank details:", error);
+    throw error;
+  }
+};
+
 export const inviteEmployee = async (
   employeeData: InviteEmployeeBody
 ): Promise<InviteEmployeeResponse> => {
@@ -121,5 +166,43 @@ export const inviteEmployee = async (
       throw new Error(`Failed to invite employee: ${error.message}`);
     }
     throw new Error("An unknown error occurred while inviting employee");
+  }
+};
+
+export const EmployeeBankInfo = async (
+  employeeId: number,
+  bankInfo: BankInfo
+): Promise<BankInfoResponse> => {
+  const token = getAuthToken();
+  if (!token) {
+    throw new Error("No authentication token found");
+  }
+
+  try {
+    const response = await fetch(
+      `${API_BASE_URL}employee/${employeeId}/add-bank-details`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(bankInfo),
+      }
+    );
+
+    const responseData = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+      console.error("Bank info validation error:", responseData);
+      throw new Error(
+        responseData.message || "Failed to save bank information"
+      );
+    }
+
+    return responseData;
+  } catch (error: any) {
+    console.error("Error in EmployeeBankInfo:", error);
+    throw new Error(error.message || "Failed to save bank information");
   }
 };

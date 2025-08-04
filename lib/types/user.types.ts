@@ -43,6 +43,23 @@ export interface BankInfo {
   branchAddress?: string;
 }
 
+export interface BankInfoResponse {
+  success: boolean;
+  message: string;
+  data: {
+    id: number;
+    userId: number;
+    bankName: string;
+    accountTitle: string;
+    accountNumber: string;
+    IBAN: string;
+    branchCode: string;
+    branchAddress: string;
+    updatedAt: string;
+    createdAt: string;
+  };
+}
+
 export interface InviteUserRequest {
   fullName: string;
   email: string;

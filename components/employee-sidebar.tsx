@@ -65,6 +65,11 @@ const data = {
       icon: User,
     },
     {
+      title: "Bank Information",
+      url: "/employee/bank-info",
+      icon: CreditCard,
+    },
+    {
       title: "Attendance",
       url: "/employee/attendance",
       icon: Clock,
