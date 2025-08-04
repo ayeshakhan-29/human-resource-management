@@ -24,6 +24,9 @@ export interface LoginCredentials {
 export interface ApiError {
   error: string;
   message?: string;
+  status?: number;
+  code?: string;
+  errors?: Record<string, string[]>;
 }
 
 export interface InviteEmployeePayload {
@@ -36,4 +39,16 @@ export interface InviteEmployeeResponse {
   message: string;
   userId: number;
   resetToken: string;
+}
+
+export interface SetPasswordRequest {
+  token: string;
+  newPassword: string;
+  confirmPassword: string;
+}
+
+export interface SetPasswordResponse {
+  success: boolean;
+  message: string;
+  user?: User;
 }
