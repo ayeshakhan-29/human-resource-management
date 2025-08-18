@@ -73,6 +73,8 @@ export function BankInformationForm({
   });
 
   // Check if there are any changes in the form
+  // Check if this is a new form (no existing bank details)
+  const isNewForm = !defaultValues || !defaultValues.bankName;
   const hasChanges = isDirty;
 
   // Update form when defaultValues change
@@ -210,7 +212,7 @@ export function BankInformationForm({
                   : 'bg-gray-300 text-gray-500 cursor-not-allowed'
               }`}
             >
-              {hasChanges ? 'Update' : 'Saved'}
+              {isNewForm ? 'Save' : hasChanges ? 'Update' : 'Saved'}
             </button>
           </div>
         </CardContent>

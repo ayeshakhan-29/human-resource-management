@@ -6,6 +6,7 @@ import {
 } from "@/lib/types/employee.types";
 import { BankInfo, BankInfoResponse } from "@/lib/types/user.types";
 import { UpdateBankDetailsResponse } from "@/lib/types/bank.types";
+import { EmployeeInfoResponse } from "@/lib/types/employee.types";
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5005/api";
@@ -229,6 +230,34 @@ export const updateEmployeeBankDetails = async (
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
     throw new Error(errorData.message || "Failed to update bank details");
+  }
+
+  return response.json();
+};
+
+export const getEmployeeInfoById = async (
+  employeeId: number
+): Promise<EmployeeInfoResponse> => {
+  const token = getAuthToken();
+  if (!token) {
+    throw new Error("No authentication token found");
+  }
+
+  const response = await fetch(
+    `${API_BASE_URL}/employee/${employeeId}/user-info`,
+    {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    }
+  );
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(
+      errorData.message || "Failed to fetch employee information"
+    );
   }
 
   return response.json();

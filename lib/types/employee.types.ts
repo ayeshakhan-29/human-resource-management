@@ -127,3 +127,31 @@ export interface InviteEmployeeResponse {
   userId: number;
   resetToken: string;
 }
+
+export interface EmployeeInfoResponse {
+  success: boolean;
+  data: {
+    id: number;
+    fullName: string;
+    email: string;
+    role: string;
+    status: string;
+    lastLogin: string | null;
+    createdAt: string;
+    updatedAt: string;
+    personalInfo: {
+      contactNumber: string;
+      address: string;
+      startDate: string;
+      department: string;
+      probationEndDate: string;
+      dob: string;
+      reportingManager: string;
+      cnic: string;
+      employmentStatus: string;
+      salary: number;
+      position: string;
+      team: string;
+    };
+  };
+}
