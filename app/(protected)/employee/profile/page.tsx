@@ -1,5 +1,6 @@
 "use client";
-import { Clock, Calendar, User } from "lucide-react";
+
+import { Edit, Phone, Mail, MapPin, Calendar, Building } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -9,143 +10,294 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { getEmployeeInfoById } from "@/lib/actions/employee.actions";
+import { EmployeeInfoResponse } from "@/lib/types/employee.types";
+import { toast } from "sonner";
+import { useEffect, useState } from "react";
 import { Header } from "@/components/header";
+import { useRouter } from "next/navigation";
+import { getAuthToken } from "@/lib/auth/token";
 
-const mockEmployee = {
-  name: "Ayesha Rashid Khan",
-  email: "ayesha@company.com",
-  department: "Engineering",
-  position: "Software Engineer",
-  employeeId: "EMP001",
-  joinDate: "January 15, 2024",
-  phone: "+1 (555) 123-4567",
-  address: "123 Main St, City, State 12345",
-  manager: "Sarah Johnson",
-};
+interface ProfileInfoItemProps {
+  icon: React.ReactNode;
+  label: string;
+  value: string | number | undefined;
+}
 
-export default function EmployeeDashboard() {
+const ProfileInfoItem = ({ icon, label, value }: ProfileInfoItemProps) => (
+  <div className="flex items-start gap-4 py-2">
+    <div className="bg-muted p-2 rounded-lg">{icon}</div>
+    <div>
+      <p className="text-sm text-muted-foreground">{label}</p>
+      <p className="font-medium">{value || "N/A"}</p>
+    </div>
+  </div>
+);
+
+export default function EmployeeProfilePage() {
+  const [employee, setEmployee] = useState<EmployeeInfoResponse["data"] | null>(
+    null
+  );
+  const [loading, setLoading] = useState(true);
+  const router = useRouter();
+  const [employeeId, setEmployeeId] = useState<number | null>(null);
+
+  useEffect(() => {
+    // Get user data from localStorage
+    const fetchUserId = () => {
+      if (typeof window === "undefined") return;
+
+      const userData = localStorage.getItem("user");
+      if (userData) {
+        try {
+          const user = JSON.parse(userData);
+          if (user?.id) {
+            setEmployeeId(Number(user.id));
+          } else {
+            toast.error("User information not found. Please log in again.");
+          }
+        } catch (error) {
+          toast.error("Error loading user information");
+        }
+      } else {
+        toast.error("Please log in to view this page");
+        router.push("/login");
+      }
+    };
+
+    fetchUserId();
+  }, [router]);
+
+  useEffect(() => {
+    const fetchEmployeeData = async () => {
+      if (!employeeId) return;
+
+      try {
+        setLoading(true);
+        const response = await getEmployeeInfoById(employeeId);
+        if (response && response.success) {
+          setEmployee(response.data);
+        } else {
+          throw new Error("Failed to load employee data");
+        }
+      } catch (error) {
+        toast.error("Failed to load employee profile");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchEmployeeData();
+  }, [employeeId]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  if (!employee) {
+    return (
+      <div className="text-center py-12">
+        <p className="text-muted-foreground">No employee data found</p>
+      </div>
+    );
+  }
+
   return (
     <>
       <Header
         breadcrumbs={[
           { label: "Employee", href: "/employee" },
-          { label: "Profile" },
+          { label: "My Information" },
         ]}
       />
       <div className="flex flex-1 flex-col gap-4 p-4">
-        {/* Welcome Section */}
         <div className="mb-4">
           <h2 className="text-3xl font-bold text-gray-900 mb-2">
-            Welcome back, {mockEmployee.name.split(" ")[0]}!
+            My Information
           </h2>
           <p className="text-gray-600">
-            Here&apos;s your dashboard overview for today.
+            View and manage your personal and work details
           </p>
         </div>
 
-        {/* Quick Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                Today&apos;s Status
-              </CardTitle>
-              <Clock className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-green-600">Present</div>
-              <p className="text-xs text-muted-foreground">
-                Checked in at 9:00 AM
-              </p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Hours Today</CardTitle>
-              <Clock className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">6.5</div>
-              <p className="text-xs text-muted-foreground">Still working</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">This Week</CardTitle>
-              <Calendar className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">32.5</div>
-              <p className="text-xs text-muted-foreground">Hours worked</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                Leave Balance
-              </CardTitle>
-              <Calendar className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">18</div>
-              <p className="text-xs text-muted-foreground">Days remaining</p>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Quick Actions */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Quick Actions</CardTitle>
-              <CardDescription>Common tasks and shortcuts</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <Button className="w-full justify-start" variant="outline">
-                <User className="mr-2 h-4 w-4" />
-                View My Information
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Profile Card */}
+          <Card className="lg:col-span-1">
+            <CardHeader className="text-center">
+              <Avatar className="h-24 w-24 mx-auto mb-4">
+                <AvatarFallback className="text-2xl">
+                  {employee?.fullName
+                    .split(" ")
+                    .map((n) => n[0])
+                    .join("")}
+                </AvatarFallback>
+              </Avatar>
+              <CardTitle className="text-xl">{employee?.fullName}</CardTitle>
+              <CardDescription>
+                {employee?.personalInfo?.position}
+              </CardDescription>
+              <Button className="mt-4" variant="outline">
+                <Edit className="mr-2 h-4 w-4" />
+                Edit Profile
               </Button>
-              <Button className="w-full justify-start" variant="outline">
-                <Clock className="mr-2 h-4 w-4" />
-                Mark Attendance
-              </Button>
-              <Button className="w-full justify-start" variant="outline">
-                <Calendar className="mr-2 h-4 w-4" />
-                Apply for Leave
-              </Button>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Today&apos;s Summary</CardTitle>
-              <CardDescription>Your work summary for today</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm font-medium">Check-in Time:</span>
-                  <span className="text-sm text-gray-600">9:00 AM</span>
+                <div className="flex items-center space-x-3">
+                  <Building className="h-4 w-4 text-gray-400" />
+                  <div>
+                    <p className="text-sm font-medium">Department</p>
+                    <p className="text-sm text-gray-600">
+                      {employee?.personalInfo?.department}
+                    </p>
+                  </div>
                 </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm font-medium">
-                    Expected Check-out:
-                  </span>
-                  <span className="text-sm text-gray-600">5:30 PM</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm font-medium">Hours Worked:</span>
-                  <span className="text-sm text-gray-600">6.5 / 8.0</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm font-medium">Status:</span>
-                  <span className="text-sm text-green-600 font-medium">
-                    On Time
-                  </span>
+                <div className="flex items-center space-x-3">
+                  <Calendar className="h-4 w-4 text-gray-400" />
+                  <div>
+                    <p className="text-sm font-medium">Join Date</p>
+                    <p className="text-sm text-gray-600">
+                      {employee?.personalInfo?.startDate
+                        ? new Date(
+                            employee.personalInfo.startDate
+                          ).toLocaleDateString()
+                        : "N/A"}
+                    </p>
+                  </div>
                 </div>
               </div>
             </CardContent>
           </Card>
+
+          {/* Detailed Information */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Personal Information */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Personal Information</CardTitle>
+                <CardDescription>Your personal contact details</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="flex items-center space-x-3">
+                    <Mail className="h-4 w-4 text-gray-400" />
+                    <div>
+                      <p className="text-sm font-medium">Email Address</p>
+                      <p className="text-sm text-gray-600">{employee?.email}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <Phone className="h-4 w-4 text-gray-400" />
+                    <div>
+                      <p className="text-sm font-medium">Phone Number</p>
+                      <p className="text-sm text-gray-600">
+                        {employee?.personalInfo?.contactNumber || "N/A"}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                <div className="flex items-start space-x-3">
+                  <MapPin className="h-4 w-4 text-gray-400 mt-1" />
+                  <div>
+                    <p className="text-sm font-medium">Address</p>
+                    <p className="text-sm text-gray-600">
+                      {employee?.personalInfo?.address || "N/A"}
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Work Information */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Work Information</CardTitle>
+                <CardDescription>
+                  Your employment and work details
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm font-medium text-gray-700">
+                      Position
+                    </p>
+                    <p className="text-sm text-gray-600">
+                      {employee?.personalInfo?.position || "N/A"}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-700">
+                      Department
+                    </p>
+                    <p className="text-sm text-gray-600">
+                      {employee?.personalInfo?.department}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-700">Manager</p>
+                    <p className="text-sm text-gray-600">
+                      {employee?.personalInfo?.reportingManager || "N/A"}
+                    </p>
+                  </div>
+
+                  <div>
+                    <p className="text-sm font-medium text-gray-700">
+                      Join Date
+                    </p>
+                    <p className="text-sm text-gray-600">
+                      {employee?.personalInfo?.startDate
+                        ? new Date(
+                            employee.personalInfo.startDate
+                          ).toLocaleDateString()
+                        : "N/A"}
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Emergency Contact */}
+            {/* <Card>
+              <CardHeader>
+                <CardTitle>Emergency Contact</CardTitle>
+                <CardDescription>
+                  Contact person in case of emergency
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <p className="text-sm font-medium text-gray-700">Name</p>
+                    <p className="text-sm text-gray-600">
+                      {mockEmployee.emergencyContact.name}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-700">
+                      Relationship
+                    </p>
+                    <p className="text-sm text-gray-600">
+                      {mockEmployee.emergencyContact.relationship}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-700">
+                      Phone Number
+                    </p>
+                    <p className="text-sm text-gray-600">
+                      {mockEmployee.emergencyContact.phone}
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card> */}
+          </div>
         </div>
       </div>
     </>

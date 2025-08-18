@@ -1,57 +1,159 @@
 "use client";
 
-import type React from "react";
-
 import { useState } from "react";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, UserPlus } from "lucide-react";
 import Link from "next/link";
-
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Header } from "@/components/header";
 import { PersonalInformationForm } from "@/components/forms/personal-information-form";
 import { WorkInformationForm } from "@/components/forms/work-information-form";
-import { AdditionalInformationForm } from "@/components/forms/additional-information-form";
 import { FormSuccess } from "@/components/forms/form-success";
 import { FormActions } from "@/components/forms/form-actions";
 import {
   type EmployeeFormData,
   initialEmployeeFormData,
+  type InviteEmployeeBody,
 } from "@/lib/types/employee.types";
-import { BankInformationForm } from "@/components/forms/bank-information-form";
+import { inviteEmployee } from "@/lib/actions/employee.actions";
+import { z } from "zod";
+import { employeeFormSchema } from "@/lib/validations/employee.schema";
 
 export default function AddEmployeePage() {
   const [isLoading, setIsLoading] = useState(false);
   const [success, setSuccess] = useState(false);
-  const [error, setError] = useState("");
+  const [formErrors, setFormErrors] = useState<
+    Record<string, { message: string }>
+  >({});
   const [formData, setFormData] = useState<EmployeeFormData>(
     initialEmployeeFormData
   );
 
-  const handleInputChange = (field: string, value: string) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
+  const validateField = (field: string, value: any) => {
+    const errors: Record<string, { message: string }> = {};
+
+    try {
+      const tempData = { [field]: value };
+      employeeFormSchema.pick({ [field]: true }).parse(tempData);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        error.issues.forEach((issue) => {
+          if (issue.path[0] === field) {
+            errors[field] = { message: issue.message };
+          }
+        });
+      }
+    }
+
+    return errors;
+  };
+
+  const handleInputChange = (field: string, value: string | number) => {
+    setFormData((prev) => ({
+      ...prev,
+      [field]:
+        field === "salary" && typeof value === "string"
+          ? value === ""
+            ? ""
+            : parseInt(value, 10) || 0
+          : value,
+    }));
+
+    if (formErrors[field]) {
+      setFormErrors((prev) => {
+        const newErrors = { ...prev };
+        delete newErrors[field];
+        return newErrors;
+      });
+    }
+
+    const fieldErrors = validateField(
+      field,
+      field === "salary" && typeof value === "string"
+        ? parseInt(value, 10) || 0
+        : value
+    );
+    if (Object.keys(fieldErrors).length > 0) {
+      setFormErrors((prev) => ({
+        ...prev,
+        ...fieldErrors,
+      }));
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Check for required fields
+    const requiredFields = [
+      "fullName",
+      "email",
+      "contactNumber",
+      "cnic",
+      "department",
+      "position",
+      "startDate",
+      "employmentType",
+    ];
+
+    const missingFields = requiredFields.filter((field) => {
+      const value = formData[field as keyof typeof formData];
+      return value === "" || value === undefined || value === null;
+    });
+
+    if (missingFields.length > 0) {
+      setFormErrors((prev) => ({
+        ...prev,
+        form: {
+          message: `Missing required fields: ${missingFields.join(", ")}`,
+        },
+      }));
+      return;
+    }
     setIsLoading(true);
-    setError("");
 
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 2000));
+      const employeeData: InviteEmployeeBody = {
+        fullName: formData.fullName,
+        email: formData.email,
+        role: "employee",
+        cnic: formData.cnic,
+        contactNumber: formData.contactNumber,
+        address: formData.address,
+        dob: formData.dob
+          ? new Date(formData.dob).toISOString()
+          : new Date().toISOString(),
+        startDate: formData.startDate
+          ? new Date(formData.startDate).toISOString()
+          : new Date().toISOString(),
+        department: formData.department,
+        reportingManager: formData.reportingManager || "",
+        probationEndDate: formData.probationEndDate
+          ? new Date(formData.probationEndDate).toISOString()
+          : "",
+        employmentStatus: formData.employmentType,
+        salary: formData.salary ? parseInt(formData.salary as string) : 0,
+        designation: formData.position,
+        team: formData.team || "",
+      };
 
-      // Generate employee ID if not provided
-      if (!formData.employeeId) {
-        const randomId = `EMP${String(
-          Math.floor(Math.random() * 9999) + 1
-        ).padStart(3, "0")}`;
-        setFormData((prev) => ({ ...prev, employeeId: randomId }));
+      const result = await inviteEmployee(employeeData);
+
+      if (result) {
+        setSuccess(true);
+      } else {
+        throw new Error("Failed to add employee: No result returned");
       }
-
-      setSuccess(true);
     } catch (err) {
-      setError("Failed to add employee. Please try again.");
+      const error = err as Error;
+      const errorMessage = error.message || "Failed to add employee";
+
+      toast.error(errorMessage);
+      setFormErrors((prev) => ({
+        ...prev,
+        form: { message: errorMessage },
+      }));
     } finally {
       setIsLoading(false);
     }
@@ -59,7 +161,10 @@ export default function AddEmployeePage() {
 
   const handleAddAnother = () => {
     setSuccess(false);
-    setFormData(initialEmployeeFormData);
+    setFormData({
+      ...initialEmployeeFormData,
+    });
+    setFormErrors({});
   };
 
   if (success) {
@@ -74,8 +179,7 @@ export default function AddEmployeePage() {
         />
         <div className="flex flex-1 flex-col gap-4 p-4">
           <FormSuccess
-            employeeName={`${formData.firstName} ${formData.lastName}`}
-            employeeId={formData.employeeId}
+            employeeName={formData.fullName}
             onAddAnother={handleAddAnother}
           />
         </div>
@@ -110,28 +214,20 @@ export default function AddEmployeePage() {
           </Button>
         </div>
 
-        {error && (
-          <Alert variant="destructive">
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        )}
-
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form
+          onSubmit={handleSubmit}
+          className="space-y-6"
+          id="addEmployeeForm"
+        >
           <PersonalInformationForm
             formData={formData}
             onInputChange={handleInputChange}
+            errors={formErrors}
           />
           <WorkInformationForm
             formData={formData}
             onInputChange={handleInputChange}
-          />
-          <BankInformationForm
-            formData={formData}
-            onInputChange={handleInputChange}
-          />
-          <AdditionalInformationForm
-            formData={formData}
-            onInputChange={handleInputChange}
+            errors={formErrors}
           />
           <FormActions isLoading={isLoading} />
         </form>
