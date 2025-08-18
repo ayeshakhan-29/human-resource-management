@@ -144,8 +144,13 @@ export const inviteEmployee = async (
 
     if (!response.ok) {
       if (errorData.errors && Array.isArray(errorData.errors)) {
-        const errorMessages = errorData.errors.map(
-          (err: any) =>
+        interface ValidationError {
+          field?: string;
+          message?: string;
+        }
+
+        const errorMessages = (errorData.errors as ValidationError[]).map(
+          (err) =>
             `${err.field ? `${err.field}: ` : ""}${
               err.message || "Validation error"
             }`
@@ -200,9 +205,12 @@ export const EmployeeBankInfo = async (
     }
 
     return responseData;
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error in EmployeeBankInfo:", error);
-    throw new Error(error.message || "Failed to save bank information");
+    const errorMessage = error instanceof Error 
+      ? error.message 
+      : "Failed to save bank information";
+    throw new Error(errorMessage);
   }
 };
 

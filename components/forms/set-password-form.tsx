@@ -78,15 +78,20 @@ export function SetPasswordForm() {
 
     // Password validation
     if (formData.newPassword !== formData.confirmPassword) {
-      const errorMsg = "Passwords do not match. Please make sure both passwords are identical.";
-      console.error("Password mismatch:", { newPassword: formData.newPassword, confirmPassword: formData.confirmPassword });
+      const errorMsg =
+        "Passwords do not match. Please make sure both passwords are identical.";
+      console.error("Password mismatch:", {
+        newPassword: formData.newPassword,
+        confirmPassword: formData.confirmPassword,
+      });
       setError(errorMsg);
       toast.error(errorMsg);
       return;
     }
 
     if (!token) {
-      const errorMsg = "Invalid or expired token. Please request a new password reset link.";
+      const errorMsg =
+        "Invalid or expired token. Please request a new password reset link.";
       console.error("Missing token in set password form");
       setError(errorMsg);
       toast.error(errorMsg);
@@ -94,7 +99,7 @@ export function SetPasswordForm() {
     }
 
     setIsLoading(true);
-    
+
     try {
       console.log("Attempting to set new password...");
       const result = await setPasswordAction({
@@ -105,12 +110,18 @@ export function SetPasswordForm() {
 
       console.log("Password set response:", result);
 
-      if ('error' in result) {
-        const errorMsg = result.message || result.error || "Failed to update password. Please try again.";
-        console.error("Password set error:", { error: result.error, message: result.message });
+      if ("error" in result) {
+        const errorMsg =
+          result.message ||
+          result.error ||
+          "Failed to update password. Please try again.";
+        console.error("Password set error:", {
+          error: result.error,
+          message: result.message,
+        });
         throw new Error(errorMsg);
       }
-      
+
       setSuccess(true);
       toast.success("Password set successfully! Redirecting...");
 
@@ -122,17 +133,19 @@ export function SetPasswordForm() {
     } catch (err) {
       console.error("Error in handleSubmit:", err);
       let errorMessage = "Failed to set password. Please try again.";
-      
+
       if (err instanceof Error) {
         errorMessage = err.message || errorMessage;
         // Handle specific error cases
         if (err.message.includes("token")) {
-          errorMessage = "The password reset link has expired. Please request a new one.";
+          errorMessage =
+            "The password reset link has expired. Please request a new one.";
         } else if (err.message.includes("weak")) {
-          errorMessage = "Password is too weak. Please use a stronger password.";
+          errorMessage =
+            "Password is too weak. Please use a stronger password.";
         }
       }
-      
+
       setError(errorMessage);
       toast.error(errorMessage);
     } finally {
@@ -197,7 +210,7 @@ export function SetPasswordForm() {
                 Password Set Successfully!
               </h2>
               <p className="text-gray-600 mb-4">
-                Welcome to {inviteData?.companyName || "the team"}! You'll be
+                Welcome to {inviteData?.companyName || "the team"}! You&apos;ll be
                 redirected to complete your profile.
               </p>
             </div>

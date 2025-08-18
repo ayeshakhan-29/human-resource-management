@@ -88,11 +88,13 @@ export default function EmployeeBankInfoPage() {
       } else {
         throw new Error(result.message || "Failed to save bank information");
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error saving bank information:", error);
-      toast.error(
-        error.message || "An error occurred while saving bank information"
-      );
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "An error occurred while saving bank information";
+      toast.error(errorMessage);
     } finally {
       setIsLoading(false);
     }

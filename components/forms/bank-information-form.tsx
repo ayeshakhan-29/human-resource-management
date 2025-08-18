@@ -68,7 +68,7 @@ export function BankInformationForm({
       iban: "",
       branchCode: "",
       branchAddress: "",
-      ...defaultValues
+      ...defaultValues,
     },
   });
 
@@ -84,14 +84,22 @@ export function BankInformationForm({
     }
   }, [defaultValues, reset]);
 
-  const onFormSubmit = handleSubmit((data) => {
-    const formattedData = {
-      ...data,
-      IBAN: data.iban,
-    };
-    delete (formattedData as any).iban;
+  const onFormSubmit = handleSubmit((formData: BankDetailsFormValues) => {
+    // Create a new object with the correct property names for the API
+    const apiData = {
+      ...formData,
+      // Convert iban to IBAN for the API
+      IBAN: formData.iban,
+      // Remove the lowercase iban property to avoid type errors
+      iban: undefined,
+    } as unknown as BankDetailsFormValues & { IBAN: string };
 
-    onSubmitProp(formattedData as any);
+    // Remove undefined values to avoid sending them to the API
+    const cleanData = Object.fromEntries(
+      Object.entries(apiData).filter(([_, v]) => v !== undefined)
+    ) as BankDetailsFormValues & { IBAN: string };
+
+    onSubmitProp(cleanData);
   });
 
   const handleBankChange = async (value: string) => {
@@ -207,12 +215,12 @@ export function BankInformationForm({
               type="submit"
               disabled={!hasChanges}
               className={`px-4 py-2 rounded ${
-                hasChanges 
-                  ? 'bg-black text-white hover:bg-gray-800' 
-                  : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                hasChanges
+                  ? "bg-black text-white hover:bg-gray-800"
+                  : "bg-gray-300 text-gray-500 cursor-not-allowed"
               }`}
             >
-              {isNewForm ? 'Save' : hasChanges ? 'Update' : 'Saved'}
+              {isNewForm ? "Save" : hasChanges ? "Update" : "Saved"}
             </button>
           </div>
         </CardContent>

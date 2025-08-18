@@ -190,7 +190,7 @@ export default function EmployeeAttendancePage() {
     };
 
     checkAttendanceStatus();
-  }, []);
+  }, [mutateWeeklyData]);
 
   // Update working hours when checked in
   useEffect(() => {

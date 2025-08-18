@@ -30,7 +30,7 @@ export default function AddEmployeePage() {
     initialEmployeeFormData
   );
 
-  const validateField = (field: string, value: any) => {
+  const validateField = (field: string, value: string | number) => {
     const errors: Record<string, { message: string }> = {};
 
     try {
