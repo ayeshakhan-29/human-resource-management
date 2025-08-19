@@ -17,7 +17,7 @@ export const getAllEmployees = async (): Promise<EmployeesResponse> => {
     throw new Error("No authentication token found");
   }
 
-  const response = await fetch(`${API_BASE_URL}/employee/all`, {
+  const response = await fetch(`${API_BASE_URL}employee/all`, {
     method: "GET",
     headers: {
       "Content-Type": "application/json",
