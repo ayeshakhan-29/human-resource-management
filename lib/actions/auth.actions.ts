@@ -114,14 +114,15 @@ export async function setPasswordAction(
 
   if (!backendUrl) {
     console.error("Backend URL is not configured");
-    return { 
+    return {
       error: "Configuration Error",
-      message: "Backend service is not properly configured. Please try again later." 
+      message:
+        "Backend service is not properly configured. Please try again later.",
     };
   }
 
   console.log("Initiating set password request...");
-  
+
   try {
     const startTime = Date.now();
     const response = await fetch(`${backendUrl}auth/set-password`, {
@@ -132,50 +133,54 @@ export async function setPasswordAction(
       body: JSON.stringify({
         token: request.token,
         newPassword: request.newPassword,
-        confirmPassword: request.confirmPassword
+        confirmPassword: request.confirmPassword,
       }),
       cache: "no-store",
     });
 
     const responseTime = Date.now() - startTime;
     const data = await response.json().catch(() => ({}));
-    
-    console.log(`Password set response [${response.status} in ${responseTime}ms]:`, {
-      status: response.status,
-      statusText: response.statusText,
-      data: response.ok ? "[SUCCESS]" : data
-    });
+
+    console.log(
+      `Password set response [${response.status} in ${responseTime}ms]:`,
+      {
+        status: response.status,
+        statusText: response.statusText,
+        data: response.ok ? "[SUCCESS]" : data,
+      }
+    );
 
     if (!response.ok) {
-      const errorMessage = data.message || response.statusText || "Failed to update password";
+      const errorMessage =
+        data.message || response.statusText || "Failed to update password";
       console.error("Password update failed:", {
         status: response.status,
         error: data.error,
         message: errorMessage,
-        validationErrors: data.errors
+        validationErrors: data.errors,
       });
-      
+
       return {
         error: data.error || "Password Update Failed",
         message: errorMessage,
         status: response.status,
-        ...(data.errors && { errors: data.errors })
+        ...(data.errors && { errors: data.errors }),
       };
     }
 
     console.log("Password updated successfully");
     return data as SetPasswordResponse;
-    
   } catch (error) {
     console.error("Network/Request Error in setPasswordAction:", {
       error: error instanceof Error ? error.message : "Unknown error",
-      stack: error instanceof Error ? error.stack : undefined
+      stack: error instanceof Error ? error.stack : undefined,
     });
-    
+
     return {
       error: "Network Error",
-      message: "Unable to connect to the server. Please check your internet connection and try again.",
-      code: "NETWORK_ERROR"
+      message:
+        "Unable to connect to the server. Please check your internet connection and try again.",
+      code: "NETWORK_ERROR",
     };
   }
 }

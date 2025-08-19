@@ -121,7 +121,7 @@ export const inviteEmployee = async (
     throw new Error("No authentication token found");
   }
 
-  const url = `${API_BASE_URL}/auth/invite-employee`;
+  const url = `${API_BASE_URL}auth/invite-employee`;
 
   try {
     const response = await fetch(url, {
@@ -207,9 +207,10 @@ export const EmployeeBankInfo = async (
     return responseData;
   } catch (error: unknown) {
     console.error("Error in EmployeeBankInfo:", error);
-    const errorMessage = error instanceof Error 
-      ? error.message 
-      : "Failed to save bank information";
+    const errorMessage =
+      error instanceof Error
+        ? error.message
+        : "Failed to save bank information";
     throw new Error(errorMessage);
   }
 };
@@ -252,7 +253,7 @@ export const getEmployeeInfoById = async (
   }
 
   const response = await fetch(
-    `${API_BASE_URL}/employee/${employeeId}/user-info`,
+    `${API_BASE_URL}employee/${employeeId}/user-info`,
     {
       method: "GET",
       headers: {

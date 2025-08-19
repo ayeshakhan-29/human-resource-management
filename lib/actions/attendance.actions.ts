@@ -10,7 +10,7 @@ import {
 import { getAuthToken } from "../auth/token";
 
 const API_BASE_URL =
-  process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5005/api";
+  process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5005/api/";
 
 interface ApiError extends Error {
   status?: number;
@@ -97,7 +97,7 @@ export async function clockOutAction(token: string | null): Promise<{
       throw new Error("No authentication token found");
     }
 
-    const response = await fetch(`${API_BASE_URL}/attendance/clock-out`, {
+    const response = await fetch(`${API_BASE_URL}attendance/clock-out`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -186,7 +186,7 @@ export async function getWeeklyAttendance(token?: string): Promise<{
       throw new Error("No authentication token found");
     }
 
-    const response = await fetch(`${API_BASE_URL}/attendance/weekly`, {
+    const response = await fetch(`${API_BASE_URL}attendance/weekly`, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
@@ -226,7 +226,7 @@ export async function getTodaysAttendance(token?: string): Promise<{
       throw new Error("No authentication token found");
     }
 
-    const response = await fetch(`${API_BASE_URL}/attendance/today`, {
+    const response = await fetch(`${API_BASE_URL}attendance/today`, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
