@@ -114,6 +114,28 @@ const data = {
         },
       ],
     },
+    {
+      title: "Project Management",
+      icon: Calendar,
+      items: [
+        {
+          title: "All Projects",
+          url: "/admin/projects/all-projects",
+          icon: Calendar,
+        },
+        {
+          title: "Add Project",
+          url: "/admin/projects/add",
+          icon: FileText,
+        },
+        {
+          title: "Manage Project",
+          url: "/admin/projects/manage-project",
+          icon: FileText,
+        },
+      
+      ],
+    },
   ],
 };
 
