@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Header } from "@/components/header";
+import { projects, tasks, Project, Task } from "@/lib/project-task-data";
 import {
   Card,
   CardContent,
@@ -29,108 +30,7 @@ import {
   Play
 } from "lucide-react";
 
-interface Project {
-  id: string;
-  name: string;
-  description: string;
-  status: 'planning' | 'active' | 'on-hold' | 'completed' | 'cancelled';
-  priority: 'low' | 'medium' | 'high' | 'urgent';
-  startDate: string;
-  endDate: string;
-  progress: number;
-  teamSize: number;
-  manager: string;
-  budget: string;
-  category: string;
-}
-
-// Mock data for demonstration
-const mockProjects: Project[] = [
-  {
-    id: "1",
-    name: "Website Redesign",
-    description: "Complete overhaul of company website with modern design and improved UX",
-    status: "active",
-    priority: "high",
-    startDate: "2025-01-15",
-    endDate: "2025-04-30",
-    progress: 65,
-    teamSize: 8,
-    manager: "Sarah Johnson",
-    budget: "$45,000",
-    category: "Development"
-  },
-  {
-    id: "2",
-    name: "Mobile App Development",
-    description: "iOS and Android mobile application for customer engagement",
-    status: "planning",
-    priority: "urgent",
-    startDate: "2025-03-01",
-    endDate: "2025-08-15",
-    progress: 15,
-    teamSize: 12,
-    manager: "Mike Chen",
-    budget: "$120,000",
-    category: "Development"
-  },
-  {
-    id: "3",
-    name: "Marketing Campaign Q2",
-    description: "Digital marketing campaign for Q2 product launch",
-    status: "active",
-    priority: "medium",
-    startDate: "2025-04-01",
-    endDate: "2025-06-30",
-    progress: 40,
-    teamSize: 6,
-    manager: "Emily Davis",
-    budget: "$25,000",
-    category: "Marketing"
-  },
-  {
-    id: "4",
-    name: "Office Renovation",
-    description: "Modernize office space with new furniture and layout",
-    status: "on-hold",
-    priority: "low",
-    startDate: "2025-02-01",
-    endDate: "2025-05-30",
-    progress: 30,
-    teamSize: 4,
-    manager: "David Wilson",
-    budget: "$80,000",
-    category: "Operations"
-  },
-  {
-    id: "5",
-    name: "Customer Portal",
-    description: "Self-service portal for customer account management",
-    status: "completed",
-    priority: "high",
-    startDate: "2025-10-01",
-    endDate: "2025-01-31",
-    progress: 100,
-    teamSize: 10,
-    manager: "Lisa Rodriguez",
-    budget: "$60,000",
-    category: "Development"
-  },
-  {
-    id: "6",
-    name: "Data Migration",
-    description: "Migrate legacy systems to new cloud infrastructure",
-    status: "active",
-    priority: "urgent",
-    startDate: "2025-03-15",
-    endDate: "2025-07-30",
-    progress: 55,
-    teamSize: 15,
-    manager: "Alex Thompson",
-    budget: "$200,000",
-    category: "IT"
-  }
-];
+// ...existing code...
 
 export default function AllProjectsPage() {
   const router = useRouter();
@@ -188,26 +88,35 @@ export default function AllProjectsPage() {
   };
 
   // Filter projects based on search and filters
-  const filteredProjects = mockProjects.filter(project => {
+  const filteredProjects = projects.filter(project => {
     const matchesSearch = project.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         project.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         project.manager.toLowerCase().includes(searchTerm.toLowerCase());
+      project.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      project.manager.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === "all" || project.status === statusFilter;
     const matchesPriority = priorityFilter === "all" || project.priority === priorityFilter;
     const matchesCategory = categoryFilter === "all" || project.category === categoryFilter;
-    
     return matchesSearch && matchesStatus && matchesPriority && matchesCategory;
   });
 
   const handleNewProject = () => {
     router.push("/admin/projects/add");
   };
+  const handleViewTasks=()=>{
+    router.push("/admin/tasks/all-tasks");
+  }
+
+  const handleManageProjectTasks = (project: Project) => {
+    // Store the selected project in localStorage to pass to task management page
+    localStorage.setItem('selectedProjectForTasks', JSON.stringify(project));
+    // Navigate to task management page
+    router.push("/admin/tasks/manage-tasks");
+  }
 
   // Calculate statistics
-  const totalProjects = mockProjects.length;
-  const activeProjects = mockProjects.filter(p => p.status === 'active').length;
-  const completedProjects = mockProjects.filter(p => p.status === 'completed').length;
-  const urgentProjects = mockProjects.filter(p => p.priority === 'urgent').length;
+  const totalProjects = projects.length;
+  const activeProjects = projects.filter(p => p.status === 'active').length;
+  const completedProjects = projects.filter(p => p.status === 'completed').length;
+  const urgentProjects = projects.filter(p => p.priority === 'urgent').length;
 
   return (
     <>
@@ -413,14 +322,41 @@ export default function AllProjectsPage() {
                   </Badge>
                 </div>
 
+                {/* Project Tasks */}
+                <div className="pt-2">
+                  <div className="font-semibold text-gray-800 mb-1 text-sm">Tasks:</div>
+                  <ul className="list-disc pl-5 mb-2">
+                    {project.tasks.slice(0, 3).map(task => (
+                      <li key={task.id} className="text-xs flex items-center gap-2">
+                        <span>{task.name}</span>
+                        {task.status === "completed" && <Badge className="bg-green-100 text-green-800 border-green-200">Completed</Badge>}
+                        {task.status === "in-progress" && <Badge className="bg-blue-100 text-blue-800 border-blue-200">In Progress</Badge>}
+                        {task.status === "pending" && <Badge className="bg-gray-100 text-gray-800 border-gray-200">Pending</Badge>}
+                        {task.status === "blocked" && <Badge className="bg-red-100 text-red-800 border-red-200">Blocked</Badge>}
+                      </li>
+                    ))}
+                    {project.tasks.length > 3 && (
+                      <li className="text-xs text-gray-500 italic">
+                        +{project.tasks.length - 3} more tasks
+                      </li>
+                    )}
+                  </ul>
+                </div>
+
                 {/* Action Buttons */}
                 <div className="flex gap-2 pt-2">
-                  <Button size="sm" variant="outline" className="flex-1">
-                    View Details
+                  <Button onClick={handleViewTasks} size="sm" variant="outline" className="flex-1">
+                    View Tasks
                   </Button>
-                  <Button size="sm" variant="outline">
-                    Edit
+                  <Button 
+                    size="sm" 
+                    variant="outline" 
+                    onClick={() => handleManageProjectTasks(project)}
+                    className="text-blue-600 hover:text-blue-700"
+                  >
+                    Manage Tasks
                   </Button>
+                  <Button size="sm" variant="outline" onClick={() => router.push("/admin/projects/manage-project")}>Edit</Button>
                 </div>
               </CardContent>
             </Card>

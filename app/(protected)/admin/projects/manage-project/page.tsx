@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { Header } from "@/components/header";
 import {
   Card,
@@ -12,11 +11,10 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+import { projects as mockProjects, tasks, type Project, type Task, type Milestone } from "@/lib/project-task-data";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-
+// import { Progress } from "@/lib/project-task-data";
 import { 
   Search, 
   Filter, 
@@ -35,117 +33,25 @@ import {
   Eye,
   BarChart3,
   Settings,
-  Download,
-  Save,
-  X,
-  UserPlus
+  Download
 } from "lucide-react";
 
-interface Project {
-  id: string;
-  name: string;
-  description: string;
-  status: 'planning' | 'active' | 'on-hold' | 'completed' | 'cancelled';
-  priority: 'low' | 'medium' | 'high' | 'urgent';
-  startDate: string;
-  endDate: string;
-  progress: number;
-  teamSize: number;
-  manager: string;
-  budget: string;
-  category: string;
-  tasks: Task[];
-  teamMembers: TeamMember[];
-}
 
-interface Task {
-  id: string;
-  name: string;
-  description: string;
-  status: 'pending' | 'in-progress' | 'completed' | 'blocked';
-  assignee: string;
-  dueDate: string;
-  priority: 'low' | 'medium' | 'high';
-}
 
-interface TeamMember {
-  id: string;
-  name: string;
-  role: string;
-  email: string;
-  status: 'active' | 'inactive';
-}
 
-// Mock data for demonstration
-const mockProjects: Project[] = [
-  {
-    id: "1",
-    name: "Website Redesign",
-    description: "Complete overhaul of company website with modern design and improved UX",
-    status: "active",
-    priority: "high",
-    startDate: "2024-01-15",
-    endDate: "2024-04-30",
-    progress: 65,
-    teamSize: 8,
-    manager: "Sarah Johnson",
-    budget: "$45,000",
-    category: "Development",
-    tasks: [
-      { id: "1", name: "Design Mockups", description: "Create wireframes and design mockups", status: "completed", assignee: "Alex Chen", dueDate: "2024-02-01", priority: "high" },
-      { id: "2", name: "Frontend Development", description: "Develop responsive frontend components", status: "in-progress", assignee: "Mike Davis", dueDate: "2024-03-15", priority: "high" },
-      { id: "3", name: "Backend API", description: "Build RESTful API endpoints", status: "pending", assignee: "Lisa Wang", dueDate: "2024-03-30", priority: "medium" }
-    ],
-    teamMembers: [
-      { id: "1", name: "Sarah Johnson", role: "Project Manager", email: "sarah@company.com", status: "active" },
-      { id: "2", name: "Alex Chen", role: "UI/UX Designer", email: "alex@company.com", status: "active" },
-      { id: "3", name: "Mike Davis", role: "Frontend Developer", email: "mike@company.com", status: "active" },
-      { id: "4", name: "Lisa Wang", role: "Backend Developer", email: "lisa@company.com", status: "active" }
-    ]
-  },
-  {
-    id: "2",
-    name: "Mobile App Development",
-    description: "iOS and Android mobile application for customer engagement",
-    status: "planning",
-    priority: "urgent",
-    startDate: "2024-03-01",
-    endDate: "2024-08-15",
-    progress: 15,
-    teamSize: 12,
-    manager: "Mike Chen",
-    budget: "$120,000",
-    category: "Development",
-    tasks: [
-      { id: "1", name: "Requirements Gathering", description: "Collect and document project requirements", status: "completed", assignee: "Mike Chen", dueDate: "2024-03-15", priority: "high" },
-      { id: "2", name: "UI/UX Design", description: "Design mobile app interface and user experience", status: "in-progress", assignee: "Emma Wilson", dueDate: "2024-04-15", priority: "high" }
-    ],
-    teamMembers: [
-      { id: "1", name: "Mike Chen", role: "Project Manager", email: "mike.chen@company.com", status: "active" },
-      { id: "2", name: "Emma Wilson", role: "Mobile Designer", email: "emma@company.com", status: "active" }
-    ]
-  }
-];
-
-export default function ManageProjectPage() {
-  const router = useRouter();
+export default function ProjectManagementPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [priorityFilter, setPriorityFilter] = useState("all");
+  const [priorityFilter, setpriorityFilter] = useState("all");
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
-  const [viewMode, setViewMode] = useState<'overview' | 'edit' | 'tasks' | 'team'>('overview');
-  const [editingProject, setEditingProject] = useState<Project | null>(null);
-  const [showAddTask, setShowAddTask] = useState(false);
-  const [showAddMember, setShowAddMember] = useState(false);
-  const [newTask, setNewTask] = useState({ name: '', description: '', assignee: '', dueDate: '', priority: 'medium' as const });
-  const [newMember, setNewMember] = useState({ name: '', role: '', email: '' });
+  const [viewMode, setViewMode] = useState<'overview' | 'details' | 'tasks' | 'milestones'>('overview');
 
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'planning':
         return <Badge className="bg-blue-100 text-blue-800 border-blue-200">Planning</Badge>;
       case 'active':
-        return <Badge className="bg-green-100 text-green-800 border-green-200">Active</Badge>;
+        return <Badge className="bg-green-100 text-green-800 border-blue-200">Active</Badge>;
       case 'on-hold':
         return <Badge className="bg-yellow-100 text-yellow-800 border-yellow-200">On Hold</Badge>;
       case 'completed':
@@ -211,121 +117,31 @@ export default function ManageProjectPage() {
   const activeProjects = mockProjects.filter(p => p.status === 'active').length;
   const completedProjects = mockProjects.filter(p => p.status === 'completed').length;
   const urgentProjects = mockProjects.filter(p => p.priority === 'urgent').length;
-  const totalTasks = mockProjects.reduce((sum, p) => sum + p.tasks.length, 0);
-  const completedTasks = mockProjects.reduce((sum, p) => sum + p.tasks.filter(t => t.status === 'completed').length, 0);
+  const totalTasks = tasks.length;
+  const completedTasks = tasks.filter(t => t.status === 'completed').length;
 
   const handleProjectSelect = (project: Project) => {
     setSelectedProject(project);
-    setEditingProject({ ...project });
     setViewMode('overview');
   };
 
   const handleStatusChange = (projectId: string, newStatus: string) => {
-    // Update project status
-    const updatedProjects = mockProjects.map(p => 
-      p.id === projectId ? { ...p, status: newStatus as any } : p
-    );
-    if (selectedProject?.id === projectId) {
-      setSelectedProject({ ...selectedProject, status: newStatus as any });
-    }
-    console.log(`Updated project ${projectId} status to ${newStatus}`);
+    // TODO: Update project status in backend
+    console.log(`Updating project ${projectId} status to ${newStatus}`);
   };
 
   const handleDeleteProject = (projectId: string) => {
-    if (confirm('Are you sure you want to delete this project? This action cannot be undone.')) {
+    if (confirm('Are you sure you want to delete this project?')) {
       // TODO: Delete project from backend
       console.log(`Deleting project ${projectId}`);
-      if (selectedProject?.id === projectId) {
-        setSelectedProject(null);
-        setEditingProject(null);
-      }
     }
   };
 
-  const handleSaveProject = () => {
-    if (editingProject) {
-      setSelectedProject(editingProject);
-      setViewMode('overview');
-      console.log('Project updated:', editingProject);
-    }
-  };
-
-  const handleCancelEdit = () => {
-    setEditingProject(selectedProject ? { ...selectedProject } : null);
-    setViewMode('overview');
-  };
-
-  const handleAddTask = () => {
-    if (newTask.name && newTask.assignee && newTask.dueDate && selectedProject) {
-      const task: Task = {
-        id: Date.now().toString(),
-        name: newTask.name,
-        description: newTask.description,
-        status: 'pending',
-        assignee: newTask.assignee,
-        dueDate: newTask.dueDate,
-        priority: newTask.priority
-      };
-      
-      const updatedProject = {
-        ...selectedProject,
-        tasks: [...selectedProject.tasks, task]
-      };
-      
-      setSelectedProject(updatedProject);
-      setEditingProject(updatedProject);
-      setNewTask({ name: '', description: '', assignee: '', dueDate: '', priority: 'medium' });
-      setShowAddTask(false);
-    }
-  };
-
-  const handleAddMember = () => {
-    if (newMember.name && newMember.role && newMember.email && selectedProject) {
-      const member: TeamMember = {
-        id: Date.now().toString(),
-        name: newMember.name,
-        role: newMember.role,
-        email: newMember.email,
-        status: 'active'
-      };
-      
-      const updatedProject = {
-        ...selectedProject,
-        teamMembers: [...selectedProject.teamMembers, member],
-        teamSize: selectedProject.teamSize + 1
-      };
-      
-      setSelectedProject(updatedProject);
-      setEditingProject(updatedProject);
-      setNewMember({ name: '', role: '', email: '' });
-      setShowAddMember(false);
-    }
-  };
-
-  const handleDeleteTask = (taskId: string) => {
-    if (selectedProject) {
-      const updatedTasks = selectedProject.tasks.filter(t => t.id !== taskId);
-      const updatedProject = { ...selectedProject, tasks: updatedTasks };
-      setSelectedProject(updatedProject);
-      setEditingProject(updatedProject);
-    }
-  };
-
-  const handleDeleteMember = (memberId: string) => {
-    if (selectedProject) {
-      const updatedMembers = selectedProject.teamMembers.filter(m => m.id !== memberId);
-      const updatedProject = { 
-        ...selectedProject, 
-        teamMembers: updatedMembers,
-        teamSize: selectedProject.teamSize - 1
-      };
-      setSelectedProject(updatedProject);
-      setEditingProject(updatedProject);
-    }
-  };
-
-  const handleNewProject = () => {
-    router.push('/admin/projects/add');
+  const handleEditTasks = (project: Project) => {
+    // Store the selected project in localStorage to pass to task management page
+    localStorage.setItem('selectedProjectForTasks', JSON.stringify(project));
+    // Navigate to task management page
+    window.location.href = '/admin/tasks/manage-tasks';
   };
 
   return (
@@ -334,14 +150,14 @@ export default function ManageProjectPage() {
         breadcrumbs={[
           { label: "Admin", href: "/admin" },
           { label: "Projects", href: "/admin/projects" },
-          { label: "Manage Projects" },
+          { label: "Project Management" },
         ]}
       />
       <div className="flex flex-1 flex-col gap-6 p-6">
         {/* Page Header */}
         <div className="flex flex-col gap-2">
-          <h1 className="text-3xl font-bold text-gray-900">Manage Projects</h1>
-          <p className="text-gray-600">Monitor, edit, and control all company projects</p>
+          <h1 className="text-3xl font-bold text-gray-900">Project Management</h1>
+          <p className="text-gray-600">Monitor, manage, and control all company projects</p>
         </div>
 
         {/* Statistics Dashboard */}
@@ -439,7 +255,7 @@ export default function ManageProjectPage() {
                 </SelectContent>
               </Select>
 
-              <Select value={priorityFilter} onValueChange={setPriorityFilter}>
+              <Select value={priorityFilter} onValueChange={setpriorityFilter}>
                 <SelectTrigger className="w-full sm:w-[150px]">
                   <SelectValue placeholder="Priority" />
                 </SelectTrigger>
@@ -452,7 +268,7 @@ export default function ManageProjectPage() {
                 </SelectContent>
               </Select>
 
-              <Button className="w-full sm:w-auto" onClick={handleNewProject}>
+              <Button className="w-full sm:w-auto">
                 <Plus className="h-4 w-4 mr-2" />
                 New Project
               </Button>
@@ -495,12 +311,7 @@ export default function ManageProjectPage() {
                         <span className="text-gray-500">{project.manager}</span>
                         <span className="font-medium">{project.progress}%</span>
                       </div>
-                                             <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
-                         <div 
-                           className="bg-blue-600 h-2 rounded-full"
-                           style={{ width: `${project.progress}%` }}
-                         ></div>
-                       </div>
+                      {/* <Progress value={project.progress} className="mt-2" /> */}
                     </div>
                   ))}
                 </div>
@@ -528,13 +339,18 @@ export default function ManageProjectPage() {
                         </CardDescription>
                       </div>
                       <div className="flex items-center gap-2">
+                        <Button variant="outline" size="sm">
+                          <Edit className="h-4 w-4 mr-2" />
+                          Edit
+                        </Button>
                         <Button 
                           variant="outline" 
                           size="sm"
-                          onClick={() => setViewMode('edit')}
+                          onClick={() => handleEditTasks(selectedProject)}
+                          className="text-blue-600 hover:text-blue-700"
                         >
                           <Edit className="h-4 w-4 mr-2" />
-                          Edit
+                          Edit Tasks
                         </Button>
                         <Button 
                           variant="outline" 
@@ -589,11 +405,11 @@ export default function ManageProjectPage() {
                         Tasks ({selectedProject.tasks.length})
                       </Button>
                       <Button
-                        variant={viewMode === 'team' ? 'default' : 'ghost'}
+                        variant={viewMode === 'milestones' ? 'default' : 'ghost'}
                         size="sm"
-                        onClick={() => setViewMode('team')}
+                        onClick={() => setViewMode('milestones')}
                       >
-                        Team ({selectedProject.teamMembers.length})
+                        Milestones ({selectedProject.milestones.length})
                       </Button>
                     </div>
                   </CardHeader>
@@ -638,173 +454,35 @@ export default function ManageProjectPage() {
                       </div>
                     )}
 
-                    {/* Edit Tab */}
-                    {viewMode === 'edit' && editingProject && (
-                      <div className="space-y-4">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div className="space-y-2">
-                            <Label>Project Name</Label>
-                            <Input
-                              value={editingProject.name}
-                              onChange={(e) => setEditingProject({...editingProject, name: e.target.value})}
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <Label>Category</Label>
-                            <Select value={editingProject.category} onValueChange={(value) => setEditingProject({...editingProject, category: value})}>
-                              <SelectTrigger>
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="Development">Development</SelectItem>
-                                <SelectItem value="Marketing">Marketing</SelectItem>
-                                <SelectItem value="Operations">Operations</SelectItem>
-                                <SelectItem value="IT">IT</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-                        </div>
-                        <div className="space-y-2">
-                          <Label>Description</Label>
-                          <Textarea
-                            value={editingProject.description}
-                            onChange={(e) => setEditingProject({...editingProject, description: e.target.value})}
-                            rows={3}
-                          />
-                        </div>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                          <div className="space-y-2">
-                            <Label>Start Date</Label>
-                            <Input
-                              type="date"
-                              value={editingProject.startDate}
-                              onChange={(e) => setEditingProject({...editingProject, startDate: e.target.value})}
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <Label>End Date</Label>
-                            <Input
-                              type="date"
-                              value={editingProject.endDate}
-                              onChange={(e) => setEditingProject({...editingProject, endDate: e.target.value})}
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <Label>Budget</Label>
-                            <Input
-                              value={editingProject.budget}
-                              onChange={(e) => setEditingProject({...editingProject, budget: e.target.value})}
-                            />
-                          </div>
-                        </div>
-                        <div className="flex gap-2 justify-end">
-                          <Button variant="outline" onClick={handleCancelEdit}>
-                            Cancel
-                          </Button>
-                          <Button onClick={handleSaveProject}>
-                            <Save className="h-4 w-4 mr-2" />
-                            Save Changes
-                          </Button>
-                        </div>
-                      </div>
-                    )}
-
                     {/* Tasks Tab */}
                     {viewMode === 'tasks' && (
                       <div className="space-y-4">
                         <div className="flex items-center justify-between">
                           <h4 className="font-medium">Project Tasks</h4>
-                          <Button size="sm" onClick={() => setShowAddTask(true)}>
-                            <Plus className="h-4 w-4 mr-2" />
-                            Add Task
-                          </Button>
+                          <div className="flex gap-2">
+                            <Button size="sm" variant="outline" onClick={() => handleEditTasks(selectedProject)}>
+                              <Edit className="h-4 w-4 mr-2" />
+                              Edit Tasks
+                            </Button>
+                            <Button size="sm">
+                              <Plus className="h-4 w-4 mr-2" />
+                              Add Task
+                            </Button>
+                          </div>
                         </div>
-                        
-                        {showAddTask && (
-                          <Card className="p-4">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                              <div className="space-y-2">
-                                <Label>Task Name</Label>
-                                <Input
-                                  value={newTask.name}
-                                  onChange={(e) => setNewTask({...newTask, name: e.target.value})}
-                                  placeholder="Enter task name"
-                                />
-                              </div>
-                              <div className="space-y-2">
-                                <Label>Assignee</Label>
-                                <Input
-                                  value={newTask.assignee}
-                                  onChange={(e) => setNewTask({...newTask, assignee: e.target.value})}
-                                  placeholder="Enter assignee name"
-                                />
-                              </div>
-                            </div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                              <div className="space-y-2">
-                                <Label>Due Date</Label>
-                                <Input
-                                  type="date"
-                                  value={newTask.dueDate}
-                                  onChange={(e) => setNewTask({...newTask, dueDate: e.target.value})}
-                                />
-                              </div>
-                              <div className="space-y-2">
-                                <Label>Priority</Label>
-                                <Select value={newTask.priority} onValueChange={(value: any) => setNewTask({...newTask, priority: value})}>
-                                  <SelectTrigger>
-                                    <SelectValue />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    <SelectItem value="low">Low</SelectItem>
-                                    <SelectItem value="medium">Medium</SelectItem>
-                                    <SelectItem value="high">High</SelectItem>
-                                  </SelectContent>
-                                </Select>
-                              </div>
-                            </div>
-                            <div className="space-y-2 mb-4">
-                              <Label>Description</Label>
-                              <Textarea
-                                value={newTask.description}
-                                onChange={(e) => setNewTask({...newTask, description: e.target.value})}
-                                placeholder="Enter task description"
-                                rows={2}
-                              />
-                            </div>
-                            <div className="flex gap-2 justify-end">
-                              <Button variant="outline" onClick={() => setShowAddTask(false)}>
-                                Cancel
-                              </Button>
-                              <Button onClick={handleAddTask}>
-                                <Plus className="h-4 w-4 mr-2" />
-                                Add Task
-                              </Button>
-                            </div>
-                          </Card>
-                        )}
-
                         <div className="space-y-3">
                           {selectedProject.tasks.map((task) => (
                             <div key={task.id} className="flex items-center justify-between p-3 border rounded-lg">
                               <div className="flex-1">
                                 <div className="font-medium">{task.name}</div>
                                 <div className="text-sm text-gray-600">
-                                  {task.description}
-                                </div>
-                                <div className="text-sm text-gray-500 mt-1">
                                   {task.assignee} • Due: {formatDate(task.dueDate)}
                                 </div>
                               </div>
                               <div className="flex items-center gap-2">
                                 {getTaskStatusBadge(task.status)}
-                                <Button 
-                                  variant="ghost" 
-                                  size="sm"
-                                  onClick={() => handleDeleteTask(task.id)}
-                                  className="text-red-600 hover:text-red-700"
-                                >
-                                  <Trash2 className="h-4 w-4" />
+                                <Button variant="ghost" size="sm">
+                                  <Edit className="h-4 w-4" />
                                 </Button>
                               </div>
                             </div>
@@ -813,80 +491,27 @@ export default function ManageProjectPage() {
                       </div>
                     )}
 
-                    {/* Team Tab */}
-                    {viewMode === 'team' && (
+                    {/* Milestones Tab */}
+                    {viewMode === 'milestones' && (
                       <div className="space-y-4">
                         <div className="flex items-center justify-between">
-                          <h4 className="font-medium">Project Team</h4>
-                          <Button size="sm" onClick={() => setShowAddMember(true)}>
-                            <UserPlus className="h-4 w-4 mr-2" />
-                            Add Member
+                          <h4 className="font-medium">Project Milestones</h4>
+                          <Button size="sm">
+                            <Plus className="h-4 w-4 mr-2" />
+                            Add Milestone
                           </Button>
                         </div>
-                        
-                        {showAddMember && (
-                          <Card className="p-4">
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                              <div className="space-y-2">
-                                <Label>Name</Label>
-                                <Input
-                                  value={newMember.name}
-                                  onChange={(e) => setNewMember({...newMember, name: e.target.value})}
-                                  placeholder="Enter member name"
-                                />
-                              </div>
-                              <div className="space-y-2">
-                                <Label>Role</Label>
-                                <Input
-                                  value={newMember.role}
-                                  onChange={(e) => setNewMember({...newMember, role: e.target.value})}
-                                  placeholder="Enter role"
-                                />
-                              </div>
-                              <div className="space-y-2">
-                                <Label>Email</Label>
-                                <Input
-                                  type="email"
-                                  value={newMember.email}
-                                  onChange={(e) => setNewMember({...newMember, email: e.target.value})}
-                                  placeholder="Enter email"
-                                />
-                              </div>
-                            </div>
-                            <div className="flex gap-2 justify-end">
-                              <Button variant="outline" onClick={() => setShowAddMember(false)}>
-                                Cancel
-                              </Button>
-                              <Button onClick={handleAddMember}>
-                                <UserPlus className="h-4 w-4 mr-2" />
-                                Add Member
-                              </Button>
-                            </div>
-                          </Card>
-                        )}
-
                         <div className="space-y-3">
-                          {selectedProject.teamMembers.map((member) => (
-                            <div key={member.id} className="flex items-center justify-between p-3 border rounded-lg">
-                              <div className="flex-1">
-                                <div className="font-medium">{member.name}</div>
-                                <div className="text-sm text-gray-600">
-                                  {member.role} • {member.email}
-                                </div>
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <Badge variant={member.status === 'active' ? 'default' : 'secondary'}>
-                                  {member.status}
+                          {selectedProject.milestones.map((milestone) => (
+                            <div key={milestone.id} className="p-4 border rounded-lg">
+                              <div className="flex items-center justify-between mb-2">
+                                <h5 className="font-medium">{milestone.name}</h5>
+                                <Badge variant={milestone.status === 'completed' ? 'default' : 'secondary'}>
+                                  {milestone.status}
                                 </Badge>
-                                <Button 
-                                  variant="ghost" 
-                                  size="sm"
-                                  onClick={() => handleDeleteMember(member.id)}
-                                  className="text-red-600 hover:text-red-700"
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
                               </div>
+                              <p className="text-sm text-gray-600 mb-2">{milestone.description}</p>
+                              <div className="text-sm text-gray-500">Due: {formatDate(milestone.dueDate)}</div>
                             </div>
                           ))}
                         </div>

@@ -1,4 +1,14 @@
 'use client';
+interface NewTask {
+  id: string;
+  name: string;
+  status: 'pending' | 'in-progress' | 'completed' | 'blocked';
+  assignee: string;
+  dueDate: string;
+  priority: 'low' | 'medium' | 'high' | 'urgent';
+}
+// ...existing code...
+// Move 'use client' to the very top
 
 import { useState } from "react";
 import { Header } from "@/components/header";
@@ -35,6 +45,43 @@ interface TeamMember {
 }
 
 export default function AddProjectPage() {
+  const [tasks, setTasks] = useState<NewTask[]>([]);
+  const [newTask, setNewTask] = useState<{ 
+    name: string; 
+    status: 'pending' | 'in-progress' | 'completed' | 'blocked';
+    assignee: string;
+    dueDate: string;
+    priority: 'low' | 'medium' | 'high' | 'urgent';
+  }>({ 
+    name: '', 
+    status: 'pending',
+    assignee: '',
+    dueDate: '',
+    priority: 'medium'
+  });
+  
+  const addTask = () => {
+    if (!newTask.name.trim() || !newTask.assignee.trim() || !newTask.dueDate) return;
+    setTasks(prev => [...prev, { 
+      id: Date.now().toString(), 
+      name: newTask.name, 
+      status: newTask.status,
+      assignee: newTask.assignee,
+      dueDate: newTask.dueDate,
+      priority: newTask.priority
+    }]);
+    setNewTask({ 
+      name: '', 
+      status: 'pending',
+      assignee: '',
+      dueDate: '',
+      priority: 'medium'
+    });
+  };
+
+  const removeTask = (id: string) => {
+    setTasks(prev => prev.filter(task => task.id !== id));
+  };
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -116,7 +163,7 @@ export default function AddProjectPage() {
     
     if (validateForm()) {
       // TODO: Submit project data to backend
-      console.log('Project data:', { ...formData, teamMembers });
+      console.log('Project data:', { ...formData, teamMembers, tasks });
       alert('Project created successfully!');
     }
   };
@@ -138,7 +185,9 @@ export default function AddProjectPage() {
       successCriteria: ''
     });
     setTeamMembers([]);
-    setErrors({});
+  setTasks([]);
+  setNewTask({ title: '', status: 'todo' });
+  setErrors({});
   };
 
   return (
@@ -424,6 +473,92 @@ export default function AddProjectPage() {
                   </div>
                 )}
               </div>
+            </CardContent>
+          </Card>
+
+          {/* Tasks Section */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Target className="h-5 w-5" />
+                Add Project Tasks
+              </CardTitle>
+              <CardDescription>Add tasks for this project</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
+                <Input
+                  placeholder="Task name"
+                  value={newTask.name}
+                  onChange={e => setNewTask(prev => ({ ...prev, name: e.target.value }))}
+                  className="lg:col-span-2"
+                />
+                <Input
+                  placeholder="Assignee"
+                  value={newTask.assignee}
+                  onChange={e => setNewTask(prev => ({ ...prev, assignee: e.target.value }))}
+                />
+                <Input
+                  type="date"
+                  value={newTask.dueDate}
+                  onChange={e => setNewTask(prev => ({ ...prev, dueDate: e.target.value }))}
+                />
+                <Select value={newTask.priority} onValueChange={value => setNewTask(prev => ({ ...prev, priority: value as 'low' | 'medium' | 'high' | 'urgent' }))}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Priority" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="low">Low</SelectItem>
+                    <SelectItem value="medium">Medium</SelectItem>
+                    <SelectItem value="high">High</SelectItem>
+                    <SelectItem value="urgent">Urgent</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Select value={newTask.status} onValueChange={value => setNewTask(prev => ({ ...prev, status: value as 'pending' | 'in-progress' | 'completed' | 'blocked' }))}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="pending">Pending</SelectItem>
+                    <SelectItem value="in-progress">In Progress</SelectItem>
+                    <SelectItem value="completed">Completed</SelectItem>
+                    <SelectItem value="blocked">Blocked</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <Button type="button" variant="outline" size="sm" className="w-full md:w-auto" onClick={addTask}>
+                <Plus className="h-4 w-4 mr-2" />
+                Add Task
+              </Button>
+              {/* Display Tasks */}
+              {tasks.length > 0 && (
+                <div className="space-y-2">
+                  <Label>Project Tasks</Label>
+                  <div className="space-y-2">
+                    {tasks.map(task => (
+                      <div key={task.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-2">
+                            <span className="font-medium">{task.name}</span>
+                            {task.status === 'completed' && <Badge className="bg-green-100 text-green-800 border-green-200">Completed</Badge>}
+                            {task.status === 'in-progress' && <Badge className="bg-blue-100 text-blue-800 border-blue-200">In Progress</Badge>}
+                            {task.status === 'pending' && <Badge className="bg-gray-100 text-gray-800 border-gray-200">Pending</Badge>}
+                            {task.status === 'blocked' && <Badge className="bg-red-100 text-red-800 border-red-200">Blocked</Badge>}
+                          </div>
+                          <div className="text-sm text-gray-600 space-y-1">
+                            <div>Assignee: {task.assignee}</div>
+                            <div>Due: {new Date(task.dueDate).toLocaleDateString()}</div>
+                            <div>Priority: <span className="capitalize">{task.priority}</span></div>
+                          </div>
+                        </div>
+                        <Button type="button" variant="ghost" size="sm" onClick={() => removeTask(task.id)} className="text-red-600 hover:text-red-700">
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
 
