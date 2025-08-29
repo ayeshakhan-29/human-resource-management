@@ -174,15 +174,15 @@ export default function TaskAnalyticsPage() {
         ]}
       />
       <div className="flex flex-1 flex-col gap-6 p-6">
-        <div className="flex flex-col gap-3">
-          <div className="flex items-center justify-between">
+        <div className="flex flex-col flex-wrap  gap-3">
+          <div className="flex items-center flex-wrap gap-6 w-full justify-between ">
             <div className="flex items-center gap-4">
               <div className="p-3 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl">
                 <BarChart3 className="h-8 w-8 text-white" />
               </div>
               <div>
-                <h1 className="text-4xl font-bold text-gray-900">Task Reports</h1>
-                <p className="text-lg text-gray-600">Comprehensive insights into task progress, throughput, and team performance</p>
+                <h1 className="text-3xl md:text-4xl font-bold mb-3 md:mb-0 text-gray-900">Task Reports</h1>
+                <p className="text-md md:text-lg text-gray-600">Comprehensive insights into task progress, throughput, and team performance</p>
               </div>
             </div>
             <div className="flex gap-3">
@@ -343,9 +343,9 @@ export default function TaskAnalyticsPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="flex items-end justify-between gap-3 h-48 px-4">
+            <div className="flex items-end flex-wrap justify-between gap-3 h-48 px-4">
               {stats.days.map((d, idx) => (
-                <div key={idx} className="flex flex-col items-center gap-2 flex-1">
+                <div key={idx} className="flex flex-col items-center  gap-2 flex-1">
                   <div
                     className="w-full bg-gradient-to-t from-indigo-500 to-indigo-600 rounded-t-lg shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer"
                     style={{ height: `${Math.max((d.count / barMax) * 100, 8) || 8}%` }}
