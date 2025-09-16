@@ -1,8 +1,11 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { Header } from "@/components/header";
-import { tasks as centralizedTasks, projects } from "@/lib/project-task-data";
+// Remove mock data import
+import { getAllTasks } from "@/lib/actions/task.actions";
+import { Task, TaskStatus, TaskPriority } from "@/lib/types/task.types";
+import { toast } from "sonner";
 
 import { useRouter } from "next/navigation";
 import {
@@ -33,67 +36,86 @@ import {
 import { ListChecks, Plus, Search, Filter, Calendar, Users, BarChart3 } from "lucide-react";
 
 interface TaskItem {
-  id: string;
+  id: string | number;
   title: string;
   description: string;
-  status: "pending" | "in-progress" | "completed";
-  priority: "low" | "medium" | "high" | "urgent";
+  status: TaskStatus;
+  priority: TaskPriority;
   assignee: string;
   dueDate: string;
   project: string;
 }
 
-
-// Use centralized tasks and projects
-const mockTasks = projects.flatMap(project => 
-  project.tasks.map(task => ({
-    id: task.id,
-    title: task.name,
-    description: '', // No description in centralized data
-    status: task.status,
-    priority: task.priority,
-    assignee: task.assignee,
-    dueDate: task.dueDate,
-    project: project.name,
-  }))
-);
-
 export default function AllTasksPage() {
-   const router = useRouter();
+  const router = useRouter();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [priorityFilter, setPriorityFilter] = useState("all");
   const [assigneeFilter, setAssigneeFilter] = useState("all");
+  const [tasks, setTasks] = useState<TaskItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [limit] = useState(50); // Default limit for tasks per page
 
+  // Fetch tasks from backend
+  useEffect(() => {
+    const fetchTasks = async () => {
+      try {
+        setLoading(true);
+        const filters: any = {};
+        
+        if (statusFilter !== "all") filters.status = statusFilter;
+        if (priorityFilter !== "all") filters.priority = priorityFilter;
+        if (search) filters.search = search;
+        
+        const response = await getAllTasks(page, limit, filters);
+        
+        // Transform backend tasks to match the TaskItem interface
+        const transformedTasks = response.data.map((task: any) => ({
+          id: task.id,
+          title: task.title,
+          description: task.description || "",
+          status: task.status,
+          priority: task.priority,
+          assignee: task.assignee?.fullName || "Unassigned",
+          dueDate: task.dueDate || new Date().toISOString(),
+          project: task.project?.name || "No Project",
+        }));
+        
+        setTasks(transformedTasks);
+      } catch (error) {
+        console.error("Failed to fetch tasks:", error);
+        toast.error("Failed to load tasks, please try again later!!" );
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchTasks();
+  }, [page, limit, statusFilter, priorityFilter, search, toast]);
+  
   const stats = useMemo(() => {
-    const total = mockTasks.length;
-    const completed = mockTasks.filter((t) => t.status === "completed").length;
-    const inProgress = mockTasks.filter((t) => t.status === "in-progress").length;
-    const pending = mockTasks.filter((t) => t.status === "pending").length;
-    // No blocked status in centralized data
-    const blocked = 0;
+    const total = tasks.length;
+    const completed = tasks.filter((t) => t.status === "completed").length;
+    const inProgress = tasks.filter((t) => t.status === "in-progress").length;
+    const pending = tasks.filter((t) => t.status === "pending").length;
+    const blocked = tasks.filter((t) => t.status === "blocked").length;
     return { total, completed, inProgress, pending, blocked };
-  }, []);
+  }, [tasks]);
 
   const assignees = useMemo(() => {
     const set = new Set<string>();
-    mockTasks.forEach((t) => set.add(t.assignee));
+    tasks.forEach((t) => set.add(t.assignee));
     return Array.from(set);
-  }, []);
+  }, [tasks]);
 
   const filtered = useMemo(() => {
-    return mockTasks.filter((t) => {
-      const matchesSearch =
-        t.title.toLowerCase().includes(search.toLowerCase()) ||
-        t.description.toLowerCase().includes(search.toLowerCase()) ||
-        t.project.toLowerCase().includes(search.toLowerCase()) ||
-        t.assignee.toLowerCase().includes(search.toLowerCase());
-      const matchesStatus = statusFilter === "all" || t.status === statusFilter;
-      const matchesPriority = priorityFilter === "all" || t.priority === priorityFilter;
+    // Filter only by assignee locally since other filters are handled by the API
+    return tasks.filter((t) => {
       const matchesAssignee = assigneeFilter === "all" || t.assignee === assigneeFilter;
-      return matchesSearch && matchesStatus && matchesPriority && matchesAssignee;
+      return matchesAssignee;
     });
-  }, [search, statusFilter, priorityFilter, assigneeFilter]);
+  }, [tasks, assigneeFilter]);
 
   const formatDate = (iso: string) =>
     new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
@@ -276,7 +298,7 @@ export default function AllTasksPage() {
           <CardHeader>
             <CardTitle>Tasks</CardTitle>
             <CardDescription>
-              Showing {filtered.length} of {mockTasks.length}
+              {loading ? "Loading tasks..." : `Showing ${filtered.length} of ${tasks.length}`}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -293,7 +315,13 @@ export default function AllTasksPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filtered.length === 0 ? (
+                  {loading ? (
+                    <TableRow>
+                      <TableCell colSpan={6} className="text-center py-10 text-gray-500">
+                        Loading tasks...
+                      </TableCell>
+                    </TableRow>
+                  ) : filtered.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={6} className="text-center py-10 text-gray-500">
                         No tasks found. Adjust filters or search.
@@ -301,7 +329,11 @@ export default function AllTasksPage() {
                     </TableRow>
                   ) : (
                     filtered.map((t) => (
-                      <TableRow key={t.id} className="hover:bg-gray-50">
+                      <TableRow 
+                        key={t.id} 
+                        className="hover:bg-gray-50 cursor-pointer" 
+                        onClick={() => router.push(`/admin/tasks/${t.id}`)}
+                      >
                         <TableCell>
                           <div className="flex flex-col">
                             <span className="font-medium">{t.title}</span>

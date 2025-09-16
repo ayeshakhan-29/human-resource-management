@@ -162,11 +162,6 @@ const data = {
           icon: Settings2,
         },
         {
-          title: "Task Calendar ",
-          url: "/admin/tasks/task-calendar",
-          icon: Calendar,
-        },
-        {
           title: "Task Reports ",
           url: "/admin/tasks/task-reports",
           icon: BarChart3,

@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useEffect } from "react";
 import { Header } from "@/components/header";
-
+import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import {
   Card,
@@ -11,6 +11,9 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { getAllTasks, updateTask, deleteTask } from "@/lib/actions/task.actions";
+import { getAllUsers } from "@/lib/actions/employee.actions";
+import { Task, TasksResponse } from "@/lib/types/task.types";
 import { tasks as centralizedTasks, projects } from "@/lib/project-task-data";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -39,7 +42,7 @@ interface TaskItem {
   id: string;
   title: string;
   description: string;
-  status: "pending" | "in-progress" | "completed" | "blocked";
+  status: "pending" | "in-progress" | "completed" | "blocked" | "cancelled";
   priority: "low" | "medium" | "high" | "urgent";
   assignee: string;
   dueDate: string;
@@ -50,7 +53,7 @@ interface TaskItem {
 
 // Use centralized tasks and projects
 const getMockTasks = (selectedProjectId?: string): TaskItem[] => {
-  const allTasks = projects.flatMap(project => 
+  const allTasks = projects.flatMap(project =>
     project.tasks.map(task => ({
       id: task.id,
       title: task.name,
@@ -63,7 +66,7 @@ const getMockTasks = (selectedProjectId?: string): TaskItem[] => {
       subtasks: [],
     }))
   );
-  
+
   // If a specific project is selected, filter tasks for that project
   if (selectedProjectId) {
     return allTasks.filter(task => {
@@ -71,11 +74,12 @@ const getMockTasks = (selectedProjectId?: string): TaskItem[] => {
       return project && project.id === selectedProjectId;
     });
   }
-  
+
   return allTasks;
 };
 
 export default function ManageTasksPage() {
+
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [priorityFilter, setPriorityFilter] = useState("all");
@@ -83,6 +87,27 @@ export default function ManageTasksPage() {
   const [selected, setSelected] = useState<TaskItem | null>(null);
   const [editing, setEditing] = useState<TaskItem | null>(null);
   const [selectedProject, setSelectedProject] = useState<{ id: string; name: string } | null>(null);
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [users, setUsers] = useState<{ id: number; fullName: string }[]>([]);
+
+  // Fetch tasks and users on mount or when selectedProject changes
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const tasksResponse: TasksResponse = await getAllTasks(1, 1000, selectedProject ? { projectName: selectedProject.name } : undefined);
+        if (tasksResponse.success) {
+          setTasks(tasksResponse.data);
+        }
+        const usersResponse = await getAllUsers();
+        if (usersResponse.success) {
+          setUsers(usersResponse.data);
+        }
+      } catch (error) {
+        toast.error("Failed to load data, please try again later!!");
+      }
+    };
+    fetchData();
+  }, [selectedProject, toast]);
 
   // Check if we're editing tasks for a specific project
   useEffect(() => {
@@ -100,25 +125,38 @@ export default function ManageTasksPage() {
   }, []);
 
   const stats = useMemo(() => {
-    const tasks = getMockTasks(selectedProject?.id);
     const total = tasks.length;
     const completed = tasks.filter((t) => t.status === "completed").length;
     const inProgress = tasks.filter((t) => t.status === "in-progress").length;
     const pending = tasks.filter((t) => t.status === "pending").length;
     const blocked = tasks.filter((t) => t.status === "blocked").length;
     return { total, completed, inProgress, pending, blocked };
-  }, [selectedProject]);
+  }, [tasks]);
 
   const assignees = useMemo(() => {
-    const tasks = getMockTasks(selectedProject?.id);
-    const set = new Set<string>();
-    tasks.forEach((t) => set.add(t.assignee));
-    return Array.from(set);
-  }, [selectedProject]);
+    return ['Unassigned', ...users.map(u => u.fullName)];
+  }, [users]);
 
   const filtered = useMemo(() => {
-    const tasks = getMockTasks(selectedProject?.id);
-    return tasks.filter((t) => {
+    // Convert backend Task[] to TaskItem[] for display
+    const taskItems: TaskItem[] = tasks.map(task => ({
+      id: task.id.toString(),
+      title: task.title,
+      description: task.description || '',
+      status: task.status,
+      priority: task.priority,
+      assignee: task.assignee?.fullName || 'Unassigned',
+      dueDate: task.dueDate || '',
+      project: task.project?.name || 'No Project',
+      subtasks: [],
+    }));
+
+    // Filter by selected project if one is selected
+    const projectFiltered = selectedProject
+      ? taskItems.filter(t => t.project === selectedProject.name)
+      : taskItems;
+
+    return projectFiltered.filter((t) => {
       const matchesSearch =
         t.title.toLowerCase().includes(search.toLowerCase()) ||
         t.description.toLowerCase().includes(search.toLowerCase()) ||
@@ -129,7 +167,7 @@ export default function ManageTasksPage() {
       const matchesAssignee = assigneeFilter === "all" || t.assignee === assigneeFilter;
       return matchesSearch && matchesStatus && matchesPriority && matchesAssignee;
     });
-  }, [search, statusFilter, priorityFilter, assigneeFilter, selectedProject]);
+  }, [tasks, search, statusFilter, priorityFilter, assigneeFilter, selectedProject]);
 
   const statusBadge = (status: TaskItem["status"]) => {
     switch (status) {
@@ -141,8 +179,53 @@ export default function ManageTasksPage() {
         return <Badge className="bg-gray-100 text-gray-800 border-gray-200">Pending</Badge>;
       case "blocked":
         return <Badge className="bg-red-100 text-red-800 border-red-200">Blocked</Badge>;
+      case "cancelled":
+        return <Badge className="bg-gray-100 text-gray-800 border-gray-200">Cancelled</Badge>;
       default:
         return <Badge variant="secondary">{status}</Badge>;
+    }
+  };
+
+  const saveEdits = async () => {
+    if (!editing) return;
+    try {
+      // Find the user id for the selected assignee name
+      const assigneeUser = users.find(u => u.fullName === editing.assignee);
+      const assigneeId = assigneeUser ? assigneeUser.id : undefined;
+
+      const updatedTask = await updateTask(parseInt(editing.id), {
+        title: editing.title,
+        description: editing.description,
+        status: editing.status,
+        priority: editing.priority,
+        dueDate: editing.dueDate,
+        assigneeId: assigneeId,
+      });
+
+      // Update the task in the local tasks state
+      setTasks(prevTasks =>
+        prevTasks.map(task =>
+          task.id === parseInt(editing.id) ? updatedTask.data : task
+        )
+      );
+
+      // Convert Task to TaskItem for display
+      const taskItem: TaskItem = {
+        id: updatedTask.data.id.toString(),
+        title: updatedTask.data.title,
+        description: updatedTask.data.description || '',
+        status: updatedTask.data.status,
+        priority: updatedTask.data.priority,
+        assignee: updatedTask.data.assignee?.fullName || '',
+        dueDate: updatedTask.data.dueDate || '',
+        project: updatedTask.data.project?.name || '',
+        subtasks: [],
+      };
+      setSelected(taskItem);
+      setEditing(null);
+      toast.success("Task updated successfully");
+    } catch (error) {
+      toast.error("Failed to update task");
     }
   };
 
@@ -169,26 +252,27 @@ export default function ManageTasksPage() {
     setEditing({ ...t });
   };
 
-  const saveEdits = () => {
-    if (!editing) return;
-    // TODO: persist updates
-    setSelected(editing);
-    alert("Task updated");
+  const handleDeleteTask = async (id: string) => {
+    if (!confirm("Delete this task?")) return;
+    try {
+      await deleteTask(parseInt(id));
+
+      // Remove the task from the local tasks state
+      setTasks(prevTasks => prevTasks.filter(task => task.id !== parseInt(id)));
+
+      if (selected?.id === id) {
+        setSelected(null);
+        setEditing(null);
+      }
+      toast.success("Task deleted successfully");
+    } catch (error) {
+      toast.error("Failed to delete task");
+    }
   };
 
-  const deleteTask = (id: string) => {
-    if (!confirm("Delete this task?")) return;
-    // TODO: delete in backend
-    if (selected?.id === id) {
-      setSelected(null);
-      setEditing(null);
-    }
-    alert("Task deleted");
-  };
-  
-   const router = useRouter();
-const handleNewTask = () => {
-    
+  const router = useRouter();
+  const handleNewTask = () => {
+
     router.push("/admin/tasks/add");
   };
 
@@ -211,16 +295,16 @@ const handleNewTask = () => {
           </p>
           {selectedProject && (
             <div className="flex gap-2">
-              <Button 
-                variant="outline" 
-                size="sm" 
+              <Button
+                variant="outline"
+                size="sm"
                 onClick={() => setSelectedProject(null)}
               >
                 View All Tasks
               </Button>
-              <Button 
-                variant="outline" 
-                size="sm" 
+              <Button
+                variant="outline"
+                size="sm"
                 onClick={() => window.location.href = '/admin/projects/all-projects'}
               >
                 Back to Projects
@@ -294,18 +378,6 @@ const handleNewTask = () => {
                 </div>
               </div>
 
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-full sm:w-[160px]">
-                  <SelectValue placeholder="Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="pending">Pending</SelectItem>
-                  <SelectItem value="in-progress">In Progress</SelectItem>
-                  <SelectItem value="completed">Completed</SelectItem>
-                  <SelectItem value="blocked">Blocked</SelectItem>
-                </SelectContent>
-              </Select>
 
               <Select value={priorityFilter} onValueChange={setPriorityFilter}>
                 <SelectTrigger className="w-full sm:w-[160px]">
@@ -397,7 +469,7 @@ const handleNewTask = () => {
                       <div className="flex items-center gap-2 mb-3">
                         {statusBadge(selected.status)}
                         {priorityBadge(selected.priority)}
-                        <Badge variant="outline">{selected.project}</Badge>
+                        <Badge variant="outline">{selected.project || 'No Project'}</Badge>
                       </div>
                       <CardDescription className="text-base">
                         {selected.description}
@@ -408,7 +480,7 @@ const handleNewTask = () => {
                         <Edit className="h-4 w-4 mr-2" />
                         Edit
                       </Button>
-                      <Button variant="outline" size="sm" onClick={() => deleteTask(selected.id)} className="text-red-600 hover:text-red-700">
+                      <Button variant="outline" size="sm" onClick={() => handleDeleteTask(selected.id)} className="text-red-600 hover:text-red-700">
                         <Trash2 className="h-4 w-4 mr-2" />
                         Delete
                       </Button>
@@ -449,11 +521,26 @@ const handleNewTask = () => {
                         </div>
                         <div className="space-y-2">
                           <Label>Assignee</Label>
-                          <Input
+                          {/* <Input
                             value={editing.assignee}
                             onChange={(e) => setEditing({ ...editing, assignee: e.target.value })}
-                          />
+                          /> */}
+                          <Select value={editing.assignee} onValueChange={(v) => setEditing({ ...editing, assignee: v })}>
+                            <SelectTrigger className="w-full sm:w-[200px]">
+                              <SelectValue placeholder="Assignee" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="Unassigned">Unassigned</SelectItem>
+                              {assignees.filter(a => a !== 'Unassigned').map((a) => (
+                                <SelectItem key={a} value={a}>
+                                  {a}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+
                         </div>
+
                       </div>
 
                       <div className="space-y-2">

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { Header } from "@/components/header";
 import {
   Card,
@@ -9,10 +9,14 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+
+import { getAllTasks, updateTask, deleteTask } from "@/lib/actions/task.actions";
+import { getAllUsers } from "@/lib/actions/employee.actions";
+import { Task, TasksResponse } from "@/lib/types/task.types";
+import { tasks as centralizedTasks, projects } from "@/lib/project-task-data";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { projects } from "@/lib/project-task-data";
 import {
   BarChart3,
   TrendingUp,
@@ -36,41 +40,7 @@ interface TaskItem {
   completedAt?: string; // ISO date
 }
 
-// Generate mock tasks from centralized project data
-const generateMockTasks = (): TaskItem[] => {
-  const allTasks: TaskItem[] = [];
-  
-  projects.forEach(project => {
-    project.tasks.forEach(task => {
-      // Generate more realistic dates based on project timeline
-      const projectStartDate = new Date(project.startDate);
-      const projectEndDate = new Date(project.endDate);
-      const projectDuration = projectEndDate.getTime() - projectStartDate.getTime();
-      
-      // Random date within project timeline
-      const randomOffset = Math.random() * projectDuration;
-      const startDate = new Date(projectStartDate.getTime() + randomOffset);
-      
-      const taskItem: TaskItem = {
-        id: task.id,
-        title: task.name,
-        assignee: task.assignee,
-        status: task.status,
-        priority: task.priority,
-        createdAt: startDate.toISOString().split('T')[0],
-        completedAt: task.status === 'completed' ? 
-          new Date(startDate.getTime() + Math.random() * 20 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] : 
-          undefined
-      };
-      
-      allTasks.push(taskItem);
-    });
-  });
-  
-  return allTasks;
-};
 
-const mockTasks = generateMockTasks();
 
 // Get real-time project statistics
 const getProjectStats = () => {
@@ -87,12 +57,38 @@ function formatMonthKey(date: Date) {
 }
 
 export default function TaskAnalyticsPage() {
+  
+    const [tasks, setTasks] = useState<Task[]>([]);
+  useEffect(() => {
+    const fetchTasks = async () => {
+      try {
+        const response = await getAllTasks();
+        if (response.success) {
+          setTasks(response.data);
+        }
+      } catch (error) {
+        console.error('Failed to fetch tasks:', error);
+      }
+    };
+    fetchTasks();
+  }, []);
+
+  const mappedTasks = useMemo(() => tasks.map(task => ({
+    id: task.id.toString(),
+    title: task.title,
+    assignee: task.assignee?.fullName || 'Unassigned',
+    status: task.status,
+    priority: task.priority,
+    createdAt: task.createdAt.split('T')[0],
+    completedAt: task.completedDate?.split('T')[0]
+  })), [tasks]);
+
   const stats = useMemo(() => {
-    const total = mockTasks.length;
-    const completed = mockTasks.filter((t) => t.status === "completed").length;
-    const inProgress = mockTasks.filter((t) => t.status === "in-progress").length;
-    const pending = mockTasks.filter((t) => t.status === "pending").length;
-    const blocked = mockTasks.filter((t) => t.status === "blocked").length;
+    const total = tasks.length;
+    const completed = tasks.filter((t) => t.status === "completed").length;
+    const inProgress = tasks.filter((t) => t.status === "in-progress").length;
+    const pending = tasks.filter((t) => t.status === "pending").length;
+    const blocked = tasks.filter((t) => t.status === "blocked").length;
 
     const completionRate = total ? Math.round((completed / total) * 100) : 0;
 
@@ -103,7 +99,7 @@ export default function TaskAnalyticsPage() {
       const d = new Date(today);
       d.setDate(today.getDate() - i);
       const label = formatMonthKey(d);
-      const count = mockTasks.filter(
+      const count = mappedTasks.filter(
         (t) => t.completedAt && new Date(t.completedAt).toDateString() === d.toDateString()
       ).length;
       days.push({ label, count });
@@ -112,18 +108,18 @@ export default function TaskAnalyticsPage() {
     // Priority distribution
     const priorityCounts = ["low", "medium", "high", "urgent"].map((p) => ({
       key: p,
-      count: mockTasks.filter((t) => t.priority === (p as TaskItem["priority"])).length,
+      count: mappedTasks.filter((t) => t.priority === (p as TaskItem["priority"])).length,
     }));
 
     // Status distribution
     const statusCounts = ["pending", "in-progress", "completed", "blocked"].map((s) => ({
       key: s,
-      count: mockTasks.filter((t) => t.status === (s as TaskItem["status"])).length,
+      count: mappedTasks.filter((t) => t.status === (s as TaskItem["status"])).length,
     }));
 
     // Top assignees (by completed)
     const completedByAssignee = new Map<string, number>();
-    mockTasks.forEach((t) => {
+    mappedTasks.forEach((t) => {
       if (t.status === "completed") {
         completedByAssignee.set(t.assignee, (completedByAssignee.get(t.assignee) || 0) + 1);
       }
@@ -133,7 +129,7 @@ export default function TaskAnalyticsPage() {
       .sort((a, b) => b.count - a.count);
 
     return { total, completed, inProgress, pending, blocked, completionRate, days, priorityCounts, statusCounts, topAssignees };
-  }, []);
+  }, [mappedTasks]);
 
   const barMax = Math.max(1, ...stats.days.map((d) => d.count));
   const priorityMax = Math.max(1, ...stats.priorityCounts.map((p) => p.count));
@@ -154,9 +150,65 @@ export default function TaskAnalyticsPage() {
     }
   };
   const handleExport = () => {
-    // TODO: Implement export functionality
-    console.log("Exporting task reports...");
-    alert("Export functionality will be implemented soon!");
+    // Generate CSV content for task reports
+    const csvHeaders = [
+      'Task ID',
+      'Title',
+      'Assignee',
+      'Status',
+      'Priority',
+      'Created Date',
+      'Completed Date'
+    ];
+
+    const csvRows = mappedTasks.map(task => [
+      task.id,
+      `"${task.title}"`, // Wrap in quotes to handle commas in titles
+      `"${task.assignee}"`,
+      task.status,
+      task.priority,
+      task.createdAt,
+      task.completedAt || ''
+    ]);
+
+    // Add summary statistics
+    const summaryRows = [
+      [], // Empty row for separation
+      ['SUMMARY STATISTICS'],
+      ['Total Tasks', stats.total],
+      ['Completed Tasks', stats.completed],
+      ['In Progress Tasks', stats.inProgress],
+      ['Pending Tasks', stats.pending],
+      ['Blocked Tasks', stats.blocked],
+      ['Completion Rate', `${stats.completionRate}%`],
+      [], // Empty row
+      ['PROJECT STATISTICS'],
+      ['Total Projects', getProjectStats().totalProjects],
+      ['Active Projects', getProjectStats().activeProjects],
+      ['Completed Projects', getProjectStats().completedProjects],
+      ['Urgent Projects', getProjectStats().urgentProjects]
+    ];
+
+    const allRows = [csvHeaders, ...csvRows, ...summaryRows];
+    const csvContent = allRows.map(row =>
+      row.map(cell => cell.toString()).join(',')
+    ).join('\n');
+
+    // Create and download the file
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+
+    link.setAttribute('href', url);
+    link.setAttribute('download', `task-reports-${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    // Clean up the URL object
+    URL.revokeObjectURL(url);
   };
 
   const handleRefresh = () => {
@@ -209,7 +261,7 @@ export default function TaskAnalyticsPage() {
                   <div className="text-sm text-gray-600 font-medium">Overall Completion Rate</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-3xl font-bold text-green-600 mb-2">{stats.completed}</div>
+                  <div className="text-3xl font-bold text-green-600 mb-2">{stats.total }</div>
                   <div className="text-sm text-gray-600 font-medium">Tasks Completed</div>
                 </div>
                 <div className="text-center">
@@ -434,7 +486,7 @@ export default function TaskAnalyticsPage() {
           <CardContent>
             <div className="space-y-6">
               {projects.map(project => {
-                const projectTasks = mockTasks.filter(task => 
+                const projectTasks = mappedTasks.filter(task =>
                   project.tasks.some(pt => pt.id === task.id)
                 );
                 const completedTasks = projectTasks.filter(t => t.status === 'completed').length;
@@ -489,7 +541,7 @@ export default function TaskAnalyticsPage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {mockTasks
+              {mappedTasks
                 .filter(task => task.status === 'completed' && task.completedAt)
                 .sort((a, b) => new Date(b.completedAt!).getTime() - new Date(a.completedAt!).getTime())
                 .slice(0, 5)
@@ -507,7 +559,7 @@ export default function TaskAnalyticsPage() {
                     </div>
                   </div>
                 ))}
-              {mockTasks.filter(task => task.status === 'completed' && task.completedAt).length === 0 && (
+              {mappedTasks.filter(task => task.status === 'completed' && task.completedAt).length === 0 && (
                 <div className="text-center py-8 text-gray-500">
                   <div className="text-lg font-medium mb-2">No completed tasks yet</div>
                   <div className="text-sm">Tasks will appear here once they are completed</div>
@@ -530,7 +582,7 @@ export default function TaskAnalyticsPage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {mockTasks
+              {mappedTasks
                 .filter(task => task.status === 'blocked')
                 .map(task => (
                   <div key={task.id} className="flex items-center justify-between p-3 bg-white border border-red-200 rounded-lg">
@@ -546,7 +598,7 @@ export default function TaskAnalyticsPage() {
                     </div>
                   </div>
                 ))}
-              {mockTasks.filter(task => task.status === 'blocked').length === 0 && (
+              {mappedTasks.filter(task => task.status === 'blocked').length === 0 && (
                 <div className="text-center py-4 text-green-600 font-medium">
                   🎉 No blocked tasks! All tasks are progressing smoothly.
                 </div>
@@ -568,7 +620,7 @@ export default function TaskAnalyticsPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-3">
                 <h4 className="font-medium text-red-700">Urgent Tasks</h4>
-                {mockTasks
+                {mappedTasks
                   .filter(task => task.priority === 'urgent')
                   .map(task => (
                     <div key={task.id} className="p-3 bg-red-50 border border-red-200 rounded-lg">
@@ -578,14 +630,14 @@ export default function TaskAnalyticsPage() {
                       </div>
                     </div>
                   ))}
-                {mockTasks.filter(task => task.priority === 'urgent').length === 0 && (
+                {mappedTasks.filter(task => task.priority === 'urgent').length === 0 && (
                   <div className="text-sm text-green-600 italic">No urgent tasks at the moment</div>
                 )}
               </div>
-              
+
               <div className="space-y-3">
                 <h4 className="font-medium text-orange-700">High Priority Tasks</h4>
-                {mockTasks
+                {mappedTasks
                   .filter(task => task.priority === 'high')
                   .map(task => (
                     <div key={task.id} className="p-3 bg-orange-50 border border-orange-200 rounded-lg">
@@ -595,7 +647,7 @@ export default function TaskAnalyticsPage() {
                       </div>
                     </div>
                   ))}
-                {mockTasks.filter(task => task.priority === 'high').length === 0 && (
+                {mappedTasks.filter(task => task.priority === 'high').length === 0 && (
                   <div className="text-sm text-green-600 italic">No high priority tasks at the moment</div>
                 )}
               </div>
@@ -616,8 +668,8 @@ export default function TaskAnalyticsPage() {
             <div className="space-y-4">
               {(() => {
                 const assigneeStats = new Map<string, { total: number; completed: number; inProgress: number; pending: number; blocked: number }>();
-                
-                                 mockTasks.forEach(task => {
+
+                                 mappedTasks.forEach(task => {
                    if (!assigneeStats.has(task.assignee)) {
                      assigneeStats.set(task.assignee, { total: 0, completed: 0, inProgress: 0, pending: 0, blocked: 0 });
                    }
@@ -625,11 +677,15 @@ export default function TaskAnalyticsPage() {
                    stats.total++;
                    if (task.status === 'in-progress') {
                      stats.inProgress++;
-                   } else {
-                     stats[task.status]++;
+                   } else if (task.status === 'completed') {
+                     stats.completed++;
+                   } else if (task.status === 'pending') {
+                     stats.pending++;
+                   } else if (task.status === 'blocked') {
+                     stats.blocked++;
                    }
                  });
-                
+
                 return Array.from(assigneeStats.entries())
                   .sort((a, b) => b[1].total - a[1].total)
                   .map(([assignee, stats]) => (

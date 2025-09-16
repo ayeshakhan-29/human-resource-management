@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Header } from "@/components/header";
 import {
   Card,
@@ -9,25 +9,78 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { createTask } from "@/lib/actions/task.actions";
+import { CreateTaskRequest } from "@/lib/types/task.types";
+import { toast } from "sonner";
+import { getAllUsers } from "@/lib/actions/employee.actions";
+import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Calendar, ListChecks, Save, AlertCircle } from "lucide-react";
+import { ListChecks, Save, AlertCircle } from "lucide-react";
 
 export default function AddTaskPage() {
   const [form, setForm] = useState({
     title: "",
     description: "",
-    project: "",
-    assignee: "",
+    projectId: "",
+    assigneeId: "",
+    managerId: "",
+    assigneePosition: "",
+    managerPosition: "",
     dueDate: "",
-    priority: "medium",
-    status: "pending",
+    priority: "medium" as const,
+    status: "pending" as const,
+    estimatedHours: "",
   });
+  const router = useRouter();
+  const [loading, setLoading] = useState(false);
+  const [users, setUsers] = useState<{ id: number; fullName: string; position?: string }[]>([]);
+  const [projects, setProjects] = useState<{ id: number; name: string }[]>([]);
+  const [positions, setPositions] = useState<string[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        const response = await getAllUsers();
+        if (response.success && response.data) {
+          const mapped = response.data.map((u: any) => ({ id: u.id, fullName: u.fullName, position: u.userInfo?.position }));
+          setUsers(mapped);
+          const posSet = new Set<string>();
+          mapped.forEach((u) => { if (u.position) posSet.add(u.position); });
+          setPositions(Array.from(posSet));
+        }
+      } catch (error) {
+        console.error("Failed to fetch users:", error);
+        toast.error("Failed to load users. Please refresh the page.");
+      }
+    };
 
+    const fetchProjects = async () => {
+      try {
+        const baseUrl = (process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5001/api/").replace(/\/?$/, "/");
+        const token = typeof window !== 'undefined' ? localStorage.getItem("token") : null;
+        const res = await fetch(`${baseUrl}projects/get-all-projects`, {
+          headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+          cache: "no-store",
+        });
+        const data = await res.json();
+        if (res.ok && data?.success && Array.isArray(data.data)) {
+          setProjects(data.data);
+        } else {
+          throw new Error(data?.message || "Failed to load projects");
+        }
+      } catch (error) {
+        console.error("Failed to fetch projects:", error);
+        toast.error("Failed to load projects. Please refresh the page.");
+      }
+    };
+
+    fetchUsers();
+    fetchProjects();
+  }, [toast]);
   const handleChange = (key: string, value: string) => {
     setForm((p) => ({ ...p, [key]: value }));
     if (errors[key]) setErrors((e) => ({ ...e, [key]: "" }));
@@ -37,23 +90,62 @@ export default function AddTaskPage() {
     const e: Record<string, string> = {};
     if (!form.title.trim()) e.title = "Title is required";
     if (!form.description.trim()) e.description = "Description is required";
-    if (!form.project.trim()) e.project = "Project is required";
-    if (!form.assignee.trim()) e.assignee = "Assignee is required";
+    if (!form.projectId) e.project = "Project is required";
+    if (!form.assigneeId) e.assignee = "Assignee is required";
     if (!form.dueDate) e.dueDate = "Due date is required";
     setErrors(e);
     return Object.keys(e).length === 0;
   };
 
-  const onSubmit = (e: React.FormEvent) => {
+  const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validate()) return;
     // TODO: hook up to backend action
-    console.log("Create task payload:", form);
-    alert("Task created successfully!");
+    try {
+      setLoading(true);
+
+      // Prepare the request payload
+      const taskData: CreateTaskRequest = {
+        title: form.title,
+        description: form.description,
+        status: form.status,
+        priority: form.priority,
+        dueDate: form.dueDate,
+        projectId: form.projectId ? parseInt(form.projectId) : undefined,
+        assigneeId: form.assigneeId ? parseInt(form.assigneeId) : undefined,
+        managerId: form.managerId ? parseInt(form.managerId) : undefined,
+        estimatedHours: form.estimatedHours ? parseInt(form.estimatedHours) : undefined
+      };
+
+      // Call the API to create the task
+      const response = await createTask(taskData);
+
+      toast.success("Task created successfully");
+
+      // Navigate back to the tasks list
+      router.push("/admin/tasks/all-tasks");
+    } catch (error) {
+      console.error("Failed to create task:", error);
+      toast.error("Failed to create task. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const onReset = () => {
-    setForm({ title: "", description: "", project: "", assignee: "", dueDate: "", priority: "medium", status: "pending" });
+    setForm({
+      title: "",
+      description: "",
+      projectId: "",
+      assigneeId: "",
+      managerId: "",
+      assigneePosition: "",
+      managerPosition: "",
+      dueDate: "",
+      priority: "medium",
+      status: "pending",
+      estimatedHours: ""
+    });
     setErrors({});
   };
 
@@ -98,16 +190,21 @@ export default function AddTaskPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="project">Project *</Label>
-                  <Input
-                    id="project"
-                    value={form.project}
-                    onChange={(e) => handleChange("project", e.target.value)}
-                    placeholder="e.g., Website Redesign"
-                    className={errors.project ? "border-red-500" : ""}
-                  />
-                  {errors.project && (
-                    <div className="flex items-center gap-2 text-sm text-red-600"><AlertCircle className="h-4 w-4" />{errors.project}</div>
+                  <Label htmlFor="projectId">Project *</Label>
+                  <Select value={form.projectId} onValueChange={(v) => handleChange("projectId", v)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select project" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {projects.map((p) => (
+                        <SelectItem key={p.id} value={p.id.toString()}>
+                          {p.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {errors.projectId && (
+                    <div className="flex items-center gap-2 text-sm text-red-600"><AlertCircle className="h-4 w-4" />{errors.projectId}</div>
                   )}
                 </div>
               </div>
@@ -129,18 +226,53 @@ export default function AddTaskPage() {
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="assignee">Assignee *</Label>
-                  <Input
-                    id="assignee"
-                    value={form.assignee}
-                    onChange={(e) => handleChange("assignee", e.target.value)}
-                    placeholder="Who will work on this task?"
-                    className={errors.assignee ? "border-red-500" : ""}
-                  />
-                  {errors.assignee && (
-                    <div className="flex items-center gap-2 text-sm text-red-600"><AlertCircle className="h-4 w-4" />{errors.assignee}</div>
+                  <Label htmlFor="assigneeId">Assignee *</Label>
+                  <Select
+                    value={form.assigneeId}
+                    onValueChange={(v) => handleChange("assigneeId", v)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select assignee" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {users
+                        .filter((u) => !form.assigneePosition || form.assigneePosition === "all" || u.position === form.assigneePosition)
+                        .map((user) => (
+                          <SelectItem key={user.id} value={user.id.toString()}>
+                            {user.fullName}{user.position ? ` — ${user.position}` : ""}
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                  {errors.assigneeId && (
+                    <div className="flex items-center gap-2 text-sm text-red-600"><AlertCircle className="h-4 w-4" />{errors.assigneeId}</div>
                   )}
                 </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="managerId">Manager *</Label>
+                  <Select
+                    value={form.managerId}
+                    onValueChange={(v) => handleChange("managerId", v)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select manager" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {users
+                        .filter((u) => !form.managerPosition || form.managerPosition === "all" || u.position === form.managerPosition)
+                        .map((user) => (
+                          <SelectItem key={user.id} value={user.id.toString()}>
+                            {user.fullName}{user.position ? ` — ${user.position}` : ""}
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                  {errors.managerId && (
+                    <div className="flex items-center gap-2 text-sm text-red-600"><AlertCircle className="h-4 w-4" />{errors.managerId}</div>
+                  )}
+                </div>
+
 
                 <div className="space-y-2">
                   <Label htmlFor="dueDate">Due Date *</Label>
@@ -187,6 +319,17 @@ export default function AddTaskPage() {
                     </SelectContent>
                   </Select>
                 </div>
+                <div className="space-y-2">
+                  <Label htmlFor="estimatedHours">Estimated Hours</Label>
+                  <Input
+                    id="estimatedHours"
+                    value={form.estimatedHours}
+                    onChange={(e) => handleChange("estimatedHours", e.target.value)}
+                    placeholder="Enter estimated hours"
+                    type="number"
+                    min="0"
+                  />
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -195,9 +338,9 @@ export default function AddTaskPage() {
             <Button type="button" variant="outline" onClick={onReset} className="w-full sm:w-auto">
               Reset
             </Button>
-            <Button type="submit" className="w-full sm:w-auto">
+            <Button type="submit" className="w-full sm:w-auto" disabled={loading}>
               <Save className="h-4 w-4 mr-2" />
-              Create Task
+              {loading ? "Creating..." : "Create Task"}
             </Button>
           </div>
         </form>

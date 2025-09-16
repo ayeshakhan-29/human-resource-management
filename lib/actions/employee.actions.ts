@@ -42,7 +42,28 @@ interface UpdateStatusResponse {
     updatedAt: string;
   };
 }
+export const getAllUsers = async (): Promise<EmployeesResponse> => {
+  const token = getAuthToken();
+  if (!token) {
+    throw new Error("No authentication token found");
+  }
 
+  const response = await fetch(`${API_BASE_URL}employee/all`, {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || "Failed to fetch users");
+  }
+
+  const data = await response.json();
+  return data;
+};
 export const updateEmployeeStatus = async (
   employeeId: number,
   status: "active" | "inactive" | "suspended"
