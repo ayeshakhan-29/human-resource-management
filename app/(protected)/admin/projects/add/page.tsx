@@ -1,17 +1,8 @@
 'use client';
-interface NewTask {
-  id: string;
-  name: string;
-  status: 'pending' | 'in-progress' | 'completed' | 'blocked';
-  assignee: string;
-  dueDate: string;
-  priority: 'low' | 'medium' | 'high' | 'urgent';
-}
-// ...existing code...
-// Move 'use client' to the very top
 
 import { useState } from "react";
 import { Header } from "@/components/header";
+import { createProject } from "@/lib/actions/project.action";
 import {
   Card,
   CardContent,
@@ -24,17 +15,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
-import { 
-  Plus, 
-  Calendar, 
-  Users, 
-  Target, 
-  TrendingUp,
-  Clock,
+import {
+  Calendar,
+  Users,
+  Target,
   Save,
-  X,
-  AlertCircle
+  AlertCircle,
+  Paperclip,
+  Plus,
+  X
 } from "lucide-react";
 
 interface TeamMember {
@@ -45,57 +34,17 @@ interface TeamMember {
 }
 
 export default function AddProjectPage() {
-  const [tasks, setTasks] = useState<NewTask[]>([]);
-  const [newTask, setNewTask] = useState<{ 
-    name: string; 
-    status: 'pending' | 'in-progress' | 'completed' | 'blocked';
-    assignee: string;
-    dueDate: string;
-    priority: 'low' | 'medium' | 'high' | 'urgent';
-  }>({ 
-    name: '', 
-    status: 'pending',
-    assignee: '',
-    dueDate: '',
-    priority: 'medium'
-  });
-  
-  const addTask = () => {
-    if (!newTask.name.trim() || !newTask.assignee.trim() || !newTask.dueDate) return;
-    setTasks(prev => [...prev, { 
-      id: Date.now().toString(), 
-      name: newTask.name, 
-      status: newTask.status,
-      assignee: newTask.assignee,
-      dueDate: newTask.dueDate,
-      priority: newTask.priority
-    }]);
-    setNewTask({ 
-      name: '', 
-      status: 'pending',
-      assignee: '',
-      dueDate: '',
-      priority: 'medium'
-    });
-  };
-
-  const removeTask = (id: string) => {
-    setTasks(prev => prev.filter(task => task.id !== id));
-  };
   const [formData, setFormData] = useState({
     name: '',
     description: '',
-    category: '',
-    status: 'planning',
-    priority: 'medium',
+    status: 'planning' as const,
+    priority: 'medium' as const,
     startDate: '',
     endDate: '',
     budget: '',
-    teamSize: '',
     manager: '',
-    objectives: '',
-    risks: '',
-    successCriteria: ''
+    clientName: '',
+    clientEmail: ''
   });
 
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
@@ -139,10 +88,8 @@ export default function AddProjectPage() {
 
     if (!formData.name.trim()) newErrors.name = 'Project name is required';
     if (!formData.description.trim()) newErrors.description = 'Project description is required';
-    if (!formData.category) newErrors.category = 'Category is required';
     if (!formData.startDate) newErrors.startDate = 'Start date is required';
     if (!formData.endDate) newErrors.endDate = 'End date is required';
-    if (!formData.manager.trim()) newErrors.manager = 'Project manager is required';
     if (!formData.budget.trim()) newErrors.budget = 'Budget is required';
 
     // Validate dates
@@ -158,13 +105,37 @@ export default function AddProjectPage() {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (validateForm()) {
-      // TODO: Submit project data to backend
-      console.log('Project data:', { ...formData, teamMembers, tasks });
-      alert('Project created successfully!');
+      try {
+        // Prepare data to match backend API
+        const projectData = {
+          name: formData.name,
+          description: formData.description,
+          status: formData.status,
+          priority: formData.priority,
+          startDate: formData.startDate,
+          endDate: formData.endDate,
+          budget: formData.budget,
+          managerId: formData.manager ? parseInt(formData.manager) : undefined,
+          clientName: formData.clientName,
+          clientEmail: formData.clientEmail,
+          tags: [], // Not in form, can be added if needed
+          attachments: [], // Not in form, can be added if needed
+        };
+
+        const response = await createProject(projectData);
+        if (response.success) {
+          alert('Project created successfully!');
+          handleReset();
+        } else {
+          alert('Failed to create project: ' + response.message);
+        }
+      } catch (error: any) {
+        alert('Error creating project: ' + error.message);
+      }
     }
   };
 
@@ -172,22 +143,17 @@ export default function AddProjectPage() {
     setFormData({
       name: '',
       description: '',
-      category: '',
       status: 'planning',
       priority: 'medium',
       startDate: '',
       endDate: '',
       budget: '',
-      teamSize: '',
       manager: '',
-      objectives: '',
-      risks: '',
-      successCriteria: ''
+      clientName: '',
+      clientEmail: ''
     });
     setTeamMembers([]);
-  setTasks([]);
-  setNewTask({ title: '', status: 'todo' });
-  setErrors({});
+    setErrors({});
   };
 
   return (
@@ -217,46 +183,21 @@ export default function AddProjectPage() {
               <CardDescription>Essential project details</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="name">Project Name *</Label>
-                  <Input
-                    id="name"
-                    value={formData.name}
-                    onChange={(e) => handleInputChange('name', e.target.value)}
-                    placeholder="Enter project name"
-                    className={errors.name ? 'border-red-500' : ''}
-                  />
-                  {errors.name && (
-                    <div className="flex items-center gap-2 text-sm text-red-600">
-                      <AlertCircle className="h-4 w-4" />
-                      {errors.name}
-                    </div>
-                  )}
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="category">Category *</Label>
-                  <Select value={formData.category} onValueChange={(value) => handleInputChange('category', value)}>
-                    <SelectTrigger className={errors.category ? 'border-red-500' : ''}>
-                      <SelectValue placeholder="Select category" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Development">Development</SelectItem>
-                      <SelectItem value="Marketing">Marketing</SelectItem>
-                      <SelectItem value="Operations">Operations</SelectItem>
-                      <SelectItem value="IT">IT</SelectItem>
-                      <SelectItem value="Sales">Sales</SelectItem>
-                      <SelectItem value="HR">HR</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  {errors.category && (
-                    <div className="flex items-center gap-2 text-sm text-red-600">
-                      <AlertCircle className="h-4 w-4" />
-                      {errors.category}
-                    </div>
-                  )}
-                </div>
+              <div className="space-y-2">
+                <Label htmlFor="name">Project Name *</Label>
+                <Input
+                  id="name"
+                  value={formData.name}
+                  onChange={(e) => handleInputChange('name', e.target.value)}
+                  placeholder="Enter project name"
+                  className={errors.name ? 'border-red-500' : ''}
+                />
+                {errors.name && (
+                  <div className="flex items-center gap-2 text-sm text-red-600">
+                    <AlertCircle className="h-4 w-4" />
+                    {errors.name}
+                  </div>
+                )}
               </div>
 
               <div className="space-y-2">
@@ -277,7 +218,7 @@ export default function AddProjectPage() {
                 )}
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="status">Status</Label>
                   <Select value={formData.status} onValueChange={(value) => handleInputChange('status', value)}>
@@ -306,18 +247,6 @@ export default function AddProjectPage() {
                       <SelectItem value="urgent">Urgent</SelectItem>
                     </SelectContent>
                   </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="teamSize">Team Size</Label>
-                  <Input
-                    id="teamSize"
-                    type="number"
-                    value={formData.teamSize}
-                    onChange={(e) => handleInputChange('teamSize', e.target.value)}
-                    placeholder="Number of team members"
-                    min="1"
-                  />
                 </div>
               </div>
             </CardContent>
@@ -477,7 +406,7 @@ export default function AddProjectPage() {
           </Card>
 
           {/* Tasks Section */}
-          <Card>
+          {/* <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Target className="h-5 w-5" />
@@ -529,9 +458,9 @@ export default function AddProjectPage() {
               <Button type="button" variant="outline" size="sm" className="w-full md:w-auto" onClick={addTask}>
                 <Plus className="h-4 w-4 mr-2" />
                 Add Task
-              </Button>
-              {/* Display Tasks */}
-              {tasks.length > 0 && (
+              </Button> */}
+          {/* Display Tasks */}
+          {/* {tasks.length > 0 && (
                 <div className="space-y-2">
                   <Label>Project Tasks</Label>
                   <div className="space-y-2">
@@ -560,50 +489,32 @@ export default function AddProjectPage() {
                 </div>
               )}
             </CardContent>
-          </Card>
+          </Card> */}
 
           {/* Additional Details */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <TrendingUp className="h-5 w-5" />
-                Additional Details
+                <Paperclip className="h-5 w-5" />
+                Attachments
               </CardTitle>
-              <CardDescription>Project objectives, risks, and success criteria</CardDescription>
+              <CardDescription>Upload, files related to the project or tasks.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="objectives">Project Objectives</Label>
-                <Textarea
-                  id="objectives"
-                  value={formData.objectives}
-                  onChange={(e) => handleInputChange('objectives', e.target.value)}
-                  placeholder="List the main objectives and goals of this project"
-                  rows={3}
-                />
+
+              <div className="flex items-center justify-center w-full">
+                <label  className="flex flex-col items-center justify-center w-full h-64 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 dark:hover:bg-gray-800 dark:bg-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:hover:border-gray-500 dark:hover:bg-gray-600">
+                  <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                    <svg className="w-8 h-8 mb-4 text-gray-500 dark:text-gray-400" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 16">
+                      <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 13h3a3 3 0 0 0 0-6h-.025A5.56 5.56 0 0 0 16 6.5 5.5 5.5 0 0 0 5.207 5.021C5.137 5.017 5.071 5 5 5a4 4 0 0 0 0 8h2.167M10 15V6m0 0L8 8m2-2 2 2" />
+                    </svg>
+                    <p className="mb-2 text-sm text-gray-500 dark:text-gray-400"><span className="font-semibold">Click to upload</span> or drag and drop</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">SVG, PNG, JPG or GIF (MAX. 800x400px)</p>
+                  </div>
+                  <input id="dropzone-file" type="file" className="hidden" />
+                </label>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="risks">Potential Risks</Label>
-                <Textarea
-                  id="risks"
-                  value={formData.risks}
-                  onChange={(e) => handleInputChange('risks', e.target.value)}
-                  placeholder="Identify potential risks and mitigation strategies"
-                  rows={3}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="successCriteria">Success Criteria</Label>
-                <Textarea
-                  id="successCriteria"
-                  value={formData.successCriteria}
-                  onChange={(e) => handleInputChange('successCriteria', e.target.value)}
-                  placeholder="Define how project success will be measured"
-                  rows={3}
-                />
-              </div>
             </CardContent>
           </Card>
 

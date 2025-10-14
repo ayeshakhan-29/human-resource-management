@@ -139,6 +139,11 @@ const data = {
           title: "Manage Projects",
           url: "/admin/projects/manage-project",
           icon: Settings2,
+        }, 
+         {
+          title: "Projects Reports ",
+          url: "/admin/projects/project-reports",
+          icon: BarChart3,
         },
       ],
     },
@@ -161,11 +166,7 @@ const data = {
           url: "/admin/tasks/manage-tasks",
           icon: Settings2,
         },
-        {
-          title: "Task Reports ",
-          url: "/admin/tasks/task-reports",
-          icon: BarChart3,
-        },
+      
        
       ],
     },

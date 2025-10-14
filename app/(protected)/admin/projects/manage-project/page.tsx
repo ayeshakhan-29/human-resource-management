@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Header } from "@/components/header";
 import {
   Card,
@@ -11,10 +11,8 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { projects as mockProjects, tasks, type Project, type Task, type Milestone } from "@/lib/project-task-data";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-// import { Progress } from "@/lib/project-task-data";
 import { 
   Search, 
   Filter, 
@@ -33,18 +31,159 @@ import {
   Eye,
   BarChart3,
   Settings,
-  Download
+  Download,
+  Loader2
 } from "lucide-react";
+import { getAllProjects, changeProjectStatus, deleteProject } from "@/lib/actions/project.action";
+import { getAllTasks, getTasksByProject, getTaskStatistics } from "@/lib/actions/task.actions";
+import { Project as BackendProject, ProjectStatus, ProjectPriority } from "@/lib/types/project.types";
+import { Task as BackendTask } from "@/lib/types/task.types";
+import { toast } from "sonner";
 
 
+
+
+// Frontend Project interface for compatibility
+interface FrontendProject {
+  id: string;
+  name: string;
+  description: string;
+  status: ProjectStatus;
+  priority: ProjectPriority;
+  startDate: string;
+  endDate: string;
+  progress: number;
+  teamSize: number;
+  manager: string;
+  budget: string;
+  category: string;
+  tasks: FrontendTask[];
+}
+
+interface FrontendTask {
+  id: string;
+  name: string;
+  status: 'pending' | 'in-progress' | 'completed' | 'blocked';
+  assignee: string;
+  dueDate: string;
+  priority: 'low' | 'medium' | 'high' | 'urgent';
+}
 
 
 export default function ProjectManagementPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [priorityFilter, setpriorityFilter] = useState("all");
-  const [selectedProject, setSelectedProject] = useState<Project | null>(null);
-  const [viewMode, setViewMode] = useState<'overview' | 'details' | 'tasks' | 'milestones'>('overview');
+  const [priorityFilter, setPriorityFilter] = useState("all");
+  const [selectedProject, setSelectedProject] = useState<FrontendProject | null>(null);
+  const [viewMode, setViewMode] = useState<'overview' | 'details' | 'tasks'>('overview');
+  
+  // Data state
+  const [projects, setProjects] = useState<FrontendProject[]>([]);
+  const [allTasks, setAllTasks] = useState<FrontendTask[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+
+  // Convert backend project to frontend format
+  const convertBackendProject = (backendProject: BackendProject): FrontendProject => {
+    return {
+      id: backendProject.id.toString(),
+      name: backendProject.name,
+      description: backendProject.description || '',
+      status: backendProject.status,
+      priority: backendProject.priority,
+      startDate: backendProject.startDate,
+      endDate: backendProject.endDate,
+      progress: backendProject.progress,
+      teamSize: 0, // This would need to be calculated from team members
+      manager: backendProject.manager.fullName,
+      budget: backendProject.budget || '$0',
+      category: backendProject.categories || 'General',
+      tasks: [], // Will be loaded separately
+    };
+  };
+
+  // Convert backend task to frontend format
+  const convertBackendTask = (backendTask: BackendTask): FrontendTask => {
+    return {
+      id: backendTask.id.toString(),
+      name: backendTask.title,
+      status: backendTask.status as 'pending' | 'in-progress' | 'completed' | 'blocked',
+      assignee: backendTask.assignee?.fullName || 'Unassigned',
+      dueDate: backendTask.dueDate || '',
+      priority: backendTask.priority as 'low' | 'medium' | 'high' | 'urgent'
+    };
+  };
+
+  // Fetch projects from backend
+  const fetchProjects = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const response = await getAllProjects(1, 100, {
+        status: statusFilter !== 'all' ? statusFilter : undefined,
+        priority: priorityFilter !== 'all' ? priorityFilter : undefined,
+        search: searchTerm || undefined
+      });
+
+      if (response.success && response.data) {
+        const convertedProjects = response.data.map(convertBackendProject);
+        setProjects(convertedProjects);
+      } else {
+        throw new Error(response.message || 'Failed to fetch projects');
+      }
+    } catch (err) {
+      console.error('Error fetching projects:', err);
+      setError(err instanceof Error ? err.message : 'Failed to fetch projects');
+      toast.error('Failed to load projects');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Fetch tasks for a specific project
+  const fetchProjectTasks = async (projectId: string) => {
+    try {
+      const response = await getTasksByProject(parseInt(projectId), 1, 100);
+      if (response.success && response.data) {
+        const convertedTasks = response.data.map(convertBackendTask);
+        return convertedTasks;
+      }
+      return [];
+    } catch (err) {
+      console.error('Error fetching project tasks:', err);
+      return [];
+    }
+  };
+
+  // Load all tasks for statistics
+  const fetchAllTasks = async () => {
+    try {
+      const response = await getAllTasks(1, 1000); // Get all tasks for statistics
+      if (response.success && response.data) {
+        const convertedTasks = response.data.map(convertBackendTask);
+        setAllTasks(convertedTasks);
+      }
+    } catch (err) {
+      console.error('Error fetching all tasks:', err);
+    }
+  };
+
+  // Load data on component mount and when filters change
+  useEffect(() => {
+    fetchProjects();
+    fetchAllTasks();
+  }, [statusFilter, priorityFilter, searchTerm]);
+
+  // Load tasks when a project is selected
+  useEffect(() => {
+    if (selectedProject) {
+      fetchProjectTasks(selectedProject.id).then(tasks => {
+        setSelectedProject(prev => prev ? { ...prev, tasks } : null);
+      });
+    }
+  }, [selectedProject?.id]);
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -102,7 +241,7 @@ export default function ProjectManagementPage() {
   };
 
   // Filter projects based on search and filters
-  const filteredProjects = mockProjects.filter(project => {
+  const filteredProjects = projects.filter(project => {
     const matchesSearch = project.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          project.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          project.manager.toLowerCase().includes(searchTerm.toLowerCase());
@@ -113,35 +252,83 @@ export default function ProjectManagementPage() {
   });
 
   // Calculate statistics
-  const totalProjects = mockProjects.length;
-  const activeProjects = mockProjects.filter(p => p.status === 'active').length;
-  const completedProjects = mockProjects.filter(p => p.status === 'completed').length;
-  const urgentProjects = mockProjects.filter(p => p.priority === 'urgent').length;
-  const totalTasks = tasks.length;
-  const completedTasks = tasks.filter(t => t.status === 'completed').length;
+  const totalProjects = projects.length;
+  const activeProjects = projects.filter(p => p.status === 'active').length;
+  const completedProjects = projects.filter(p => p.status === 'completed').length;
+  const urgentProjects = projects.filter(p => p.priority === 'urgent').length;
+  const totalTasks = allTasks.length;
+  const completedTasks = allTasks.filter(t => t.status === 'completed').length;
 
-  const handleProjectSelect = (project: Project) => {
+  const handleProjectSelect = (project: FrontendProject) => {
     setSelectedProject(project);
     setViewMode('overview');
   };
 
-  const handleStatusChange = (projectId: string, newStatus: string) => {
-    // TODO: Update project status in backend
-    console.log(`Updating project ${projectId} status to ${newStatus}`);
-  };
-
-  const handleDeleteProject = (projectId: string) => {
-    if (confirm('Are you sure you want to delete this project?')) {
-      // TODO: Delete project from backend
-      console.log(`Deleting project ${projectId}`);
+  const handleStatusChange = async (projectId: string, newStatus: string) => {
+    try {
+      setRefreshing(true);
+      console.log('Changing project status:', { projectId, newStatus });
+      
+      const response = await changeProjectStatus(parseInt(projectId), { status: newStatus as ProjectStatus });
+      console.log('Status change response:', response);
+      
+      if (response.success) {
+        // Update local state
+        setProjects(prev => prev.map(p => 
+          p.id === projectId ? { ...p, status: newStatus as ProjectStatus } : p
+        ));
+        
+        if (selectedProject?.id === projectId) {
+          setSelectedProject(prev => prev ? { ...prev, status: newStatus as ProjectStatus } : null);
+        }
+        
+        toast.success('Project status updated successfully');
+      } else {
+        throw new Error(response.message || 'Failed to update project status');
+      }
+    } catch (err) {
+      console.error('Error updating project status:', err);
+      const errorMessage = err instanceof Error ? err.message : 'Failed to update project status';
+      toast.error(errorMessage);
+    } finally {
+      setRefreshing(false);
     }
   };
 
-  const handleEditTasks = (project: Project) => {
+  const handleDeleteProject = async (projectId: string) => {
+    if (confirm('Are you sure you want to delete this project?')) {
+      try {
+        setRefreshing(true);
+        await deleteProject(parseInt(projectId));
+        
+        // Update local state
+        setProjects(prev => prev.filter(p => p.id !== projectId));
+        
+        if (selectedProject?.id === projectId) {
+          setSelectedProject(null);
+        }
+        
+        toast.success('Project deleted successfully');
+      } catch (err) {
+        console.error('Error deleting project:', err);
+        toast.error('Failed to delete project');
+      } finally {
+        setRefreshing(false);
+      }
+    }
+  };
+
+  const handleEditTasks = (project: FrontendProject) => {
     // Store the selected project in localStorage to pass to task management page
     localStorage.setItem('selectedProjectForTasks', JSON.stringify(project));
     // Navigate to task management page
     window.location.href = '/admin/tasks/manage-tasks';
+  };
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await Promise.all([fetchProjects(), fetchAllTasks()]);
+    setRefreshing(false);
   };
 
   return (
@@ -156,8 +343,30 @@ export default function ProjectManagementPage() {
       <div className="flex flex-1 flex-col gap-6 p-6">
         {/* Page Header */}
         <div className="flex flex-col gap-2">
-          <h1 className="text-3xl font-bold text-gray-900">Project Management</h1>
-          <p className="text-gray-600">Monitor, manage, and control all company projects</p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">Project Management</h1>
+              <p className="text-gray-600">Monitor, manage, and control all company projects</p>
+            </div>
+            <Button 
+              onClick={handleRefresh} 
+              disabled={refreshing}
+              variant="outline"
+              size="sm"
+            >
+              {refreshing ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Download className="h-4 w-4 mr-2" />
+              )}
+              Refresh
+            </Button>
+          </div>
+          {error && (
+            <div className="bg-red-50 border border-red-200 rounded-md p-3">
+              <p className="text-red-800 text-sm">{error}</p>
+            </div>
+          )}
         </div>
 
         {/* Statistics Dashboard */}
@@ -255,7 +464,7 @@ export default function ProjectManagementPage() {
                 </SelectContent>
               </Select>
 
-              <Select value={priorityFilter} onValueChange={setpriorityFilter}>
+              <Select value={priorityFilter} onValueChange={setPriorityFilter}>
                 <SelectTrigger className="w-full sm:w-[150px]">
                   <SelectValue placeholder="Priority" />
                 </SelectTrigger>
@@ -286,35 +495,53 @@ export default function ProjectManagementPage() {
                 <CardDescription>Select a project to manage</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="space-y-3">
-                  {filteredProjects.map((project) => (
-                    <div
-                      key={project.id}
-                      className={`p-4 border rounded-lg cursor-pointer transition-colors ${
-                        selectedProject?.id === project.id
-                          ? 'border-blue-500 bg-blue-50'
-                          : 'border-gray-200 hover:border-gray-300'
-                      }`}
-                      onClick={() => handleProjectSelect(project)}
-                    >
-                      <div className="flex items-start justify-between mb-2">
-                        <h3 className="font-medium text-gray-900">{project.name}</h3>
-                        <div className="flex items-center gap-1">
-                          {getStatusBadge(project.status)}
-                          {getPriorityBadge(project.priority)}
+                {loading ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="h-6 w-6 animate-spin mr-2" />
+                    <span className="text-gray-600">Loading projects...</span>
+                  </div>
+                ) : filteredProjects.length === 0 ? (
+                  <div className="text-center py-8">
+                    <Target className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+                    <h3 className="text-lg font-medium mb-2">No Projects Found</h3>
+                    <p className="text-gray-600">
+                      {searchTerm || statusFilter !== 'all' || priorityFilter !== 'all'
+                        ? 'No projects match your current filters'
+                        : 'No projects available. Create your first project to get started.'
+                      }
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {filteredProjects.map((project) => (
+                      <div
+                        key={project.id}
+                        className={`p-4 border rounded-lg cursor-pointer transition-colors ${
+                          selectedProject?.id === project.id
+                            ? 'border-blue-500 bg-blue-50'
+                            : 'border-gray-200 hover:border-gray-300'
+                        }`}
+                        onClick={() => handleProjectSelect(project)}
+                      >
+                        <div className="flex items-start justify-between mb-2">
+                          <h3 className="font-medium text-gray-900">{project.name}</h3>
+                          <div className="flex items-center gap-1">
+                            {getStatusBadge(project.status)}
+                            {getPriorityBadge(project.priority)}
+                          </div>
                         </div>
+                        <p className="text-sm text-gray-600 mb-3 line-clamp-2">
+                          {project.description}
+                        </p>
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-gray-500">{project.manager}</span>
+                          <span className="font-medium">{project.progress}%</span>
+                        </div>
+                        {/* <Progress value={project.progress} className="mt-2" /> */}
                       </div>
-                      <p className="text-sm text-gray-600 mb-3 line-clamp-2">
-                        {project.description}
-                      </p>
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-gray-500">{project.manager}</span>
-                        <span className="font-medium">{project.progress}%</span>
-                      </div>
-                      {/* <Progress value={project.progress} className="mt-2" /> */}
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>
@@ -339,10 +566,7 @@ export default function ProjectManagementPage() {
                         </CardDescription>
                       </div>
                       <div className="flex items-center gap-2">
-                        <Button variant="outline" size="sm">
-                          <Edit className="h-4 w-4 mr-2" />
-                          Edit
-                        </Button>
+                        
                         <Button 
                           variant="outline" 
                           size="sm"
@@ -404,13 +628,6 @@ export default function ProjectManagementPage() {
                       >
                         Tasks ({selectedProject.tasks.length})
                       </Button>
-                      <Button
-                        variant={viewMode === 'milestones' ? 'default' : 'ghost'}
-                        size="sm"
-                        onClick={() => setViewMode('milestones')}
-                      >
-                        Milestones ({selectedProject.milestones.length})
-                      </Button>
                     </div>
                   </CardHeader>
                   <CardContent>
@@ -446,6 +663,7 @@ export default function ProjectManagementPage() {
                                   <SelectItem value="active">Active</SelectItem>
                                   <SelectItem value="on-hold">On Hold</SelectItem>
                                   <SelectItem value="completed">Completed</SelectItem>
+                                  <SelectItem value="cancelled">Cancelled</SelectItem>
                                 </SelectContent>
                               </Select>
                             </div>
@@ -481,9 +699,9 @@ export default function ProjectManagementPage() {
                               </div>
                               <div className="flex items-center gap-2">
                                 {getTaskStatusBadge(task.status)}
-                                <Button variant="ghost" size="sm">
+                                {/* <Button variant="ghost" size="sm">
                                   <Edit className="h-4 w-4" />
-                                </Button>
+                                </Button> */}
                               </div>
                             </div>
                           ))}
@@ -491,32 +709,6 @@ export default function ProjectManagementPage() {
                       </div>
                     )}
 
-                    {/* Milestones Tab */}
-                    {viewMode === 'milestones' && (
-                      <div className="space-y-4">
-                        <div className="flex items-center justify-between">
-                          <h4 className="font-medium">Project Milestones</h4>
-                          <Button size="sm">
-                            <Plus className="h-4 w-4 mr-2" />
-                            Add Milestone
-                          </Button>
-                        </div>
-                        <div className="space-y-3">
-                          {selectedProject.milestones.map((milestone) => (
-                            <div key={milestone.id} className="p-4 border rounded-lg">
-                              <div className="flex items-center justify-between mb-2">
-                                <h5 className="font-medium">{milestone.name}</h5>
-                                <Badge variant={milestone.status === 'completed' ? 'default' : 'secondary'}>
-                                  {milestone.status}
-                                </Badge>
-                              </div>
-                              <p className="text-sm text-gray-600 mb-2">{milestone.description}</p>
-                              <div className="text-sm text-gray-500">Due: {formatDate(milestone.dueDate)}</div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
                   </CardContent>
                 </Card>
               </div>

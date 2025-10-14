@@ -221,8 +221,8 @@ export default function TaskAnalyticsPage() {
       <Header
         breadcrumbs={[
           { label: "Admin", href: "/admin" },
-          { label: "Tasks", href: "/admin/tasks" },
-          { label: "Task Repots" },
+          { label: "projects", href: "/admin/projects" },
+          { label: "Project Reports" },
         ]}
       />
       <div className="flex flex-1 flex-col gap-6 p-6">
@@ -233,7 +233,7 @@ export default function TaskAnalyticsPage() {
                 <BarChart3 className="h-8 w-8 text-white" />
               </div>
               <div>
-                <h1 className="text-3xl md:text-4xl font-bold mb-3 md:mb-0 text-gray-900">Task Reports</h1>
+                <h1 className="text-3xl md:text-4xl font-bold mb-3 md:mb-0 text-gray-900">Project Reports</h1>
                 <p className="text-md md:text-lg text-gray-600">Comprehensive insights into task progress, throughput, and team performance</p>
               </div>
             </div>

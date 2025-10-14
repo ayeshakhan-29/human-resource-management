@@ -1,9 +1,13 @@
 'use client';
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Header } from "@/components/header";
-import { projects, tasks, Project, Task } from "@/lib/project-task-data";
+import { getAllProjects } from "@/lib/actions/project.action";
+import { Project, ProjectStatus, ProjectPriority } from "@/lib/types/project.types";
+import { Task } from "@/lib/types/task.types";
+import { toast } from "sonner";
+// import { projects, tasks, Project, Task } from "@/lib/project-task-data";
 import {
   Card,
   CardContent,
@@ -15,13 +19,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { 
-  Search, 
-  Filter, 
-  Plus, 
-  Calendar, 
-  Users, 
-  Target, 
+import {
+  Search,
+  Filter,
+  Plus,
+  Calendar,
+  Users,
+  Target,
   TrendingUp,
   Clock,
   CheckCircle,
@@ -30,6 +34,21 @@ import {
   Play
 } from "lucide-react";
 
+interface ProjectItem {
+  id: string | number;
+  name: string;
+  description: string;
+  status: ProjectStatus;
+  priority: ProjectPriority;
+  progress: number;
+  budget: string;
+  startDate: string | Date;
+  endDate: string | Date;
+  manager: string;
+  category: string;
+  teamSize: number;
+  tasks: any[];
+}
 // ...existing code...
 
 export default function AllProjectsPage() {
@@ -38,6 +57,49 @@ export default function AllProjectsPage() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [priorityFilter, setPriorityFilter] = useState("all");
   const [categoryFilter, setCategoryFilter] = useState("all");
+  const [projects, setProjects] = useState< ProjectItem[]>([]);
+  const [page, setPage] = useState(1);
+  const [limit] = useState(50);
+
+  useEffect(() => {
+    const fetchProjects = async () => {
+      try {
+        const filters: any = {};
+
+        if (statusFilter !== "all") filters.status = statusFilter;
+        if (priorityFilter !== "all") filters.priority = priorityFilter;
+        if (searchTerm) filters.search = searchTerm;
+
+        const response = await getAllProjects(page, limit, filters);
+
+        // Transform backend projects to match the ProjectItem interface
+        const transformedProjects = response.data.map((project: any) => ({
+          id: project.id,
+          name: project.name,
+          description: project.description || "",
+          status: project.status,
+          priority: project.priority,
+          progress: project.progress || 0,
+          budget: project.budget || "0",
+          startDate: project.startDate,
+          endDate: project.endDate,
+          manager: project.manager?.fullName || 'N/A',
+          category: Array.isArray(project.tags) ? project.tags.join(', ') : (project.tags || 'N/A'),
+          teamSize: project.teamSize || 0, // Assuming not provided, set default
+          tasks: [], // Tasks not included in getAllProjects, can be fetched separately if needed
+        }));
+
+        setProjects(transformedProjects);
+      } catch (error) {
+        console.error("Failed to fetch projects:", error);
+        toast.error("Failed to load projects, please try again later!!");
+      }
+    };
+    fetchProjects();
+
+
+  }, [statusFilter, priorityFilter, searchTerm])
+
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -79,7 +141,7 @@ export default function AllProjectsPage() {
     return "bg-red-500";
   };
 
-  const formatDate = (dateString: string) => {
+  const formatDate = (dateString: string | Date) => {
     return new Date(dateString).toLocaleDateString("en-US", {
       month: "short",
       day: "numeric",
@@ -101,11 +163,11 @@ export default function AllProjectsPage() {
   const handleNewProject = () => {
     router.push("/admin/projects/add");
   };
-  const handleViewTasks=()=>{
+  const handleViewTasks = () => {
     router.push("/admin/tasks/all-tasks");
   }
 
-  const handleManageProjectTasks = (project: Project) => {
+  const handleManageProjectTasks = (project: any) => {
     // Store the selected project in localStorage to pass to task management page
     localStorage.setItem('selectedProjectForTasks', JSON.stringify(project));
     // Navigate to task management page
@@ -203,7 +265,7 @@ export default function AllProjectsPage() {
                   />
                 </div>
               </div>
-              
+
               <Select value={statusFilter} onValueChange={setStatusFilter}>
                 <SelectTrigger className="w-full sm:w-[150px]">
                   <SelectValue placeholder="Status" />
@@ -278,7 +340,7 @@ export default function AllProjectsPage() {
                     <span className="font-medium">{project.progress}%</span>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div 
+                    <div
                       className={`h-2 rounded-full ${getProgressColor(project.progress)}`}
                       style={{ width: `${project.progress}%` }}
                     ></div>
@@ -322,41 +384,22 @@ export default function AllProjectsPage() {
                   </Badge>
                 </div>
 
-                {/* Project Tasks */}
-                <div className="pt-2">
-                  <div className="font-semibold text-gray-800 mb-1 text-sm">Tasks:</div>
-                  <ul className="list-disc pl-5 mb-2">
-                    {project.tasks.slice(0, 3).map(task => (
-                      <li key={task.id} className="text-xs flex items-center gap-2">
-                        <span>{task.name}</span>
-                        {task.status === "completed" && <Badge className="bg-green-100 text-green-800 border-green-200">Completed</Badge>}
-                        {task.status === "in-progress" && <Badge className="bg-blue-100 text-blue-800 border-blue-200">In Progress</Badge>}
-                        {task.status === "pending" && <Badge className="bg-gray-100 text-gray-800 border-gray-200">Pending</Badge>}
-                        {task.status === "blocked" && <Badge className="bg-red-100 text-red-800 border-red-200">Blocked</Badge>}
-                      </li>
-                    ))}
-                    {project.tasks.length > 3 && (
-                      <li className="text-xs text-gray-500 italic">
-                        +{project.tasks.length - 3} more tasks
-                      </li>
-                    )}
-                  </ul>
-                </div>
+
 
                 {/* Action Buttons */}
                 <div className="flex gap-2 pt-2">
                   <Button onClick={handleViewTasks} size="sm" variant="outline" className="flex-1">
                     View Tasks
                   </Button>
-                  <Button 
-                    size="sm" 
-                    variant="outline" 
+                  <Button
+                    size="sm"
+                    variant="outline"
                     onClick={() => handleManageProjectTasks(project)}
                     className="text-blue-600 hover:text-blue-700"
                   >
                     Manage Tasks
                   </Button>
-                  <Button size="sm" variant="outline" onClick={() => router.push("/admin/projects/manage-project")}>Edit</Button>
+                  <Button size="sm" variant="outline" onClick={() => router.push(`/admin/projects/manage-project?id=${project.id}`)}>Edit</Button>
                 </div>
               </CardContent>
             </Card>
@@ -372,7 +415,7 @@ export default function AllProjectsPage() {
               <p className="text-gray-600 mb-4">
                 Try adjusting your search terms or filters to find what you're looking for.
               </p>
-              <Button>
+              <Button onClick={handleNewProject}>
                 <Plus className="h-4 w-4 mr-2" />
                 Create New Project
               </Button>
