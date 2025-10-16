@@ -62,7 +62,7 @@ export default function AllTasksPage() {
     const fetchTasks = async () => {
       try {
         setLoading(true);
-        const filters: any = {};
+        const filters: Record<string, string> = {};
         
         if (statusFilter !== "all") filters.status = statusFilter;
         if (priorityFilter !== "all") filters.priority = priorityFilter;
@@ -71,7 +71,7 @@ export default function AllTasksPage() {
         const response = await getAllTasks(page, limit, filters);
         
         // Transform backend tasks to match the TaskItem interface
-        const transformedTasks = response.data.map((task: any) => ({
+        const transformedTasks = response.data.map((task: Task) => ({
           id: task.id,
           title: task.title,
           description: task.description || "",
@@ -92,7 +92,7 @@ export default function AllTasksPage() {
     };
     
     fetchTasks();
-  }, [page, limit, statusFilter, priorityFilter, search, toast]);
+  }, [page, limit, statusFilter, priorityFilter, search]);
   
   const stats = useMemo(() => {
     const total = tasks.length;

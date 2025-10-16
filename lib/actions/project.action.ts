@@ -98,6 +98,49 @@ export const createProject = async (projectData: CreateProjectRequest): Promise<
   return await response.json();
 };
 
+// Create a new project with optional file attachment via multipart/form-data
+export const createProjectWithAttachment = async (
+  projectData: CreateProjectRequest,
+  file?: File
+): Promise<ProjectResponse> => {
+  const token = getAuthToken();
+  if (!token) {
+    throw new Error("No authentication token found");
+  }
+
+  const formData = new FormData();
+  // Append scalar fields
+  Object.entries(projectData).forEach(([key, value]) => {
+    if (value === undefined || value === null) return;
+    if (Array.isArray(value)) {
+      // Serialize arrays as JSON for backend to parse
+      formData.append(key, JSON.stringify(value));
+    } else {
+      formData.append(key, String(value));
+    }
+  });
+
+  if (file) {
+    formData.append('attachment', file);
+  }
+
+  const response = await fetch(getFullApiUrl('/projects/create-project'), {
+    method: 'POST',
+    headers: {
+      // Let the browser set Content-Type with proper boundary
+      Authorization: `Bearer ${token}`,
+    },
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || 'Failed to create project');
+  }
+
+  return await response.json();
+};
+
 // Update an existing project
 export const updateProject = async (
   projectId: number | string,

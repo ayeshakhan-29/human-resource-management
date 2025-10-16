@@ -46,7 +46,7 @@ export default function AddTaskPage() {
       try {
         const response = await getAllUsers();
         if (response.success && response.data) {
-          const mapped = response.data.map((u: any) => ({ id: u.id, fullName: u.fullName, position: u.userInfo?.position }));
+          const mapped = response.data.map((u) => ({ id: u.id, fullName: u.fullName, position: u.userInfo?.position }));
           setUsers(mapped);
           const posSet = new Set<string>();
           mapped.forEach((u) => { if (u.position) posSet.add(u.position); });
@@ -80,7 +80,7 @@ export default function AddTaskPage() {
 
     fetchUsers();
     fetchProjects();
-  }, [toast]);
+  }, []);
   const handleChange = (key: string, value: string) => {
     setForm((p) => ({ ...p, [key]: value }));
     if (errors[key]) setErrors((e) => ({ ...e, [key]: "" }));

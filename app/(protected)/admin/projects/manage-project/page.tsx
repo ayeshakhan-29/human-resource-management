@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Header } from "@/components/header";
 import {
   Card,
@@ -116,7 +116,7 @@ export default function ProjectManagementPage() {
   };
 
   // Fetch projects from backend
-  const fetchProjects = async () => {
+  const fetchProjects = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -140,10 +140,10 @@ export default function ProjectManagementPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [priorityFilter, searchTerm, statusFilter]);
 
   // Fetch tasks for a specific project
-  const fetchProjectTasks = async (projectId: string) => {
+  const fetchProjectTasks = useCallback(async (projectId: string) => {
     try {
       const response = await getTasksByProject(parseInt(projectId), 1, 100);
       if (response.success && response.data) {
@@ -155,10 +155,10 @@ export default function ProjectManagementPage() {
       console.error('Error fetching project tasks:', err);
       return [];
     }
-  };
+  }, []);
 
   // Load all tasks for statistics
-  const fetchAllTasks = async () => {
+  const fetchAllTasks = useCallback(async () => {
     try {
       const response = await getAllTasks(1, 1000); // Get all tasks for statistics
       if (response.success && response.data) {
@@ -168,13 +168,13 @@ export default function ProjectManagementPage() {
     } catch (err) {
       console.error('Error fetching all tasks:', err);
     }
-  };
+  }, []);
 
   // Load data on component mount and when filters change
   useEffect(() => {
     fetchProjects();
     fetchAllTasks();
-  }, [statusFilter, priorityFilter, searchTerm]);
+  }, [fetchAllTasks, fetchProjects]);
 
   // Load tasks when a project is selected
   useEffect(() => {
@@ -183,7 +183,7 @@ export default function ProjectManagementPage() {
         setSelectedProject(prev => prev ? { ...prev, tasks } : null);
       });
     }
-  }, [selectedProject?.id]);
+  }, [selectedProject?.id, fetchProjectTasks]);
 
   const getStatusBadge = (status: string) => {
     switch (status) {

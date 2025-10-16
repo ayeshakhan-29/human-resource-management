@@ -14,6 +14,7 @@ export interface Project {
   clientEmail: string;
   categories?: string;
   tags: string[];
+  attachment?: string; // public URL path e.g. /uploads/projects/xxx.pdf
   attachments: string[];
   progress: number;
   isActive: boolean;
@@ -44,6 +45,7 @@ export interface CreateProjectRequest {
   clientName?: string;
   clientEmail?: string;
   tags?: string[];
+  attachment?: string; // server path, typically set by backend response
   attachments?: string[];
 }
 export interface UpdateProjectRequest {
@@ -59,6 +61,7 @@ export interface UpdateProjectRequest {
   clientName?: string;
   clientEmail?: string;
   tags?: string[];
+  attachment?: string;
   attachments?: string[];
 }
 export interface UpdateProjectProgressRequest {

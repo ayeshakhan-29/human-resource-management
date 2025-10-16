@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Header } from "@/components/header";
-import { createProject } from "@/lib/actions/project.action";
+import { createProjectWithAttachment } from "@/lib/actions/project.action";
 import {
   Card,
   CardContent,
@@ -54,6 +54,7 @@ export default function AddProjectPage() {
     email: ''
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -105,6 +106,11 @@ export default function AddProjectPage() {
     return Object.keys(newErrors).length === 0;
   };
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] || null;
+    setSelectedFile(file);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -126,15 +132,16 @@ export default function AddProjectPage() {
           attachments: [], // Not in form, can be added if needed
         };
 
-        const response = await createProject(projectData);
+        const response = await createProjectWithAttachment(projectData, selectedFile || undefined);
         if (response.success) {
           alert('Project created successfully!');
           handleReset();
         } else {
           alert('Failed to create project: ' + response.message);
         }
-      } catch (error: any) {
-        alert('Error creating project: ' + error.message);
+      } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        alert('Error creating project: ' + message);
       }
     }
   };
@@ -154,6 +161,7 @@ export default function AddProjectPage() {
     });
     setTeamMembers([]);
     setErrors({});
+    setSelectedFile(null);
   };
 
   return (
@@ -503,17 +511,41 @@ export default function AddProjectPage() {
             <CardContent className="space-y-4">
 
               <div className="flex items-center justify-center w-full">
-                <label  className="flex flex-col items-center justify-center w-full h-64 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 dark:hover:bg-gray-800 dark:bg-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:hover:border-gray-500 dark:hover:bg-gray-600">
+                <label className="flex flex-col items-center justify-center w-full h-64 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100">
                   <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                    <svg className="w-8 h-8 mb-4 text-gray-500 dark:text-gray-400" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 16">
-                      <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 13h3a3 3 0 0 0 0-6h-.025A5.56 5.56 0 0 0 16 6.5 5.5 5.5 0 0 0 5.207 5.021C5.137 5.017 5.071 5 5 5a4 4 0 0 0 0 8h2.167M10 15V6m0 0L8 8m2-2 2 2" />
-                    </svg>
-                    <p className="mb-2 text-sm text-gray-500 dark:text-gray-400"><span className="font-semibold">Click to upload</span> or drag and drop</p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">SVG, PNG, JPG or GIF (MAX. 800x400px)</p>
+                    <Paperclip className="w-8 h-8 mb-4 text-gray-500" />
+                    <p className="mb-2 text-sm text-gray-500">
+                      <span className="font-semibold">Click to upload</span> or drag and drop
+                    </p>
+                    <p className="text-xs text-gray-500">PDF, DOC, DOCX, XLS, XLSX, PNG, JPG, GIF (MAX. 20MB)</p>
                   </div>
-                  <input id="dropzone-file" type="file" className="hidden" />
+                  <input 
+                    id="dropzone-file" 
+                    type="file" 
+                    className="hidden" 
+                    onChange={handleFileChange}
+                    accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg,.gif,.txt"
+                  />
                 </label>
               </div>
+
+              {/* Show selected file */}
+              {selectedFile && (
+                <div className="flex items-center gap-2 p-3 bg-blue-50 rounded-lg">
+                  <Paperclip className="h-4 w-4 text-blue-600" />
+                  <span className="text-sm text-blue-800">{selectedFile.name}</span>
+                  <span className="text-xs text-blue-600">({(selectedFile.size / 1024 / 1024).toFixed(2)} MB)</span>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setSelectedFile(null)}
+                    className="ml-auto text-red-600 hover:text-red-700"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              )}
 
             </CardContent>
           </Card>

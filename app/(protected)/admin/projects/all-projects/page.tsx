@@ -31,7 +31,9 @@ import {
   CheckCircle,
   AlertCircle,
   Pause,
-  Play
+  Play,
+  FileText,
+  Image
 } from "lucide-react";
 
 interface ProjectItem {
@@ -46,8 +48,9 @@ interface ProjectItem {
   endDate: string | Date;
   manager: string;
   category: string;
+  attachmentUrl?: string;
   teamSize: number;
-  tasks: any[];
+  tasks: Task[];
 }
 // ...existing code...
 
@@ -56,7 +59,6 @@ export default function AllProjectsPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [priorityFilter, setPriorityFilter] = useState("all");
-  const [categoryFilter, setCategoryFilter] = useState("all");
   const [projects, setProjects] = useState< ProjectItem[]>([]);
   const [page, setPage] = useState(1);
   const [limit] = useState(50);
@@ -64,7 +66,7 @@ export default function AllProjectsPage() {
   useEffect(() => {
     const fetchProjects = async () => {
       try {
-        const filters: any = {};
+        const filters: Record<string, string> = {};
 
         if (statusFilter !== "all") filters.status = statusFilter;
         if (priorityFilter !== "all") filters.priority = priorityFilter;
@@ -73,7 +75,12 @@ export default function AllProjectsPage() {
         const response = await getAllProjects(page, limit, filters);
 
         // Transform backend projects to match the ProjectItem interface
-        const transformedProjects = response.data.map((project: any) => ({
+        const backend = (process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5001/api')
+          // remove trailing /api or /api/
+          .replace(/\/api\/?$/, '')
+          // remove any remaining trailing slash
+          .replace(/\/$/, '');
+        const transformedProjects = response.data.map((project: Project) => ({
           id: project.id,
           name: project.name,
           description: project.description || "",
@@ -85,7 +92,8 @@ export default function AllProjectsPage() {
           endDate: project.endDate,
           manager: project.manager?.fullName || 'N/A',
           category: Array.isArray(project.tags) ? project.tags.join(', ') : (project.tags || 'N/A'),
-          teamSize: project.teamSize || 0, // Assuming not provided, set default
+          attachmentUrl: project.attachment ? `${backend}${project.attachment}` : undefined,
+          teamSize: 0,
           tasks: [], // Tasks not included in getAllProjects, can be fetched separately if needed
         }));
 
@@ -98,7 +106,7 @@ export default function AllProjectsPage() {
     fetchProjects();
 
 
-  }, [statusFilter, priorityFilter, searchTerm])
+  }, [statusFilter, priorityFilter, searchTerm, page, limit])
 
 
   const getStatusBadge = (status: string) => {
@@ -156,8 +164,7 @@ export default function AllProjectsPage() {
       project.manager.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === "all" || project.status === statusFilter;
     const matchesPriority = priorityFilter === "all" || project.priority === priorityFilter;
-    const matchesCategory = categoryFilter === "all" || project.category === categoryFilter;
-    return matchesSearch && matchesStatus && matchesPriority && matchesCategory;
+    return matchesSearch && matchesStatus && matchesPriority;
   });
 
   const handleNewProject = () => {
@@ -167,7 +174,7 @@ export default function AllProjectsPage() {
     router.push("/admin/tasks/all-tasks");
   }
 
-  const handleManageProjectTasks = (project: any) => {
+  const handleManageProjectTasks = (project: ProjectItem) => {
     // Store the selected project in localStorage to pass to task management page
     localStorage.setItem('selectedProjectForTasks', JSON.stringify(project));
     // Navigate to task management page
@@ -293,19 +300,6 @@ export default function AllProjectsPage() {
                 </SelectContent>
               </Select>
 
-              <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                <SelectTrigger className="w-full sm:w-[150px]">
-                  <SelectValue placeholder="Category" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Categories</SelectItem>
-                  <SelectItem value="Development">Development</SelectItem>
-                  <SelectItem value="Marketing">Marketing</SelectItem>
-                  <SelectItem value="Operations">Operations</SelectItem>
-                  <SelectItem value="IT">IT</SelectItem>
-                </SelectContent>
-              </Select>
-
               <Button className="w-full sm:w-auto" onClick={handleNewProject}>
                 <Plus className="h-4 w-4 mr-2" />
                 New Project
@@ -377,12 +371,19 @@ export default function AllProjectsPage() {
                   <span className="font-medium">{project.manager}</span>
                 </div>
 
-                {/* Category */}
-                <div className="flex items-center gap-2">
-                  <Badge variant="outline" className="text-xs">
-                    {project.category}
-                  </Badge>
-                </div>
+                {/* Attachment */}
+                {project.attachmentUrl && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <span className="text-gray-600">Attachment:</span>
+                    <button
+                      onClick={() => window.open(project.attachmentUrl, '_blank')}
+                      className="flex items-center gap-1 text-blue-600 hover:text-blue-800 hover:underline transition-colors"
+                    >
+                      <FileText className="h-4 w-4" />
+                      <span>View Document</span>
+                    </button>
+                  </div>
+                )}
 
 
 
@@ -413,7 +414,7 @@ export default function AllProjectsPage() {
               <Target className="h-12 w-12 text-gray-400 mx-auto mb-4" />
               <h3 className="text-lg font-medium text-gray-900 mb-2">No projects found</h3>
               <p className="text-gray-600 mb-4">
-                Try adjusting your search terms or filters to find what you're looking for.
+                Try adjusting your search terms or filters to find what you&apos;re looking for.
               </p>
               <Button onClick={handleNewProject}>
                 <Plus className="h-4 w-4 mr-2" />
