@@ -3,6 +3,7 @@ import {
   EmployeesResponse,
   InviteEmployeeBody,
   InviteEmployeeResponse,
+  Attachment,
 } from "@/lib/types/employee.types";
 import { BankInfo, BankInfoResponse } from "@/lib/types/user.types";
 import { UpdateBankDetailsResponse } from "@/lib/types/bank.types";
@@ -288,6 +289,61 @@ export const getEmployeeInfoById = async (
     throw new Error(
       errorData.message || "Failed to fetch employee information"
     );
+  }
+
+  return response.json();
+};
+
+export const uploadEmployeeAttachments = async (
+  employeeId: number,
+  files: File[]
+): Promise<{ success: boolean; data: { attachments: Attachment[]; newAttachments: Attachment[] } }> => {
+  const token = getAuthToken();
+  if (!token) {
+    throw new Error("No authentication token found");
+  }
+
+  const formData = new FormData();
+  files.forEach((file) => {
+    formData.append("attachments", file);
+  });
+
+  const response = await fetch(`${API_BASE_URL}employee/${employeeId}/attachments`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || "Failed to upload attachments");
+  }
+
+  return response.json();
+};
+
+export const removeEmployeeAttachment = async (
+  employeeId: number,
+  attachmentId: string
+): Promise<{ success: boolean; data: { removedAttachment: Attachment; remainingAttachments: Attachment[] } }> => {
+  const token = getAuthToken();
+  if (!token) {
+    throw new Error("No authentication token found");
+  }
+
+  const response = await fetch(`${API_BASE_URL}employee/${employeeId}/attachments/${attachmentId}`, {
+    method: "DELETE",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || "Failed to remove attachment");
   }
 
   return response.json();
