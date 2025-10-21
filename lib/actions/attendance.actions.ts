@@ -12,6 +12,12 @@ import { getAuthToken } from "../auth/token";
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5005/api/";
 
+// Helper function to ensure proper URL construction
+const getApiUrl = (endpoint: string) => {
+  const baseUrl = API_BASE_URL.endsWith('/') ? API_BASE_URL : `${API_BASE_URL}/`;
+  return `${baseUrl}${endpoint}`;
+};
+
 interface ApiError extends Error {
   status?: number;
   response?: {
@@ -52,7 +58,7 @@ export async function clockInAction(token: string): Promise<{
       throw new Error("No authentication token found");
     }
 
-    const response = await fetch(`${API_BASE_URL}attendance/clock-in`, {
+    const response = await fetch(getApiUrl('attendance/clock-in'), {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -97,7 +103,7 @@ export async function clockOutAction(token: string | null): Promise<{
       throw new Error("No authentication token found");
     }
 
-    const response = await fetch(`${API_BASE_URL}attendance/clock-out`, {
+    const response = await fetch(getApiUrl('attendance/clock-out'), {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -144,7 +150,7 @@ export async function getAllAttendance(token?: string): Promise<{
     }
 
     const response = await fetch(
-      `${API_BASE_URL}attendance/today-all-employees`,
+      getApiUrl('attendance/today-all-employees'),
       {
         method: "GET",
         headers: {
@@ -186,7 +192,7 @@ export async function getWeeklyAttendance(token?: string): Promise<{
       throw new Error("No authentication token found");
     }
 
-    const response = await fetch(`${API_BASE_URL}attendance/weekly`, {
+    const response = await fetch(getApiUrl('attendance/weekly'), {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
@@ -226,7 +232,7 @@ export async function getTodaysAttendance(token?: string): Promise<{
       throw new Error("No authentication token found");
     }
 
-    const response = await fetch(`${API_BASE_URL}attendance/today`, {
+    const response = await fetch(getApiUrl('attendance/today'), {
       method: "GET",
       headers: {
         "Content-Type": "application/json",

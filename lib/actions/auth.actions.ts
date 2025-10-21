@@ -20,7 +20,9 @@ export async function loginUserAction(
   }
 
   try {
-    const response = await fetch(`${backendUrl}auth/login`, {
+    // Ensure proper URL construction with trailing slash handling
+    const baseUrl = backendUrl.endsWith('/') ? backendUrl : `${backendUrl}/`;
+    const response = await fetch(`${baseUrl}auth/login`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -77,7 +79,9 @@ export async function inviteEmployeeAction(
       }/set-password?token=${resetToken}`,
     };
 
-    const response = await fetch(`${backendUrl}auth/invite-employee`, {
+    // Ensure proper URL construction with trailing slash handling
+    const baseUrl = backendUrl.endsWith('/') ? backendUrl : `${backendUrl}/`;
+    const response = await fetch(`${baseUrl}auth/invite-employee`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -125,7 +129,9 @@ export async function setPasswordAction(
 
   try {
     const startTime = Date.now();
-    const response = await fetch(`${backendUrl}auth/set-password`, {
+    // Ensure proper URL construction with trailing slash handling
+    const baseUrl = backendUrl.endsWith('/') ? backendUrl : `${backendUrl}/`;
+    const response = await fetch(`${baseUrl}auth/set-password`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

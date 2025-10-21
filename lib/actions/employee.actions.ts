@@ -12,13 +12,19 @@ import { EmployeeInfoResponse } from "@/lib/types/employee.types";
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5005/api";
 
+// Helper function to ensure proper URL construction
+const getApiUrl = (endpoint: string) => {
+  const baseUrl = API_BASE_URL.endsWith('/') ? API_BASE_URL : `${API_BASE_URL}/`;
+  return `${baseUrl}${endpoint}`;
+};
+
 export const getAllEmployees = async (): Promise<EmployeesResponse> => {
   const token = getAuthToken();
   if (!token) {
     throw new Error("No authentication token found");
   }
 
-  const response = await fetch(`${API_BASE_URL}employee/all`, {
+  const response = await fetch(getApiUrl('employee/all'), {
     method: "GET",
     headers: {
       "Content-Type": "application/json",
@@ -49,7 +55,7 @@ export const getAllUsers = async (): Promise<EmployeesResponse> => {
     throw new Error("No authentication token found");
   }
 
-  const response = await fetch(`${API_BASE_URL}employee/all`, {
+  const response = await fetch(getApiUrl('employee/all'), {
     method: "GET",
     headers: {
       "Content-Type": "application/json",
@@ -74,7 +80,7 @@ export const updateEmployeeStatus = async (
     throw new Error("No authentication token found");
   }
 
-  const response = await fetch(`${API_BASE_URL}employee/${employeeId}/status`, {
+  const response = await fetch(getApiUrl(`employee/${employeeId}/status`), {
     method: "PATCH",
     headers: {
       "Content-Type": "application/json",
@@ -101,7 +107,7 @@ export const getEmployeeBankDetails = async (employeeId: number) => {
 
   try {
     const response = await fetch(
-      `${API_BASE_URL}employee/${employeeId}/get-bank-details`,
+      getApiUrl(`employee/${employeeId}/get-bank-details`),
       {
         method: "GET",
         headers: {
@@ -143,7 +149,7 @@ export const inviteEmployee = async (
     throw new Error("No authentication token found");
   }
 
-  const url = `${API_BASE_URL}auth/invite-employee`;
+  const url = getApiUrl('auth/invite-employee');
 
   try {
     const response = await fetch(url, {
@@ -206,7 +212,7 @@ export const EmployeeBankInfo = async (
 
   try {
     const response = await fetch(
-      `${API_BASE_URL}employee/${employeeId}/add-bank-details`,
+      getApiUrl(`employee/${employeeId}/add-bank-details`),
       {
         method: "POST",
         headers: {
@@ -247,7 +253,7 @@ export const updateEmployeeBankDetails = async (
   }
 
   const response = await fetch(
-    `${API_BASE_URL}employee/${employeeId}/update-bank-details`,
+    getApiUrl(`employee/${employeeId}/update-bank-details`),
     {
       method: "PUT",
       headers: {
@@ -275,7 +281,7 @@ export const getEmployeeInfoById = async (
   }
 
   const response = await fetch(
-    `${API_BASE_URL}employee/${employeeId}/user-info`,
+    getApiUrl(`employee/${employeeId}/user-info`),
     {
       method: "GET",
       headers: {
@@ -308,7 +314,7 @@ export const uploadEmployeeAttachments = async (
     formData.append("attachments", file);
   });
 
-  const response = await fetch(`${API_BASE_URL}employee/${employeeId}/attachments`, {
+  const response = await fetch(getApiUrl(`employee/${employeeId}/attachments`), {
     method: "POST",
     headers: {
       Authorization: `Bearer ${token}`,
@@ -333,7 +339,7 @@ export const removeEmployeeAttachment = async (
     throw new Error("No authentication token found");
   }
 
-  const response = await fetch(`${API_BASE_URL}employee/${employeeId}/attachments/${attachmentId}`, {
+  const response = await fetch(getApiUrl(`employee/${employeeId}/attachments/${attachmentId}`), {
     method: "DELETE",
     headers: {
       "Content-Type": "application/json",
