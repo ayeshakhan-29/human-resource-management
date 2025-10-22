@@ -17,6 +17,13 @@ import {
   Calendar,
   FileText,
   Home,
+  FolderKanban,
+  ListChecks,
+  SquarePlus,
+  Settings2,
+  Timer,
+  CalendarCheck,
+  IdCard,
 } from "lucide-react";
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -73,7 +80,7 @@ const data = {
         {
           title: "Employee Profiles",
           url: "/admin/employees/profiles",
-          icon: User,
+          icon: IdCard,
         },
       ],
     },
@@ -89,12 +96,12 @@ const data = {
         {
           title: "Attendance Reports",
           url: "/admin/attendance/reports",
-          icon: FileText,
+          icon: BarChart3,
         },
         {
           title: "Time Tracking",
           url: "/admin/attendance/tracking",
-          icon: BarChart3,
+          icon: Timer,
         },
       ],
     },
@@ -105,13 +112,62 @@ const data = {
         {
           title: "Leave Requests",
           url: "/admin/leave/requests",
-          icon: Calendar,
+          icon: CalendarCheck,
         },
         {
           title: "Leave Policies",
           url: "/admin/leave/policies",
           icon: FileText,
         },
+      ],
+    },
+    {
+      title: "Project Management",
+      icon: FolderKanban,
+      items: [
+        {
+          title: "All Projects",
+          url: "/admin/projects/all-projects",
+          icon: FolderKanban,
+        },
+        {
+          title: "Add Project",
+          url: "/admin/projects/add",
+          icon: SquarePlus,
+        },
+        {
+          title: "Manage Projects",
+          url: "/admin/projects/manage-project",
+          icon: Settings2,
+        }, 
+         {
+          title: "Projects Reports ",
+          url: "/admin/projects/project-reports",
+          icon: BarChart3,
+        },
+      ],
+    },
+    {
+      title: "Task Management",
+      icon: ListChecks,
+      items: [
+        {
+          title: "All Tasks",
+          url: "/admin/tasks/all-tasks",
+          icon: ListChecks,
+        },
+        {
+          title: "Add Task",
+          url: "/admin/tasks/add",
+          icon: SquarePlus,
+        },
+        {
+          title: "Manage Tasks",
+          url: "/admin/tasks/manage-tasks",
+          icon: Settings2,
+        },
+      
+       
       ],
     },
   ],

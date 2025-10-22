@@ -1,3 +1,12 @@
+export interface Attachment {
+  filename: string;
+  originalName: string;
+  path: string;
+  size: number;
+  mimetype: string;
+  uploadedAt: string;
+}
+
 export interface UserInfo {
   id: number;
   employeeId: number;
@@ -10,6 +19,7 @@ export interface UserInfo {
   createdAt: string;
   updatedAt: string;
   startDate?: string;
+  attachments?: Attachment[];
 }
 
 export interface Employee {
@@ -65,6 +75,9 @@ export interface EmployeeFormData {
 
   // Additional Information
   notes: string;
+
+  // Attachments
+  attachments: File[];
 }
 
 export const initialEmployeeFormData: EmployeeFormData = {
@@ -102,6 +115,9 @@ export const initialEmployeeFormData: EmployeeFormData = {
 
   // Additional Information
   notes: "",
+
+  // Attachments
+  attachments: [],
 };
 
 export interface InviteEmployeeBody {

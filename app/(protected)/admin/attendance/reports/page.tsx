@@ -23,17 +23,16 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { getAllAttendance } from "@/lib/actions/attendance.actions";
 import { useAuth } from "@/context/AuthContext";
-import { Loader2, Search, Download, Calendar, Users, Clock, TrendingUp, Filter } from "lucide-react";
+import { Loader2, Search, Download, Filter } from "lucide-react";
 import { AllAttendanceResponse } from "@/lib/types/attendance.types";
 
-export default function AttendanceReportsPage() {
+export default function AttendanceReportPage() {
   const { token } = useAuth();
   const [data, setData] = useState<AllAttendanceResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [dateFilter, setDateFilter] = useState("today");
 
   useEffect(() => {
     const fetchAttendance = async () => {
@@ -82,13 +81,6 @@ export default function AttendanceReportsPage() {
     return <Badge variant="secondary">{status || "-"}</Badge>;
   };
 
-  // Calculate statistics
-  const totalEmployees = data?.data?.length || 0;
-  const presentEmployees = data?.data?.filter(emp => emp.status?.toLowerCase() === 'present').length || 0;
-  const lateEmployees = data?.data?.filter(emp => emp.status?.toLowerCase() === 'late').length || 0;
-  const absentEmployees = data?.data?.filter(emp => emp.status?.toLowerCase() === 'absent').length || 0;
-  const attendanceRate = totalEmployees > 0 ? Math.round((presentEmployees / totalEmployees) * 100) : 0;
-
   // Filter data based on search and filters
   const filteredData = data?.data?.filter(emp => {
     const matchesSearch = emp.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -99,7 +91,7 @@ export default function AttendanceReportsPage() {
 
   const handleExport = () => {
     // TODO: Implement export functionality
-    console.log("Exporting attendance data...");
+    console.log("Exporting attendance report...");
   };
 
   return (
@@ -108,62 +100,55 @@ export default function AttendanceReportsPage() {
         breadcrumbs={[
           { label: "Admin", href: "/admin" },
           { label: "Attendance", href: "/admin/attendance" },
-          { label: "Daily Attendance" },
+          { label: "Attendance Reports" },
         ]}
       />
       <div className="flex flex-1 flex-col gap-6 p-6">
         {/* Page Header */}
         <div className="flex flex-col gap-2">
-          <h1 className="text-3xl font-bold text-gray-900">Daily Attendance</h1>
-          <p className="text-gray-600">Monitor employee attendance and generate comprehensive reports</p>
+          <h1 className="text-3xl font-bold text-gray-900">Attendance Reports</h1>
+          <p className="text-gray-600">View and analyze employee attendance records</p>
         </div>
 
-        {/* Statistics Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <Card className="bg-gradient-to-r from-blue-50 to-blue-100 border-blue-200">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-blue-700">Total Employees</CardTitle>
-              <Users className="h-4 w-4 text-blue-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-blue-900">{totalEmployees}</div>
-              <p className="text-xs text-blue-600">Active workforce</p>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-gradient-to-r from-green-50 to-green-100 border-green-200">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-green-700">Present Today</CardTitle>
-              <Clock className="h-4 w-4 text-green-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-green-900">{presentEmployees}</div>
-              <p className="text-xs text-green-600">{attendanceRate}% attendance rate</p>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-gradient-to-r from-yellow-50 to-yellow-100 border-yellow-200">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-yellow-700">Late Arrivals</CardTitle>
-              <TrendingUp className="h-4 w-4 text-yellow-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-yellow-900">{lateEmployees}</div>
-              <p className="text-xs text-yellow-600">Need attention</p>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-gradient-to-r from-red-50 to-red-100 border-red-200">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-red-700">Absent</CardTitle>
-              <Calendar className="h-4 w-4 text-red-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-red-900">{absentEmployees}</div>
-              <p className="text-xs text-red-600">Follow up required</p>
-            </CardContent>
-          </Card>
-        </div>
+        {/* Report Summary */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Report Summary</CardTitle>
+            <CardDescription>
+              {error
+                ? "Failed to load attendance data"
+                : `Date: ${data?.date ?? "-"} • Total Records: ${data?.count ?? 0} • Filtered: ${filteredData.length}`}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-center">
+              <div className="p-4 bg-blue-50 rounded-lg">
+                <div className="text-2xl font-bold text-blue-600">
+                  {data?.data?.length || 0}
+                </div>
+                <div className="text-sm text-blue-600">Total Employees</div>
+              </div>
+              <div className="p-4 bg-green-50 rounded-lg">
+                <div className="text-2xl font-bold text-green-600">
+                  {data?.data?.filter(emp => emp.status?.toLowerCase() === 'present').length || 0}
+                </div>
+                <div className="text-sm text-green-600">Present</div>
+              </div>
+              <div className="p-4 bg-yellow-50 rounded-lg">
+                <div className="text-2xl font-bold text-yellow-600">
+                  {data?.data?.filter(emp => emp.status?.toLowerCase() === 'late').length || 0}
+                </div>
+                <div className="text-sm text-yellow-600">Late</div>
+              </div>
+              <div className="p-4 bg-red-50 rounded-lg">
+                <div className="text-2xl font-bold text-red-600">
+                  {data?.data?.filter(emp => emp.status?.toLowerCase() === 'absent').length || 0}
+                </div>
+                <div className="text-sm text-red-600">Absent</div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Filters and Actions */}
         <Card>
@@ -172,7 +157,7 @@ export default function AttendanceReportsPage() {
               <Filter className="h-5 w-5" />
               Filters & Search
             </CardTitle>
-            <CardDescription>Refine your attendance data view</CardDescription>
+            <CardDescription>Refine your attendance report view</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="flex flex-col sm:flex-row gap-4">
@@ -180,7 +165,7 @@ export default function AttendanceReportsPage() {
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                   <Input
-                    placeholder="Search employees..."
+                    placeholder="Search employees by name or email..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="pl-10"
@@ -201,34 +186,20 @@ export default function AttendanceReportsPage() {
                 </SelectContent>
               </Select>
 
-              <Select value={dateFilter} onValueChange={setDateFilter}>
-                <SelectTrigger className="w-full sm:w-[180px]">
-                  <SelectValue placeholder="Date Range" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="today">Today</SelectItem>
-                  <SelectItem value="week">This Week</SelectItem>
-                  <SelectItem value="month">This Month</SelectItem>
-                  <SelectItem value="custom">Custom Range</SelectItem>
-                </SelectContent>
-              </Select>
-
               <Button onClick={handleExport} variant="outline" className="w-full sm:w-auto">
                 <Download className="h-4 w-4 mr-2" />
-                Export
+                Export Report
               </Button>
             </div>
           </CardContent>
         </Card>
 
-        {/* Attendance Table */}
+        {/* Attendance Report Table */}
         <Card>
           <CardHeader>
-            <CardTitle>Attendance Details</CardTitle>
+            <CardTitle>Attendance Records</CardTitle>
             <CardDescription>
-              {error
-                ? "Failed to load attendance data"
-                : `Date: ${data?.date ?? "-"} • Showing ${filteredData.length} of ${data?.count ?? 0} records`}
+              Detailed view of employee attendance for {data?.date ?? "today"}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -242,24 +213,23 @@ export default function AttendanceReportsPage() {
                     <TableHead className="font-semibold">Check In</TableHead>
                     <TableHead className="font-semibold">Check Out</TableHead>
                     <TableHead className="font-semibold">Status</TableHead>
-                    <TableHead className="font-semibold">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {isLoading ? (
                     <TableRow>
-                      <TableCell colSpan={7} className="text-center py-8">
+                      <TableCell colSpan={6} className="text-center py-8">
                         <div className="flex items-center justify-center">
                           <Loader2 className="h-6 w-6 animate-spin mr-3 text-blue-600" />
-                          <span className="text-gray-600">Loading attendance data...</span>
+                          <span className="text-gray-600">Loading attendance report...</span>
                         </div>
                       </TableCell>
                     </TableRow>
                   ) : error ? (
                     <TableRow>
-                      <TableCell colSpan={7} className="text-center py-8 text-gray-500">
+                      <TableCell colSpan={6} className="text-center py-8 text-gray-500">
                         <div className="flex flex-col items-center gap-2">
-                          <span className="text-red-600 font-medium">Error loading data</span>
+                          <span className="text-red-600 font-medium">Error loading report</span>
                           <span>{error}</span>
                         </div>
                       </TableCell>
@@ -284,11 +254,12 @@ export default function AttendanceReportsPage() {
                               {new Date(rec.date).toLocaleDateString("en-US", {
                                 month: "short",
                                 day: "numeric",
+                                year: "numeric",
                               })}
                             </span>
                             <span className="text-sm text-gray-500">
                               {new Date(rec.date).toLocaleDateString("en-US", {
-                                weekday: "short",
+                                weekday: "long",
                               })}
                             </span>
                           </div>
@@ -304,18 +275,12 @@ export default function AttendanceReportsPage() {
                           </span>
                         </TableCell>
                         <TableCell>{statusBadge(rec.status)}</TableCell>
-                        <TableCell>
-                          <Button variant="ghost" size="sm" className="h-8 px-3">
-                            View Details
-                          </Button>
-                        </TableCell>
                       </TableRow>
                     ))
                   ) : (
                     <TableRow>
-                      <TableCell colSpan={7} className="text-center py-8 text-gray-500">
+                      <TableCell colSpan={6} className="text-center py-8 text-gray-500">
                         <div className="flex flex-col items-center gap-2">
-                          <Users className="h-8 w-8 text-gray-400" />
                           <span className="font-medium">No attendance records found</span>
                           <span className="text-sm">Try adjusting your filters or search terms</span>
                         </div>
@@ -331,5 +296,3 @@ export default function AttendanceReportsPage() {
     </>
   );
 }
-
-

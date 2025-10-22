@@ -9,6 +9,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Header } from "@/components/header";
 import { PersonalInformationForm } from "@/components/forms/personal-information-form";
 import { WorkInformationForm } from "@/components/forms/work-information-form";
+import { EmployeeAttachmentsForm } from "@/components/forms/employee-attachments-form";
 import { FormSuccess } from "@/components/forms/form-success";
 import { FormActions } from "@/components/forms/form-actions";
 import {
@@ -16,7 +17,7 @@ import {
   initialEmployeeFormData,
   type InviteEmployeeBody,
 } from "@/lib/types/employee.types";
-import { inviteEmployee } from "@/lib/actions/employee.actions";
+import { inviteEmployee, uploadEmployeeAttachments } from "@/lib/actions/employee.actions";
 import { z } from "zod";
 import { employeeFormSchema } from "@/lib/validations/employee.schema";
 
@@ -141,6 +142,17 @@ export default function AddEmployeePage() {
       const result = await inviteEmployee(employeeData);
 
       if (result) {
+        // Upload attachments if any
+        if (formData.attachments && formData.attachments.length > 0) {
+          try {
+            await uploadEmployeeAttachments(result.userId, formData.attachments);
+            toast.success("Employee added and attachments uploaded successfully!");
+          } catch (attachmentError) {
+            console.error("Failed to upload attachments:", attachmentError);
+            toast.warning("Employee added but failed to upload some attachments");
+          }
+        }
+        
         setSuccess(true);
       } else {
         throw new Error("Failed to add employee: No result returned");
@@ -227,6 +239,11 @@ export default function AddEmployeePage() {
           <WorkInformationForm
             formData={formData}
             onInputChange={handleInputChange}
+            errors={formErrors}
+          />
+          <EmployeeAttachmentsForm
+            attachments={formData.attachments}
+            onAttachmentsChange={(attachments) => handleInputChange("attachments", attachments as any)}
             errors={formErrors}
           />
           <FormActions isLoading={isLoading} />
