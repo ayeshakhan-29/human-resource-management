@@ -183,7 +183,7 @@ export default function ProjectManagementPage() {
         setSelectedProject(prev => prev ? { ...prev, tasks } : null);
       });
     }
-  }, [selectedProject?.id, fetchProjectTasks]);
+  }, [selectedProject, fetchProjectTasks]);
 
   const getStatusBadge = (status: string) => {
     switch (status) {

@@ -129,7 +129,7 @@ export default function TaskAnalyticsPage() {
       .sort((a, b) => b.count - a.count);
 
     return { total, completed, inProgress, pending, blocked, completionRate, days, priorityCounts, statusCounts, topAssignees };
-  }, [mappedTasks]);
+  }, [mappedTasks, tasks]);
 
   const barMax = Math.max(1, ...stats.days.map((d) => d.count));
   const priorityMax = Math.max(1, ...stats.priorityCounts.map((p) => p.count));

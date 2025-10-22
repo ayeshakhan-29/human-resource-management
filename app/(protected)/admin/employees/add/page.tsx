@@ -83,6 +83,13 @@ export default function AddEmployeePage() {
     }
   };
 
+  const handleAttachmentsChange = (attachments: File[]) => {
+    setFormData((prev) => ({
+      ...prev,
+      attachments,
+    }));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -243,7 +250,7 @@ export default function AddEmployeePage() {
           />
           <EmployeeAttachmentsForm
             attachments={formData.attachments}
-            onAttachmentsChange={(attachments) => handleInputChange("attachments", attachments as any)}
+            onAttachmentsChange={handleAttachmentsChange}
             errors={formErrors}
           />
           <FormActions isLoading={isLoading} />
