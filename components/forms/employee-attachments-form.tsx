@@ -20,6 +20,7 @@ interface EmployeeAttachmentsFormProps {
     uploadedAt: string;
   }>;
   onRemoveExisting?: (filename: string) => void;
+  userId?: number;
 }
 
 export function EmployeeAttachmentsForm({
@@ -28,6 +29,7 @@ export function EmployeeAttachmentsForm({
   errors = {},
   existingAttachments = [],
   onRemoveExisting,
+  userId,
 }: EmployeeAttachmentsFormProps) {
   const [dragActive, setDragActive] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -123,6 +125,39 @@ export function EmployeeAttachmentsForm({
     if (mimetype.includes("word")) return "📝";
     if (mimetype.includes("excel") || mimetype.includes("spreadsheet")) return "📊";
     return "📎";
+  };
+
+  const handleDownloadAttachment = async (filename: string) => {
+    if (!userId) {
+      alert("User ID is required to download attachments");
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/employees/${userId}/download-attachment/${filename}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to download attachment');
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (error) {
+      console.error('Error downloading attachment:', error);
+      alert('Failed to download attachment');
+    }
   };
 
   return (
@@ -248,7 +283,7 @@ export function EmployeeAttachmentsForm({
                       type="button"
                       variant="ghost"
                       size="sm"
-                      onClick={() => window.open(attachment.path, "_blank")}
+                      onClick={() => handleDownloadAttachment(attachment.filename)}
                       className="text-blue-600 hover:text-blue-700 hover:bg-blue-100"
                     >
                       <Download className="h-4 w-4" />
