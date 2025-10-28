@@ -92,7 +92,8 @@ export default function AllProjectsPage() {
           endDate: project.endDate,
           manager: project.manager?.fullName || 'N/A',
           category: Array.isArray(project.tags) ? project.tags.join(', ') : (project.tags || 'N/A'),
-          attachmentUrl: project.attachment ? `${backend}${project.attachment}` : undefined,
+          // Use attachmentUrl from backend (pre-signed URL that expires in 5 minutes)
+          attachmentUrl: project.attachmentUrl || undefined,
           teamSize: 0,
           tasks: [], // Tasks not included in getAllProjects, can be fetched separately if needed
         }));

@@ -30,6 +30,7 @@ export default function AddEmployeePage() {
   const [formData, setFormData] = useState<EmployeeFormData>(
     initialEmployeeFormData
   );
+  const [createdUserId, setCreatedUserId] = useState<number | undefined>(undefined);
 
   const validateField = (field: string, value: string | number) => {
     const errors: Record<string, { message: string }> = {};
@@ -149,6 +150,7 @@ export default function AddEmployeePage() {
       const result = await inviteEmployee(employeeData);
 
       if (result) {
+        setCreatedUserId(result.userId);
         // Upload attachments if any
         if (formData.attachments && formData.attachments.length > 0) {
           try {
@@ -159,7 +161,7 @@ export default function AddEmployeePage() {
             toast.warning("Employee added but failed to upload some attachments");
           }
         }
-        
+
         setSuccess(true);
       } else {
         throw new Error("Failed to add employee: No result returned");
@@ -252,6 +254,7 @@ export default function AddEmployeePage() {
             attachments={formData.attachments}
             onAttachmentsChange={handleAttachmentsChange}
             errors={formErrors}
+            userId={createdUserId}
           />
           <FormActions isLoading={isLoading} />
         </form>
