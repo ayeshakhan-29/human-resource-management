@@ -83,6 +83,10 @@ export default function ProjectManagementPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [page, setPage] = useState(1);
+  const [limit] = useState(10);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
 
   // Convert backend project to frontend format
   const convertBackendProject = (backendProject: BackendProject): FrontendProject => {
@@ -121,15 +125,22 @@ export default function ProjectManagementPage() {
       setLoading(true);
       setError(null);
       
-      const response = await getAllProjects(1, 100, {
+      const response = await getAllProjects(page, limit, {
         status: statusFilter !== 'all' ? statusFilter : undefined,
         priority: priorityFilter !== 'all' ? priorityFilter : undefined,
-        search: searchTerm || undefined
+        search: searchTerm || undefined,
+        // enforce stable ordering across pages
+        sortBy: 'createdAt',
+        sortOrder: 'DESC'
       });
 
       if (response.success && response.data) {
         const convertedProjects = response.data.map(convertBackendProject);
         setProjects(convertedProjects);
+        if (response.pagination) {
+          setTotalPages(response.pagination.totalPages || 1);
+          setTotalItems(response.pagination.totalItems || convertedProjects.length);
+        }
       } else {
         throw new Error(response.message || 'Failed to fetch projects');
       }
@@ -140,7 +151,12 @@ export default function ProjectManagementPage() {
     } finally {
       setLoading(false);
     }
-  }, [priorityFilter, searchTerm, statusFilter]);
+  }, [priorityFilter, searchTerm, statusFilter, page, limit]);
+
+  // Reset to first page when filters change
+  useEffect(() => {
+    setPage(1);
+  }, [statusFilter, priorityFilter, searchTerm]);
 
   // Fetch tasks for a specific project
   const fetchProjectTasks = useCallback(async (projectId: string) => {
@@ -424,7 +440,27 @@ export default function ProjectManagementPage() {
               <div className="text-2xl font-bold text-orange-900">{completedTasks}/{totalTasks}</div>
               <p className="text-xs text-orange-600">Tasks completed</p>
             </CardContent>
-          </Card>
+            </Card>
+            {/* Pagination Controls */}
+            <div className="flex items-center justify-between mt-4">
+              <div className="text-sm text-gray-600">Page {page} of {totalPages} • {limit} per page</div>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  disabled={page <= 1}
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                >
+                  Previous
+                </Button>
+                <Button
+                  variant="outline"
+                  disabled={page >= totalPages}
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                >
+                  Next
+                </Button>
+              </div>
+            </div>
         </div>
 
         {/* Filters and Actions */}

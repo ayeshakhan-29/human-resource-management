@@ -55,7 +55,9 @@ export default function AllTasksPage() {
   const [tasks, setTasks] = useState<TaskItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
-  const [limit] = useState(50); // Default limit for tasks per page
+  const [limit] = useState(10); // Default limit for tasks per page
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
 
   // Fetch tasks from backend
   useEffect(() => {
@@ -83,6 +85,10 @@ export default function AllTasksPage() {
         }));
         
         setTasks(transformedTasks);
+        if (response.pagination) {
+          setTotalPages(response.pagination.totalPages || 1);
+          setTotalItems(response.pagination.totalItems || transformedTasks.length);
+        }
       } catch (error) {
         console.error("Failed to fetch tasks:", error);
         toast.error("Failed to load tasks, please try again later!!" );
@@ -353,6 +359,27 @@ export default function AllTasksPage() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Pagination Controls */}
+        <div className="flex items-center justify-between">
+          <div className="text-sm text-gray-600">Page {page} of {totalPages} • {totalItems} total</div>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              disabled={page <= 1}
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+            >
+              Previous
+            </Button>
+            <Button
+              variant="outline"
+              disabled={page >= totalPages}
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+            >
+              Next
+            </Button>
+          </div>
+        </div>
       </div>
     </>
   );

@@ -61,7 +61,9 @@ export default function AllProjectsPage() {
   const [priorityFilter, setPriorityFilter] = useState("all");
   const [projects, setProjects] = useState< ProjectItem[]>([]);
   const [page, setPage] = useState(1);
-  const [limit] = useState(50);
+  const [limit] = useState(10);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
 
   useEffect(() => {
     const fetchProjects = async () => {
@@ -71,6 +73,9 @@ export default function AllProjectsPage() {
         if (statusFilter !== "all") filters.status = statusFilter;
         if (priorityFilter !== "all") filters.priority = priorityFilter;
         if (searchTerm) filters.search = searchTerm;
+        // enforce stable ordering across pages
+        filters.sortBy = 'createdAt';
+        filters.sortOrder = 'DESC';
 
         const response = await getAllProjects(page, limit, filters);
 
@@ -99,6 +104,10 @@ export default function AllProjectsPage() {
         }));
 
         setProjects(transformedProjects);
+        if (response.pagination) {
+          setTotalPages(response.pagination.totalPages || 1);
+          setTotalItems(response.pagination.totalItems || transformedProjects.length);
+        }
       } catch (error) {
         console.error("Failed to fetch projects:", error);
         toast.error("Failed to load projects, please try again later!!");
@@ -108,6 +117,11 @@ export default function AllProjectsPage() {
 
 
   }, [statusFilter, priorityFilter, searchTerm, page, limit])
+
+  // Reset to first page when filters/search change to avoid stale page index
+  useEffect(() => {
+    setPage(1);
+  }, [statusFilter, priorityFilter, searchTerm]);
 
 
   const getStatusBadge = (status: string) => {
@@ -406,6 +420,27 @@ export default function AllProjectsPage() {
               </CardContent>
             </Card>
           ))}
+        </div>
+
+        {/* Pagination Controls */}
+        <div className="flex items-center justify-between mt-6">
+          <div className="text-sm text-gray-600">Page {page} of {totalPages} • {limit} per page</div>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              disabled={page <= 1}
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+            >
+              Previous
+            </Button>
+            <Button
+              variant="outline"
+              disabled={page >= totalPages}
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+            >
+              Next
+            </Button>
+          </div>
         </div>
 
         {/* Empty State */}
