@@ -59,6 +59,11 @@ export default function AllTasksPage() {
   const [totalPages, setTotalPages] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
 
+  // Reset to page 1 when filters/search change
+  useEffect(() => {
+    setPage(1);
+  }, [statusFilter, priorityFilter, search, assigneeFilter]);
+
   // Fetch tasks from backend
   useEffect(() => {
     const fetchTasks = async () => {
@@ -69,6 +74,9 @@ export default function AllTasksPage() {
         if (statusFilter !== "all") filters.status = statusFilter;
         if (priorityFilter !== "all") filters.priority = priorityFilter;
         if (search) filters.search = search;
+        // enforce stable ordering across pages
+        filters.sortBy = 'createdAt';
+        filters.sortOrder = 'DESC';
         
         const response = await getAllTasks(page, limit, filters);
         
@@ -181,7 +189,7 @@ export default function AllTasksPage() {
               <ListChecks className="h-4 w-4 text-blue-600" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-blue-900">{stats.total}</div>
+              <div className="text-2xl font-bold text-blue-900">{totalItems}</div>
               <p className="text-xs text-blue-600">All tracked tasks</p>
             </CardContent>
           </Card>
@@ -304,7 +312,9 @@ export default function AllTasksPage() {
           <CardHeader>
             <CardTitle>Tasks</CardTitle>
             <CardDescription>
-              {loading ? "Loading tasks..." : `Showing ${filtered.length} of ${tasks.length}`}
+              {loading
+                ? "Loading tasks..."
+                : `Showing ${filtered.length} items on this page • ${totalItems} total`}
             </CardDescription>
           </CardHeader>
           <CardContent>

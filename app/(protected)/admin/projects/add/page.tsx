@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Header } from "@/components/header";
 import { createProjectWithAttachment } from "@/lib/actions/project.action";
 import {
@@ -25,11 +25,12 @@ import {
   Plus,
   X
 } from "lucide-react";
+import { getAllEmployees } from "@/lib/actions/employee.actions";
+import type { Employee } from "@/lib/types/employee.types";
 
 interface TeamMember {
   id: string;
   name: string;
-  role: string;
   email: string;
 }
 
@@ -47,12 +48,19 @@ export default function AddProjectPage() {
     clientEmail: ''
   });
 
+  // Department and team state
+  const DEPARTMENTS = [
+    "development",
+    "design",
+    "seo",
+    "marketing",
+    "content writing",
+  ] as const;
+
+  const [selectedDepartment, setSelectedDepartment] = useState<string>("");
+  const [allEmployees, setAllEmployees] = useState<Employee[]>([]);
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
-  const [newMember, setNewMember] = useState({
-    name: '',
-    role: '',
-    email: ''
-  });
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>("");
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
@@ -65,19 +73,18 @@ export default function AddProjectPage() {
   };
 
   const addTeamMember = () => {
-    if (!newMember.name || !newMember.role || !newMember.email) {
-      return;
-    }
-
+    if (!selectedEmployeeId) return;
+    const emp = allEmployees.find(e => String(e.id) === selectedEmployeeId);
+    if (!emp) return;
+    const already = teamMembers.some(tm => tm.id === String(emp.id));
+    if (already) return;
     const member: TeamMember = {
-      id: Date.now().toString(),
-      name: newMember.name,
-      role: newMember.role,
-      email: newMember.email
+      id: String(emp.id),
+      name: emp.fullName,
+      email: emp.email,
     };
-
     setTeamMembers(prev => [...prev, member]);
-    setNewMember({ name: '', role: '', email: '' });
+    setSelectedEmployeeId("");
   };
 
   const removeTeamMember = (id: string) => {
@@ -128,8 +135,11 @@ export default function AddProjectPage() {
           managerId: formData.manager ? parseInt(formData.manager) : undefined,
           clientName: formData.clientName,
           clientEmail: formData.clientEmail,
-          tags: [], // Not in form, can be added if needed
-          attachments: [], // Not in form, can be added if needed
+          // Send department and team to backend as extra fields; backend may ignore unknowns safely
+          department: selectedDepartment || undefined,
+          teamMemberIds: teamMembers.map(t => Number(t.id)),
+          tags: [],
+          attachments: [],
         };
 
         const response = await createProjectWithAttachment(projectData, selectedFile || undefined);
@@ -160,9 +170,32 @@ export default function AddProjectPage() {
       clientEmail: ''
     });
     setTeamMembers([]);
+    setSelectedDepartment("");
+    setSelectedEmployeeId("");
     setErrors({});
     setSelectedFile(null);
   };
+
+  // Fetch employees once
+  useEffect(() => {
+    const run = async () => {
+      try {
+        const res = await getAllEmployees();
+        if (res.success) {
+          setAllEmployees(res.data || []);
+        }
+      } catch (err) {
+        // silently ignore; team picker will be empty
+      }
+    };
+    run();
+  }, []);
+
+  // Employees filtered by selected department
+  const filteredEmployees = useMemo(() => {
+    if (!selectedDepartment) return [] as Employee[];
+    return (allEmployees || []).filter(e => (e.userInfo?.department || "").toLowerCase() === selectedDepartment.toLowerCase());
+  }, [allEmployees, selectedDepartment]);
 
   return (
     <>
@@ -335,55 +368,71 @@ export default function AddProjectPage() {
               <CardDescription>Assign project manager and team members</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="manager">Project Manager *</Label>
+              <Select value={formData.manager} onValueChange={(v) => handleInputChange('manager', v)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select project manager" />
+                </SelectTrigger>
+                <SelectContent>
+                  {allEmployees.map((emp) => (
+                    <SelectItem key={emp.id} value={String(emp.id)}>
+                      {emp.fullName} ({emp.email})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {errors.manager && (
+                <div className="flex items-center gap-2 text-sm text-red-600">
+                  <AlertCircle className="h-4 w-4" />
+                  {errors.manager}
+                </div>
+              )}
+            </div>
+
+            {/* Department Selection */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="manager">Project Manager *</Label>
-                <Input
-                  id="manager"
-                  value={formData.manager}
-                  onChange={(e) => handleInputChange('manager', e.target.value)}
-                  placeholder="Enter project manager name"
-                  className={errors.manager ? 'border-red-500' : ''}
-                />
-                {errors.manager && (
-                  <div className="flex items-center gap-2 text-sm text-red-600">
-                    <AlertCircle className="h-4 w-4" />
-                    {errors.manager}
-                  </div>
-                )}
+                <Label htmlFor="department">Department</Label>
+                <Select value={selectedDepartment} onValueChange={setSelectedDepartment}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select department" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {DEPARTMENTS.map((dep) => (
+                      <SelectItem key={dep} value={dep}>{dep}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
+
+              {/* Add Employee from selected department */}
+              <div className="space-y-2">
+                <Label htmlFor="teamAdd">Add Team Member</Label>
+                <div className="flex gap-2">
+                  <Select value={selectedEmployeeId} onValueChange={setSelectedEmployeeId}>
+                    <SelectTrigger className="flex-1">
+                      <SelectValue placeholder={selectedDepartment ? "Select employee" : "Select department first"} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {filteredEmployees.map((emp) => (
+                        <SelectItem key={emp.id} value={String(emp.id)}>
+                          {emp.fullName} ({emp.email})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Button type="button" variant="outline" onClick={addTeamMember} disabled={!selectedEmployeeId}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add
+                  </Button>
+                </div>
+              </div>
+            </div>
 
               {/* Team Members */}
               <div className="space-y-4">
                 <Label>Team Members</Label>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <Input
-                    placeholder="Member name"
-                    value={newMember.name}
-                    onChange={(e) => setNewMember(prev => ({ ...prev, name: e.target.value }))}
-                  />
-                  <Input
-                    placeholder="Role"
-                    value={newMember.role}
-                    onChange={(e) => setNewMember(prev => ({ ...prev, role: e.target.value }))}
-                  />
-                  <Input
-                    placeholder="Email"
-                    type="email"
-                    value={newMember.email}
-                    onChange={(e) => setNewMember(prev => ({ ...prev, email: e.target.value }))}
-                  />
-                </div>
-                <Button
-                  type="button"
-                  onClick={addTeamMember}
-                  variant="outline"
-                  size="sm"
-                  className="w-full md:w-auto"
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Team Member
-                </Button>
-
                 {/* Display Team Members */}
                 {teamMembers.length > 0 && (
                   <div className="space-y-2">
@@ -393,7 +442,7 @@ export default function AddProjectPage() {
                         <div key={member.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                           <div>
                             <div className="font-medium">{member.name}</div>
-                            <div className="text-sm text-gray-600">{member.role} • {member.email}</div>
+                          <div className="text-sm text-gray-600">{member.email}</div>
                           </div>
                           <Button
                             type="button"

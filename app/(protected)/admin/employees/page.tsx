@@ -155,9 +155,9 @@ export default function AdminEmployeesPage() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {employees.filter((emp) => emp.status === "active").length}
+                {employees.length}
               </div>
-              <p className="text-xs text-muted-foreground">Active workforce</p>
+              <p className="text-xs text-muted-foreground">Employees in system</p>
             </CardContent>
           </Card>
           <Card>

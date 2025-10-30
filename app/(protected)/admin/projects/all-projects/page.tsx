@@ -172,15 +172,8 @@ export default function AllProjectsPage() {
     });
   };
 
-  // Filter projects based on search and filters
-  const filteredProjects = projects.filter(project => {
-    const matchesSearch = project.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      project.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      project.manager.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === "all" || project.status === statusFilter;
-    const matchesPriority = priorityFilter === "all" || project.priority === priorityFilter;
-    return matchesSearch && matchesStatus && matchesPriority;
-  });
+  // Backend handles filtering; use projects as-is to keep pagination correct
+  const filteredProjects = projects;
 
   const handleNewProject = () => {
     router.push("/admin/projects/add");
@@ -197,7 +190,7 @@ export default function AllProjectsPage() {
   }
 
   // Calculate statistics
-  const totalProjects = projects.length;
+  const totalProjects = totalItems;
   const activeProjects = projects.filter(p => p.status === 'active').length;
   const completedProjects = projects.filter(p => p.status === 'completed').length;
   const urgentProjects = projects.filter(p => p.priority === 'urgent').length;
