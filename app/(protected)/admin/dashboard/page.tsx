@@ -1,7 +1,8 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { Users, Clock, Calendar, TrendingUp } from "lucide-react";
-
+import { Employee } from "@/lib/types/employee.types";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -11,8 +12,28 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Header } from "@/components/header";
+import { getAllEmployees } from "@/lib/actions/employee.actions";
 
 export default function AdminDashboard() {
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchEmployees = async () => {
+      try {
+        const response = await getAllEmployees();
+        if (response.success) {
+          setEmployees(response.data);
+        }
+      } catch (error) {
+        console.error("Error fetching employees:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchEmployees();
+  }, []);
   return (
     <>
       <Header
@@ -43,7 +64,9 @@ export default function AdminDashboard() {
               <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">24</div>
+              <div className="text-2xl font-bold">
+                {isLoading ? "..." : employees.length}
+              </div>
               <p className="text-xs text-muted-foreground">
                 +2 from last month
               </p>
