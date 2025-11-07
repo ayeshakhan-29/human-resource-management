@@ -3,6 +3,7 @@ import {
   NotificationsResponse,
   NotificationResponse,
   MarkAsReadResponse,
+  Notification,
 } from "@/lib/types/notification.types";
 
 // Remove trailing slash from API URL if present
@@ -54,8 +55,8 @@ export const getUnreadNotificationsCount = async (userId: string | number): Prom
     throw new Error(errorData.message || "Failed to fetch notifications");
   }
 
-  const data = await response.json();
-  return data.data.filter((n: any) => !n.isRead).length;
+  const data: NotificationsResponse = await response.json();
+  return data.data.filter((n: Notification) => !n.isRead).length;
 };
 
 // Mark a notification as read
