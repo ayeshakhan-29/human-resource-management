@@ -107,7 +107,7 @@ export default function ManageTasksPage() {
       }
     };
     fetchData();
-  }, [selectedProject, toast]);
+  }, [selectedProject]);
 
   // Check if we're editing tasks for a specific project
   useEffect(() => {

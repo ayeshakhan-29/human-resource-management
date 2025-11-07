@@ -70,7 +70,7 @@ export default function TaskDetailPage() {
         setLoading(true);
         const response = await getTaskById(taskId);
         setTask(response.data);
-        
+
         // Initialize form data with task values
         setFormData({
           title: response.data.title,
@@ -83,7 +83,7 @@ export default function TaskDetailPage() {
         });
       } catch (error) {
         console.error("Failed to fetch task:", error);
-       
+
       } finally {
         setLoading(false);
       }
@@ -92,7 +92,7 @@ export default function TaskDetailPage() {
     if (taskId) {
       fetchTask();
     }
-  }, [taskId, toast]);
+  }, [taskId]);
 
   // Handle form input changes
   const handleInputChange = (field: string, value: string | number | undefined) => {
