@@ -290,8 +290,8 @@ export default function AllTasksPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Assignees</SelectItem>
-                  {assignees.map((a) => (
-                    <SelectItem key={a} value={a}>
+                  {assignees.map((a, index) => (
+                    <SelectItem key={`${a}-${index}`} value={a}>
                       {a}
                     </SelectItem>
                   ))}

@@ -335,6 +335,33 @@ export const getOverdueTasks = async (
   return await response.json();
 };
 
+// Submit deliverables for a task
+export const submitDeliverables = async (
+  taskId: number,
+  formData: FormData
+): Promise<TaskResponse> => {
+  const token = getAuthToken();
+  if (!token) {
+    throw new Error("No authentication token found");
+  }
+
+  const response = await fetch(`${API_BASE_URL}/tasks/submit-deliverables/${taskId}`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      // Don't set Content-Type header - let browser set it with boundary for FormData
+    },
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || "Failed to submit deliverables");
+  }
+
+  return await response.json();
+};
+
 // Get task statistics
 export const getTaskStatistics = async (): Promise<TaskStatisticsResponse> => {
   const token = getAuthToken();

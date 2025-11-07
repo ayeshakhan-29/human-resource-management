@@ -2,7 +2,7 @@
 
 import type * as React from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   Building2,
   User,
@@ -16,6 +16,7 @@ import {
   Home,
   Bell,
   CreditCard,
+  ListChecks,
 } from "lucide-react";
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -46,6 +47,9 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
+import { useAuth } from "@/context/AuthContext";
+import { useState, useEffect } from "react";
+import { getUnreadNotificationsCount } from "@/lib/actions/notification.actions";
 
 const data = {
   user: {
@@ -69,6 +73,7 @@ const data = {
       url: "/employee/bank-info",
       icon: CreditCard,
     },
+
     {
       title: "Attendance",
       url: "/employee/attendance",
@@ -95,6 +100,11 @@ const data = {
         },
       ],
     },
+     {
+      title: "My Tasks",
+      url: "/employee/tasks",
+      icon: ListChecks,
+    },
     {
       title: "Notifications",
       url: "/employee/notifications",
@@ -107,6 +117,43 @@ export function EmployeeSidebar({
   ...props
 }: React.ComponentProps<typeof Sidebar>) {
   const pathname = usePathname();
+  const router = useRouter();
+  const { user } = useAuth();
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    const fetchUnreadCount = async () => {
+      if (user?.id) {
+        try {
+          const count = await getUnreadNotificationsCount(user.id);
+          setUnreadCount(count);
+        } catch (error) {
+          console.error("Failed to fetch unread notifications count:", error);
+        }
+      }
+    };
+
+    fetchUnreadCount();
+
+    // Set up interval to check for new notifications every 30 seconds
+    const interval = setInterval(fetchUnreadCount, 30000);
+
+    // Listen for notification read events
+    const handleNotificationRead = () => {
+      fetchUnreadCount();
+    };
+
+    window.addEventListener('notificationRead', handleNotificationRead);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('notificationRead', handleNotificationRead);
+    };
+  }, [user?.id]);
+
+  const handleNotificationClick = () => {
+    router.push("/employee/tasks");
+  };
 
   return (
     <Sidebar collapsible="icon" {...props}>
@@ -180,6 +227,18 @@ export function EmployeeSidebar({
                       <Link href={item.url}>
                         <item.icon />
                         <span>{item.title}</span>
+                        {item.title === "Notifications" && unreadCount > 0 && (
+                          <span
+                            className="ml-auto flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs text-white cursor-pointer hover:bg-red-600"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              handleNotificationClick();
+                            }}
+                          >
+                            {unreadCount > 99 ? "99+" : unreadCount}
+                          </span>
+                        )}
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
