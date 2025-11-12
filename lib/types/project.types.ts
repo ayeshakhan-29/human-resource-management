@@ -45,6 +45,7 @@ export interface CreateProjectRequest {
   categories?: string;
   clientName?: string;
   clientEmail?: string;
+  clientPassword?: string;
   tags?: string[];
   attachment?: string; // server path, typically set by backend response
   attachments?: string[];

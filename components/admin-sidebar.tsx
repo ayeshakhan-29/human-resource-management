@@ -24,6 +24,7 @@ import {
   Timer,
   CalendarCheck,
   IdCard,
+  Briefcase,
 } from "lucide-react";
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -166,8 +167,22 @@ const data = {
           url: "/admin/tasks/manage-tasks",
           icon: Settings2,
         },
-      
-       
+      ],
+    },
+    {
+      title: "Client Management",
+      icon: Briefcase,
+      items: [
+        {
+          title: "All Clients",
+          url: "/admin/clients",
+          icon: Briefcase,
+        },
+        {
+          title: "Add Client",
+          url: "/admin/clients/add",
+          icon: UserPlus,
+        },
       ],
     },
   ],
