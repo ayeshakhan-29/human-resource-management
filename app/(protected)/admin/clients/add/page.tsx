@@ -98,10 +98,11 @@ export default function AddClientPage() {
       setTimeout(() => {
         router.push("/admin/clients");
       }, 1000);
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Failed to add client";
       toast({
         title: "Error",
-        description: error.message || "Failed to add client",
+        description: message,
         variant: "destructive",
       });
     } finally {

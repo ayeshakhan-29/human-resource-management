@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import {
   Card,
@@ -52,11 +52,7 @@ export default function AllClientsPage() {
   const [showCredentials, setShowCredentials] = useState(false);
   const [copiedEmail, setCopiedEmail] = useState(false);
 
-  useEffect(() => {
-    fetchClients();
-  }, []);
-
-  const fetchClients = async () => {
+  const fetchClients = useCallback(async () => {
     try {
       const token = localStorage.getItem("token");
       const response = await fetch(
@@ -75,16 +71,23 @@ export default function AllClientsPage() {
       }
 
       setClients(data.clients);
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Failed to fetch clients";
       toast({
         title: "Error",
-        description: error.message || "Failed to fetch clients",
+        description: message,
         variant: "destructive",
       });
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast]);
+
+  useEffect(() => {
+    fetchClients();
+  }, [fetchClients]);
+
+  
 
   const handleCopyEmail = (email: string) => {
     navigator.clipboard.writeText(email);
@@ -286,7 +289,7 @@ export default function AllClientsPage() {
                   </div>
                   <div className="text-xs text-muted-foreground mt-2">
                     Note: Password was set during client creation. Client can
-                    use the "Forgot Password" feature to reset if needed.
+                    use the &quot;Forgot Password&quot; feature to reset if needed.
                   </div>
                 </div>
               </div>
