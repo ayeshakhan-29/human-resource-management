@@ -1,9 +1,24 @@
 'use client';
 
 import { useAuth } from '@/context/AuthContext';
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 
 export default function DashboardPage() {
   const { user, logout } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (user) {
+      // Redirect to role-specific dashboard
+      const roleDashboard = user.role === 'admin' 
+        ? '/admin/dashboard' 
+        : user.role === 'client' 
+        ? '/client/dashboard' 
+        : '/employee/dashboard';
+      router.push(roleDashboard);
+    }
+  }, [user, router]);
 
   if (!user) {
     return null; // or loading spinner

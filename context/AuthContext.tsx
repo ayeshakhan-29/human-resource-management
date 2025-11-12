@@ -1,109 +1,75 @@
 "use client";
 
-import {
-  createContext,
-  useContext,
-  ReactNode,
-  useState,
-  useEffect,
-} from "react";
+import React, { createContext, useContext, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 
-export type UserRole = "admin" | "employee";
-
-type User = {
+type UserType = {
   id: string;
   email: string;
-  name: string;
-  role: UserRole;
-  token: string;
-} | null;
+  name?: string;
+  token?: string;
+  role?: string;
+};
 
-interface AuthContextType {
-  user: User;
-  token: string | null;
-  login: (
-    userData: { id: string; email: string; name: string; token: string },
-    role: UserRole
-  ) => void;
-  logout: () => void;
-  isAuthenticated: boolean;
-  isLoading: boolean;
+const AuthContext = createContext<any>(null);
+
+export function useAuth() {
+  return useContext(AuthContext);
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
-export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User>(null);
-  const [token, setToken] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+export function AuthProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
-
-  // Initialize auth state from localStorage
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-
-    const storedUser = localStorage.getItem("user");
-    const storedToken = localStorage.getItem("token");
-
-    if (storedUser && storedToken) {
-      const parsedUser = JSON.parse(storedUser);
-      setUser({ ...parsedUser, token: storedToken });
-      setToken(storedToken);
+  const [user, setUser] = useState<UserType | null>(() => {
+    if (typeof window === "undefined") return null;
+    try {
+      const raw = localStorage.getItem("user");
+      return raw ? JSON.parse(raw) : null;
+    } catch {
+      return null;
     }
-    setIsLoading(false);
+  });
+
+  useEffect(() => {
+    // optional: keep token in auth header or refresh logic
   }, []);
 
-  const login = (
-    userData: { id: string; email: string; name: string; token: string },
-    role: UserRole
-  ) => {
-    const newUser = {
-      ...userData,
-      role,
-      token: userData.token,
-    };
+  const login = (userData: UserType) => {
+    console.log("Login called with userData:", userData);
+    console.log("User role:", userData.role);
+    
+    setUser(userData);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("token", userData.token || "");
+      localStorage.setItem("user", JSON.stringify(userData));
+    }
 
-    // Update state and localStorage
-    setUser(newUser);
-    setToken(userData.token);
-    localStorage.setItem("user", JSON.stringify(newUser));
-    localStorage.setItem("token", userData.token);
-
-    // Redirect to appropriate dashboard based on role
-    const redirectPath =
-      role === "admin" ? "/admin/dashboard" : "/employee/dashboard";
-    window.location.href = redirectPath;
+    const role = (userData.role || "employee").toString().toLowerCase();
+    console.log("Processed role (lowercase):", role);
+    
+    if (role === "admin" || role === "manager") {
+      console.log("Redirecting to admin dashboard");
+      router.push("/admin/dashboard");
+    } else if (role === "client") {
+      console.log("Redirecting to client dashboard");
+      router.push("/client/dashboard");
+    } else {
+      console.log("Redirecting to employee dashboard");
+      router.push("/employee/dashboard");
+    }
   };
 
   const logout = () => {
     setUser(null);
-    setToken(null);
-    localStorage.removeItem("user");
-    localStorage.removeItem("token");
-    window.location.href = "/login";
-  };
-
-  const contextValue: AuthContextType = {
-    user,
-    token,
-    login,
-    logout,
-    isAuthenticated: !!user && !!token,
-    isLoading,
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+    }
+    router.push("/auth/login");
   };
 
   return (
-    <AuthContext.Provider value={contextValue}>
-      {!isLoading && children}
+    <AuthContext.Provider value={{ user, login, logout }}>
+      {children}
     </AuthContext.Provider>
   );
 }
-
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error("useAuth must be used within an AuthProvider");
-  }
-  return context;
-};

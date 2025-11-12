@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useAuth, UserRole } from "@/context/AuthContext";
+import { useAuth } from "@/context/AuthContext";
 import Link from "next/link";
 import { Eye, EyeOff, Building2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -49,16 +49,17 @@ export default function LoginPage() {
         return;
       }
 
+      console.log("Login result from backend:", result);
+      console.log("User role from backend:", result.user.role);
+
       // Login using AuthContext which will handle token storage and redirection
-      login(
-        {
-          id: result.user.id.toString(),
-          email: result.user.email,
-          name: result.user.fullName || result.user.email,
-          token: result.token,
-        },
-        (result.user.role?.toLowerCase() || "employee") as UserRole
-      );
+      login({
+        id: result.user.id.toString(),
+        email: result.user.email,
+        name: result.user.fullName || result.user.email,
+        token: result.token,
+        role: result.user.role || "employee",
+      });
     } catch (error) {
       console.error("Login error:", error);
       setError("An unexpected error occurred. Please try again.");
