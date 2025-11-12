@@ -56,7 +56,11 @@ export default function AddClientPage() {
 
     try {
       const token = localStorage.getItem("token");
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/clients`, {
+      const apiUrl =
+        process.env.NEXT_PUBLIC_BACKEND_URL ||
+        process.env.NEXT_PUBLIC_API_URL ||
+        "/api";
+      const response = await fetch(`${apiUrl}/clients`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
