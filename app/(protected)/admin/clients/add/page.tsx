@@ -60,7 +60,19 @@ export default function AddClientPage() {
         process.env.NEXT_PUBLIC_BACKEND_URL ||
         process.env.NEXT_PUBLIC_API_URL ||
         "/api";
-      const response = await fetch(`${apiUrl}/clients`, {
+      const baseUrl = apiUrl.endsWith('/') ? apiUrl : `${apiUrl}/`;
+
+      if (!formData.contactNumber || !/^[0-9+\-()\s]{7,20}$/.test(formData.contactNumber)) {
+        toast({
+          title: "Error",
+          description: "Please enter a valid contact number (7–20 digits)",
+          variant: "destructive",
+        });
+        setLoading(false);
+        return;
+      }
+
+      const response = await fetch(`${baseUrl}clients`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -70,7 +82,7 @@ export default function AddClientPage() {
           fullName: formData.fullName,
           email: formData.email,
           password: formData.password,
-          contactNumber: formData.contactNumber || undefined,
+          contactNumber: formData.contactNumber,
           companyName: formData.companyName || undefined,
           address: formData.address || undefined,
         }),
@@ -79,7 +91,11 @@ export default function AddClientPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.message || "Failed to add client");
+        type ValidationItem = { msg?: string };
+        interface ApiErrorData { message?: string; errors?: ValidationItem[] }
+        const errData = data as ApiErrorData;
+        const validationMessage = Array.isArray(errData.errors) ? errData.errors[0]?.msg : undefined;
+        throw new Error(validationMessage || errData.message || "Failed to add client");
       }
 
       toast({
