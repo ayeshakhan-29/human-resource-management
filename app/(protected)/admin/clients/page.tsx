@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import {
   Card,
@@ -52,41 +52,47 @@ export default function AllClientsPage() {
   const [showCredentials, setShowCredentials] = useState(false);
   const [copiedEmail, setCopiedEmail] = useState(false);
 
-  const fetchClients = useCallback(async () => {
-    try {
-      const token = localStorage.getItem("token");
-      const apiUrl =
-        process.env.NEXT_PUBLIC_BACKEND_URL ||
-        process.env.NEXT_PUBLIC_API_URL ||
-        "/api";
-      const response = await fetch(`${apiUrl}/clients`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || "Failed to fetch clients");
-      }
-
-      setClients(data.clients);
-    } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : "Failed to fetch clients";
-      toast({
-        title: "Error",
-        description: message,
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  }, [toast]);
+  const hasFetched = useRef(false);
 
   useEffect(() => {
+    if (hasFetched.current) return;
+    hasFetched.current = true;
+
+    const fetchClients = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const apiUrl =
+          process.env.NEXT_PUBLIC_BACKEND_URL ||
+          process.env.NEXT_PUBLIC_API_URL ||
+          "/api";
+        const baseUrl = apiUrl.endsWith("/") ? apiUrl : `${apiUrl}/`;
+        const response = await fetch(`${baseUrl}clients`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.message || "Failed to fetch clients");
+        }
+
+        setClients(data.clients);
+      } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : "Failed to fetch clients";
+        toast({
+          title: "Error",
+          description: message,
+          variant: "destructive",
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
     fetchClients();
-  }, [fetchClients]);
+  }, [toast]);
 
   
 
