@@ -512,14 +512,14 @@ export default function AddProjectPage() {
                 <Label htmlFor="clientId">Client</Label>
                 <Select 
                   value={formData.clientId} 
-                  onValueChange={(value) => handleInputChange('clientId', value)}
+                  onValueChange={(value) => handleInputChange('clientId', value === 'none' ? '' : value)}
                   disabled={loadingClients}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder={loadingClients ? "Loading clients..." : "Select a client (optional)"} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">No Client</SelectItem>
+                    <SelectItem value="none">No Client</SelectItem>
                     {clients.map((client) => (
                       <SelectItem key={client.id} value={client.id.toString()}>
                         {client.fullName} ({client.email})
