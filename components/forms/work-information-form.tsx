@@ -18,11 +18,13 @@ import {
 } from "@/components/ui/select";
 
 const DEPARTMENTS = [
-  "development",
-  "design",
-  "seo",
-  "marketing",
-  "content writing",
+    "Development",
+    "Design",
+    "Seo",
+    "Marketing",
+    "Content Writing",
+    "Human Resources",
+    "Dispatch",
 ] as const;
 
 const EMPLOYMENT_TYPES = [

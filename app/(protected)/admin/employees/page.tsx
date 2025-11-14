@@ -24,7 +24,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   Table,
   TableBody,
@@ -252,6 +252,13 @@ export default function AdminEmployeesPage() {
                       <TableCell className="font-medium">
                         <div className="flex items-center space-x-3">
                           <Avatar>
+                            {employee.profilePicture && (
+                              <AvatarImage 
+                                src={employee.profilePicture} 
+                                alt={employee.fullName}
+                                className="object-cover"
+                              />
+                            )}
                             <AvatarFallback>
                               {employee.fullName
                                 .split(" ")

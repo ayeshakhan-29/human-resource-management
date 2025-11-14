@@ -36,22 +36,6 @@ import { Header } from "@/components/header";
 import { useRouter } from "next/navigation";
 import { getAuthToken } from "@/lib/auth/token";
 
-interface ProfileInfoItemProps {
-  icon: React.ReactNode;
-  label: string;
-  value: string | number | undefined;
-}
-
-const ProfileInfoItem = ({ icon, label, value }: ProfileInfoItemProps) => (
-  <div className="flex items-start gap-4 py-2">
-    <div className="bg-muted p-2 rounded-lg">{icon}</div>
-    <div>
-      <p className="text-sm text-muted-foreground">{label}</p>
-      <p className="font-medium">{value || "N/A"}</p>
-    </div>
-  </div>
-);
-
 export default function EmployeeProfilePage() {
   const [employee, setEmployee] = useState<EmployeeInfoResponse["data"] | null>(
     null

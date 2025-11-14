@@ -61,11 +61,13 @@ export default function AddProjectPage() {
 
   // Department and team state
   const DEPARTMENTS = [
-    "development",
-    "design",
-    "seo",
-    "marketing",
-    "content writing",
+    "Development",
+    "Design",
+    "Seo",
+    "Marketing",
+    "Content Writing",
+    "Human Resources",
+    "Dispatch",
   ] as const;
 
   const [selectedDepartment, setSelectedDepartment] = useState<string>("");
