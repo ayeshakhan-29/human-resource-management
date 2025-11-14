@@ -1,6 +1,6 @@
 "use client";
 
-import { Edit, Phone, Mail, MapPin, Calendar, Building } from "lucide-react";
+import { Edit, Phone, Mail, MapPin, Calendar, Building, Loader2, Camera, Trash2, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -10,8 +10,25 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { getEmployeeInfoById } from "@/lib/actions/employee.actions";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { 
+  getEmployeeInfoById, 
+  updateEmployeeProfile,
+  UpdateProfileData,
+  uploadProfilePicture,
+  deleteProfilePicture 
+} from "@/lib/actions/employee.actions";
 import { EmployeeInfoResponse } from "@/lib/types/employee.types";
 import { toast } from "sonner";
 import { useEffect, useState } from "react";
@@ -40,8 +57,18 @@ export default function EmployeeProfilePage() {
     null
   );
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [uploadingPicture, setUploadingPicture] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isImagePreviewOpen, setIsImagePreviewOpen] = useState(false);
   const router = useRouter();
   const [employeeId, setEmployeeId] = useState<number | null>(null);
+  const [formData, setFormData] = useState<UpdateProfileData>({
+    fullName: "",
+    contactNumber: "",
+    address: "",
+    dob: "",
+  });
 
   useEffect(() => {
     // Get user data from localStorage
@@ -78,6 +105,13 @@ export default function EmployeeProfilePage() {
         const response = await getEmployeeInfoById(employeeId);
         if (response && response.success) {
           setEmployee(response.data);
+          // Initialize form data
+          setFormData({
+            fullName: response.data.fullName || "",
+            contactNumber: response.data.personalInfo?.contactNumber || "",
+            address: response.data.personalInfo?.address || "",
+            dob: response.data.personalInfo?.dob || "",
+          });
         } else {
           throw new Error("Failed to load employee data");
         }
@@ -90,6 +124,119 @@ export default function EmployeeProfilePage() {
 
     fetchEmployeeData();
   }, [employeeId]);
+
+  const handleEditClick = () => {
+    if (employee) {
+      setFormData({
+        fullName: employee.fullName || "",
+        contactNumber: employee.personalInfo?.contactNumber || "",
+        address: employee.personalInfo?.address || "",
+        dob: employee.personalInfo?.dob || "",
+      });
+    }
+    setIsEditDialogOpen(true);
+  };
+
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!employeeId) {
+      toast.error("Employee ID not found");
+      return;
+    }
+
+    try {
+      setSaving(true);
+      const response = await updateEmployeeProfile(employeeId, formData);
+
+      if (response && response.success) {
+        toast.success("Profile updated successfully");
+        setEmployee(response.data);
+        setIsEditDialogOpen(false);
+      } else {
+        throw new Error("Failed to update profile");
+      }
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Failed to update profile"
+      );
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleProfilePictureChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !employeeId) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast.error("Please select an image file");
+      return;
+    }
+
+    // Validate file size (5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Image size should be less than 5MB");
+      return;
+    }
+
+    try {
+      setUploadingPicture(true);
+      const response = await uploadProfilePicture(employeeId, file);
+
+      if (response && response.success) {
+        toast.success("Profile picture updated successfully");
+        // Update employee state with new profile picture
+        setEmployee(prev => prev ? { ...prev, profilePicture: response.data.profilePicture } : null);
+        
+        // Reset the file input so the same file can be selected again if needed
+        e.target.value = '';
+      } else {
+        throw new Error("Failed to upload profile picture");
+      }
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Failed to upload profile picture"
+      );
+      // Reset the file input on error too
+      e.target.value = '';
+    } finally {
+      setUploadingPicture(false);
+    }
+  };
+
+  const handleDeleteProfilePicture = async () => {
+    if (!employeeId || !employee?.profilePicture) return;
+
+    try {
+      setUploadingPicture(true);
+      const response = await deleteProfilePicture(employeeId);
+
+      if (response && response.success) {
+        toast.success("Profile picture removed successfully");
+        setEmployee(prev => prev ? { ...prev, profilePicture: null } : null);
+      } else {
+        throw new Error("Failed to remove profile picture");
+      }
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Failed to remove profile picture"
+      );
+    } finally {
+      setUploadingPicture(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -129,19 +276,64 @@ export default function EmployeeProfilePage() {
           {/* Profile Card */}
           <Card className="lg:col-span-1">
             <CardHeader className="text-center">
-              <Avatar className="h-24 w-24 mx-auto mb-4">
-                <AvatarFallback className="text-2xl">
-                  {employee?.fullName
-                    .split(" ")
-                    .map((n) => n[0])
-                    .join("")}
-                </AvatarFallback>
-              </Avatar>
+              <div className="relative inline-block mb-4">
+                <Avatar 
+                  key={employee?.profilePicture || 'no-picture'}
+                  className="h-24 w-24 mx-auto cursor-pointer hover:opacity-80 transition-opacity"
+                  onClick={() => employee?.profilePicture && setIsImagePreviewOpen(true)}
+                >
+                  {employee?.profilePicture ? (
+                    <AvatarImage 
+                      src={employee.profilePicture} 
+                      alt={employee.fullName}
+                      className="object-cover"
+                    />
+                  ) : null}
+                  <AvatarFallback className="text-2xl">
+                    {employee?.fullName
+                      .split(" ")
+                      .map((n) => n[0])
+                      .join("")}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="absolute bottom-0 right-0 flex gap-1">
+                  <label htmlFor="profile-picture-upload" className="cursor-pointer">
+                    <div className="bg-primary text-primary-foreground rounded-full p-2 hover:bg-primary/90 transition-colors">
+                      {uploadingPicture ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Camera className="h-4 w-4" />
+                      )}
+                    </div>
+                  </label>
+                  <input
+                    id="profile-picture-upload"
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleProfilePictureChange}
+                    disabled={uploadingPicture}
+                  />
+                  {employee?.profilePicture && (
+                    <button
+                      onClick={handleDeleteProfilePicture}
+                      disabled={uploadingPicture}
+                      className="bg-destructive text-destructive-foreground rounded-full p-2 hover:bg-destructive/90 transition-colors"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  )}
+                </div>
+              </div>
               <CardTitle className="text-xl">{employee?.fullName}</CardTitle>
               <CardDescription>
                 {employee?.personalInfo?.position}
               </CardDescription>
-              <Button className="mt-4" variant="outline">
+              <Button 
+                className="mt-4" 
+                variant="outline"
+                onClick={handleEditClick}
+              >
                 <Edit className="mr-2 h-4 w-4" />
                 Edit Profile
               </Button>
@@ -300,6 +492,124 @@ export default function EmployeeProfilePage() {
           </div>
         </div>
       </div>
+
+      {/* Edit Profile Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>Edit Profile</DialogTitle>
+            <DialogDescription>
+              Update your personal information
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleSubmit}>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="fullName">Full Name</Label>
+                <Input
+                  id="fullName"
+                  name="fullName"
+                  value={formData.fullName}
+                  onChange={handleChange}
+                  placeholder="Enter your full name"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="contactNumber">Contact Number</Label>
+                <Input
+                  id="contactNumber"
+                  name="contactNumber"
+                  value={formData.contactNumber}
+                  onChange={handleChange}
+                  placeholder="Enter your contact number"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="dob">Date of Birth</Label>
+                <Input
+                  id="dob"
+                  name="dob"
+                  type="date"
+                  value={formData.dob}
+                  onChange={handleChange}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="address">Address</Label>
+                <Textarea
+                  id="address"
+                  name="address"
+                  value={formData.address}
+                  onChange={handleChange}
+                  placeholder="Enter your address"
+                  rows={3}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsEditDialogOpen(false)}
+                disabled={saving}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" disabled={saving}>
+                {saving ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  "Save Changes"
+                )}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Profile Picture Preview Dialog */}
+      <Dialog open={isImagePreviewOpen} onOpenChange={setIsImagePreviewOpen}>
+        <DialogContent className="sm:max-w-[800px] p-0">
+          <DialogHeader className="sr-only">
+            <DialogTitle>Profile Picture</DialogTitle>
+            <DialogDescription>
+              View {employee?.fullName}&apos;s profile picture
+            </DialogDescription>
+          </DialogHeader>
+          <div className="relative">
+            <button
+              onClick={() => setIsImagePreviewOpen(false)}
+              className="absolute top-4 right-4 z-10 bg-black/50 text-white rounded-full p-2 hover:bg-black/70 transition-colors"
+              aria-label="Close preview"
+            >
+              <X className="h-5 w-5" />
+            </button>
+            {employee?.profilePicture ? (
+              <img
+                src={employee.profilePicture}
+                alt={employee.fullName}
+                className="w-full h-auto max-h-[80vh] object-contain rounded-lg"
+              />
+            ) : (
+              <div className="flex items-center justify-center h-64 bg-muted">
+                <p className="text-muted-foreground">No profile picture</p>
+              </div>
+            )}
+          </div>
+          <div className="p-4 bg-muted">
+            <p className="text-center font-medium">{employee?.fullName}</p>
+            <p className="text-center text-sm text-muted-foreground">
+              {employee?.personalInfo?.position}
+            </p>
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

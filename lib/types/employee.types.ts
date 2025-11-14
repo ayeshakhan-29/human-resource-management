@@ -32,6 +32,7 @@ export interface Employee {
   passwordChangedAt: string | null;
   createdAt: string;
   updatedAt: string;
+  profilePicture?: string | null;
   userInfo: UserInfo | null;
 }
 
@@ -155,6 +156,7 @@ export interface EmployeeInfoResponse {
     lastLogin: string | null;
     createdAt: string;
     updatedAt: string;
+    profilePicture?: string | null;
     personalInfo: {
       contactNumber: string;
       address: string;

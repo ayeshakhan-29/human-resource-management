@@ -354,3 +354,91 @@ export const removeEmployeeAttachment = async (
 
   return response.json();
 };
+
+export interface UpdateProfileData {
+  fullName?: string;
+  contactNumber?: string;
+  address?: string;
+  dob?: string;
+  department?: string;
+  position?: string;
+  reportingManager?: string;
+}
+
+export const updateEmployeeProfile = async (
+  employeeId: number,
+  profileData: UpdateProfileData
+): Promise<EmployeeInfoResponse> => {
+  const token = getAuthToken();
+  if (!token) {
+    throw new Error("No authentication token found");
+  }
+
+  const response = await fetch(getApiUrl(`employee/${employeeId}/profile`), {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(profileData),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || "Failed to update profile");
+  }
+
+  return response.json();
+};
+
+export const uploadProfilePicture = async (
+  employeeId: number,
+  file: File
+): Promise<{ success: boolean; data: { profilePicture: string } }> => {
+  const token = getAuthToken();
+  if (!token) {
+    throw new Error("No authentication token found");
+  }
+
+  const formData = new FormData();
+  formData.append("profilePicture", file);
+
+  const response = await fetch(getApiUrl(`employee/${employeeId}/profile-picture`), {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || "Failed to upload profile picture");
+  }
+
+  return response.json();
+};
+
+export const deleteProfilePicture = async (
+  employeeId: number
+): Promise<{ success: boolean; message: string }> => {
+  const token = getAuthToken();
+  if (!token) {
+    throw new Error("No authentication token found");
+  }
+
+  const response = await fetch(getApiUrl(`employee/${employeeId}/profile-picture`), {
+    method: "DELETE",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || "Failed to delete profile picture");
+  }
+
+  return response.json();
+};
