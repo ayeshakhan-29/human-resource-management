@@ -442,3 +442,93 @@ export const deleteProfilePicture = async (
 
   return response.json();
 };
+
+export interface UpdateEmployeeData {
+  fullName?: string;
+  email?: string;
+  status?: string;
+  contactNumber?: string;
+  address?: string;
+  dob?: string;
+  department?: string;
+  position?: string;
+  reportingManager?: string;
+}
+
+export const updateEmployee = async (
+  employeeId: number,
+  updateData: UpdateEmployeeData
+): Promise<EmployeeInfoResponse> => {
+  const token = getAuthToken();
+  if (!token) {
+    throw new Error("No authentication token found");
+  }
+
+  const response = await fetch(getApiUrl(`employee/${employeeId}/profile`), {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(updateData),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || "Failed to update employee");
+  }
+
+  return response.json();
+};
+
+export const deleteEmployee = async (employeeId: number): Promise<{ success: boolean; message: string }> => {
+  const token = getAuthToken();
+  if (!token) {
+    throw new Error("No authentication token found");
+  }
+
+  const response = await fetch(getApiUrl(`employee/${employeeId}`), {
+    method: "DELETE",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || "Failed to delete employee");
+  }
+
+  return response.json();
+};
+
+export interface ChangeEmployeePasswordResponse {
+  message: string;
+}
+
+export const changeEmployeePassword = async (
+  employeeId: number,
+  newPassword: string
+): Promise<ChangeEmployeePasswordResponse> => {
+  const token = getAuthToken();
+  if (!token) {
+    throw new Error("No authentication token found");
+  }
+
+  const response = await fetch(getApiUrl(`employee/${employeeId}/password`), {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ newPassword }),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || "Failed to change password");
+  }
+
+  return response.json();
+};

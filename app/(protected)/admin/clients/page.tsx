@@ -20,7 +20,15 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Plus, Eye, EyeOff, Copy, Check } from "lucide-react";
+import { Loader2, Plus, Eye, EyeOff, Copy, Check, Trash2, MoreHorizontal, Edit, User, Key } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { deleteClient } from "@/lib/actions/client.actions";
 import {
   Dialog,
   DialogContent,
@@ -51,6 +59,8 @@ export default function AllClientsPage() {
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [showCredentials, setShowCredentials] = useState(false);
   const [copiedEmail, setCopiedEmail] = useState(false);
+  const [clientToDelete, setClientToDelete] = useState<Client | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const hasFetched = useRef(false);
 
@@ -104,6 +114,34 @@ export default function AllClientsPage() {
       description: "Email copied to clipboard",
     });
     setTimeout(() => setCopiedEmail(false), 2000);
+  };
+
+  const handleDeleteClient = async () => {
+    if (!clientToDelete) return;
+
+    try {
+      setIsDeleting(true);
+      await deleteClient(clientToDelete.id);
+      
+      // Remove client from local state
+      setClients(clients.filter(client => client.id !== clientToDelete.id));
+      
+      toast({
+        title: "Success",
+        description: "Client deleted successfully",
+      });
+      
+      setClientToDelete(null);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to delete client";
+      toast({
+        title: "Error",
+        description: message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   const formatDate = (dateString: string | null) => {
@@ -207,16 +245,50 @@ export default function AllClientsPage() {
                       <TableCell>{formatDate(client.createdAt)}</TableCell>
                       <TableCell>{formatDate(client.lastLogin)}</TableCell>
                       <TableCell className="text-right">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            setSelectedClient(client);
-                            setShowCredentials(true);
-                          }}
-                        >
-                          View Details
-                        </Button>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" className="h-8 w-8 p-0">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem
+                              onClick={() => router.push(`/admin/clients/${client.id}`)}
+                            >
+                              <User className="mr-2 h-4 w-4" />
+                              View Profile
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => router.push(`/admin/clients/${client.id}?edit=true`)}
+                            >
+                              <Edit className="mr-2 h-4 w-4" />
+                              Edit Details
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => router.push(`/admin/clients/${client.id}?password=true`)}
+                            >
+                              <Key className="mr-2 h-4 w-4" />
+                              Change Password
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => {
+                                setSelectedClient(client);
+                                setShowCredentials(true);
+                              }}
+                            >
+                              <Eye className="mr-2 h-4 w-4" />
+                              View Credentials
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              className="text-red-600"
+                              onClick={() => setClientToDelete(client)}
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Delete Client
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -332,6 +404,42 @@ export default function AllClientsPage() {
               </div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={!!clientToDelete} onOpenChange={() => setClientToDelete(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Client</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete <strong>{clientToDelete?.fullName}</strong>? 
+              This action cannot be undone and will permanently remove the client and all associated data.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end gap-3 mt-6">
+            <Button 
+              variant="outline" 
+              onClick={() => setClientToDelete(null)}
+              disabled={isDeleting}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleDeleteClient}
+              disabled={isDeleting}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {isDeleting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                "Delete Client"
+              )}
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

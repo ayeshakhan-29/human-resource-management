@@ -8,11 +8,13 @@ import {
   Edit,
   Trash2,
   Loader2,
+  User,
 } from "lucide-react";
 import Link from "next/link";
 import { UserPlus } from "lucide-react";
 import { toast } from "sonner";
-import { getAllEmployees } from "@/lib/actions/employee.actions";
+import { getAllEmployees, deleteEmployee } from "@/lib/actions/employee.actions";
+import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -75,11 +77,14 @@ const normalizeStatus = (status: string): EmployeeStatus => {
 };
 
 export default function AdminEmployeesPage() {
+  const router = useRouter();
   const [searchTerm, setSearchTerm] = useState("");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [employees, setEmployees] = useState<EmployeeWithStatus[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [employeeToDelete, setEmployeeToDelete] = useState<EmployeeWithStatus | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     const fetchEmployees = async () => {
@@ -117,7 +122,25 @@ export default function AdminEmployeesPage() {
         .includes(searchTerm.toLowerCase())
   );
 
-  console.log(filteredEmployees, "filteredEmployees");
+  const handleDeleteEmployee = async () => {
+    if (!employeeToDelete) return;
+
+    try {
+      setIsDeleting(true);
+      await deleteEmployee(employeeToDelete.id);
+      
+      // Remove employee from local state
+      setEmployees(employees.filter(emp => emp.id !== employeeToDelete.id));
+      
+      toast.success("Employee deleted successfully");
+      setEmployeeToDelete(null);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to delete employee";
+      toast.error(message);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -326,15 +349,25 @@ export default function AdminEmployeesPage() {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => router.push(`/admin/employees/${employee.id}`)}
+                            >
+                              <User className="mr-2 h-4 w-4" />
+                              View Profile
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => router.push(`/admin/employees/${employee.id}?edit=true`)}
+                            >
                               <Edit className="mr-2 h-4 w-4" />
                               Edit Details
                             </DropdownMenuItem>
-                            <DropdownMenuItem>View Profile</DropdownMenuItem>
                             <DropdownMenuSeparator />
-                            <DropdownMenuItem className="text-red-600">
+                            <DropdownMenuItem 
+                              className="text-red-600"
+                              onClick={() => setEmployeeToDelete(employee)}
+                            >
                               <Trash2 className="mr-2 h-4 w-4" />
-                              Remove Employee
+                              Delete Employee
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
@@ -347,6 +380,42 @@ export default function AdminEmployeesPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={!!employeeToDelete} onOpenChange={() => setEmployeeToDelete(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Employee</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete <strong>{employeeToDelete?.fullName}</strong>? 
+              This action cannot be undone and will permanently remove the employee and all associated data.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end gap-3 mt-6">
+            <Button 
+              variant="outline" 
+              onClick={() => setEmployeeToDelete(null)}
+              disabled={isDeleting}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleDeleteEmployee}
+              disabled={isDeleting}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {isDeleting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                "Delete Employee"
+              )}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
