@@ -575,10 +575,14 @@ export default function EmployeeProfilePage() {
               <X className="h-5 w-5" />
             </button>
             {employee?.profilePicture ? (
-              <img
+              <Image
                 src={employee.profilePicture}
                 alt={employee.fullName}
-                className="w-full h-auto max-h-[80vh] object-contain rounded-lg"
+                fill
+                unoptimized
+                sizes="100vw"
+                className="object-contain rounded-lg"
+                priority
               />
             ) : (
               <div className="flex items-center justify-center h-64 bg-muted">
@@ -597,3 +601,4 @@ export default function EmployeeProfilePage() {
     </>
   );
 }
+import Image from "next/image";

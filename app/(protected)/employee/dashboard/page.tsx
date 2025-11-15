@@ -12,6 +12,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Header } from "@/components/header";
+import { useAuth } from "@/context/AuthContext";
 import { getTodaysAttendance } from "@/lib/actions/attendance.actions";
 import { getAuthToken } from "@/lib/auth/token";
 import { toast } from "sonner";
@@ -34,9 +35,12 @@ const mockEmployee = {
 };
 
 export default function EmployeeDashboard() {
+  const { user } = useAuth();
   const [attendance, setAttendance] = useState<AttendanceData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [currentTime, setCurrentTime] = useState(new Date());
+  const displayName = (user?.name || user?.fullName || mockEmployee.name) as string;
+  const firstName = displayName.split(" ")[0];
 
   // Calculate working hours
   const workingHours = attendance?.clockIn
@@ -141,7 +145,7 @@ export default function EmployeeDashboard() {
         {/* Welcome Section */}
         <div className="mb-4">
           <h2 className="text-3xl font-bold text-gray-900 mb-2">
-            Welcome back, {mockEmployee.name.split(" ")[0]}!
+            Welcome back, {firstName}!
           </h2>
           <p className="text-gray-600">
             Here&apos;s your dashboard overview for today.

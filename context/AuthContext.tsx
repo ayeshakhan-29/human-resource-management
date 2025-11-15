@@ -7,6 +7,7 @@ type UserType = {
   id: string;
   email: string;
   name?: string;
+  fullName?: string;
   token?: string;
   role?: string;
 };
