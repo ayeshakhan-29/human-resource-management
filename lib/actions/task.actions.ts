@@ -3,6 +3,7 @@ import {
   TasksResponse,
   TaskResponse,
   TaskStatisticsResponse,
+  ManagerTaskStatisticsResponse,
   CreateTaskRequest,
   UpdateTaskRequest,
   UpdateTaskProgressRequest,
@@ -381,6 +382,30 @@ export const getTaskStatistics = async (): Promise<TaskStatisticsResponse> => {
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
     throw new Error(errorData.message || "Failed to fetch task statistics");
+  }
+
+  return await response.json();
+};
+
+// Get manager-specific task statistics
+export const getManagerTaskStatistics = async (): Promise<ManagerTaskStatisticsResponse> => {
+  const token = getAuthToken();
+  if (!token) {
+    throw new Error("No authentication token found");
+  }
+
+  const response = await fetch(`${API_BASE_URL}/tasks/manager-statistics`, {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || "Failed to fetch manager task statistics");
   }
 
   return await response.json();

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { ArrowLeft, Edit, Save, X, Loader2, Key, User, Trash2 } from "lucide-react";
+import { ArrowLeft, Edit, Save, X, Loader2, Key, User, Trash2, Shield, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -40,6 +40,7 @@ import {
   deleteEmployee,
   UpdateEmployeeData,
   changeEmployeePassword,
+  updateEmployeeRole,
 } from "@/lib/actions/employee.actions";
 import { EmployeeInfoResponse } from "@/lib/types/employee.types";
 
@@ -68,6 +69,11 @@ export default function EmployeeDetailsPage() {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [changingPassword, setChangingPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [showRoleDialog, setShowRoleDialog] = useState(false);
+  const [selectedRole, setSelectedRole] = useState<"admin" | "employee" | "client" | "manager">("employee");
+  const [changingRole, setChangingRole] = useState(false);
   const [formData, setFormData] = useState<UpdateEmployeeData>({
     fullName: "",
     email: "",
@@ -217,6 +223,36 @@ export default function EmployeeDetailsPage() {
     setConfirmPassword("");
   };
 
+  const handleChangeRole = async () => {
+    try {
+      setChangingRole(true);
+      const response = await updateEmployeeRole(employeeId, selectedRole);
+      toast.success(response.message || "Role updated successfully");
+      
+      // Update local employee data
+      if (employee) {
+        setEmployee({ ...employee, role: selectedRole });
+      }
+      
+      setShowRoleDialog(false);
+      
+      // Show additional message if promoted to manager
+      if (selectedRole === "manager") {
+        toast.info("Employee can now access the Manager Dashboard");
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to update role";
+      toast.error(message);
+    } finally {
+      setChangingRole(false);
+    }
+  };
+
+  const handleRoleDialogOpen = () => {
+    setSelectedRole((employee?.role as any) || "employee");
+    setShowRoleDialog(true);
+  };
+
   const formatDate = (dateString: string | null) => {
     if (!dateString) return "Not provided";
     return new Date(dateString).toLocaleDateString("en-US", {
@@ -313,6 +349,13 @@ export default function EmployeeDetailsPage() {
                 >
                   <Trash2 className="mr-2 h-4 w-4" />
                   Delete Employee
+                </Button>
+                <Button 
+                  variant="outline" 
+                  onClick={handleRoleDialogOpen}
+                >
+                  <Shield className="mr-2 h-4 w-4" />
+                  Change Role
                 </Button>
                 <Button 
                   variant="outline" 
@@ -581,25 +624,57 @@ export default function EmployeeDetailsPage() {
           <div className="space-y-4 py-4">
             <div className="space-y-2">
               <Label htmlFor="newPassword">New Password</Label>
-              <Input
-                id="newPassword"
-                type="password"
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                placeholder="Enter new password (min 6 characters)"
-                disabled={changingPassword}
-              />
+              <div className="relative">
+                <Input
+                  id="newPassword"
+                  type={showNewPassword ? "text" : "password"}
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="Enter new password (min 6 characters)"
+                  disabled={changingPassword}
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                  onClick={() => setShowNewPassword(!showNewPassword)}
+                  disabled={changingPassword}
+                >
+                  {showNewPassword ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
+                </Button>
+              </div>
             </div>
             <div className="space-y-2">
               <Label htmlFor="confirmPassword">Confirm Password</Label>
-              <Input
-                id="confirmPassword"
-                type="password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                placeholder="Confirm new password"
-                disabled={changingPassword}
-              />
+              <div className="relative">
+                <Input
+                  id="confirmPassword"
+                  type={showConfirmPassword ? "text" : "password"}
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="Confirm new password"
+                  disabled={changingPassword}
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  disabled={changingPassword}
+                >
+                  {showConfirmPassword ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
+                </Button>
+              </div>
             </div>
           </div>
           <DialogFooter>
@@ -621,6 +696,55 @@ export default function EmployeeDetailsPage() {
                 </>
               ) : (
                 "Change Password"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Change Role Dialog */}
+      <Dialog open={showRoleDialog} onOpenChange={setShowRoleDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Change Employee Role</DialogTitle>
+            <DialogDescription>
+              Update access level and permissions for {employee?.fullName}. This will change their system access.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label htmlFor="role">Select Role</Label>
+              <Select value={selectedRole} onValueChange={(value) => setSelectedRole(value as any)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select Role" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="admin">Admin</SelectItem>
+                  <SelectItem value="manager">Manager</SelectItem>
+                  <SelectItem value="employee">Employee</SelectItem>
+                  <SelectItem value="client">Client</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="rounded-lg border bg-blue-50 border-blue-200 p-4 text-sm text-blue-800">
+              <p><strong>Current Role:</strong> {employee?.role}</p>
+              {selectedRole !== employee?.role && (
+                <p className="mt-2"><strong>Updated Role:</strong> {selectedRole}</p>
+              )}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowRoleDialog(false)} disabled={changingRole}>
+              Cancel
+            </Button>
+            <Button onClick={handleChangeRole} disabled={changingRole || !selectedRole}>
+              {changingRole ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Updating...
+                </>
+              ) : (
+                "Update Role"
               )}
             </Button>
           </DialogFooter>

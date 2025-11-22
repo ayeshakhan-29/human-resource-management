@@ -532,3 +532,41 @@ export const changeEmployeePassword = async (
 
   return response.json();
 };
+
+export interface UpdateEmployeeRoleResponse {
+  success: boolean;
+  message: string;
+  data: {
+    id: number;
+    fullName: string;
+    email: string;
+    role: string;
+    oldRole: string;
+  };
+}
+
+export const updateEmployeeRole = async (
+  employeeId: number,
+  role: "admin" | "employee" | "client" | "manager"
+): Promise<UpdateEmployeeRoleResponse> => {
+  const token = getAuthToken();
+  if (!token) {
+    throw new Error("No authentication token found");
+  }
+
+  const response = await fetch(getApiUrl(`employee/${employeeId}/role`), {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ role }),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || "Failed to update role");
+  }
+
+  return response.json();
+};

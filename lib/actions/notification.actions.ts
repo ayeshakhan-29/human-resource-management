@@ -1,29 +1,57 @@
 import { getAuthToken } from "@/lib/auth/token";
-import {
-  NotificationsResponse,
-  NotificationResponse,
-  MarkAsReadResponse,
-  Notification,
-} from "@/lib/types/notification.types";
 
-// Remove trailing slash from API URL if present
 const API_BASE_URL =
-  (process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5001/api").replace(/\/$/, "");
+  process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5005/api";
+
+// Helper function to ensure proper URL construction
+const getApiUrl = (endpoint: string) => {
+  const baseUrl = API_BASE_URL.endsWith('/') ? API_BASE_URL : `${API_BASE_URL}/`;
+  return `${baseUrl}${endpoint}`;
+};
+
+export interface Notification {
+  id: number;
+  userId: number;
+  title: string;
+  message: string;
+  type: 'info' | 'success' | 'warning' | 'error' | 'manager_assignment';
+  isRead: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateNotificationRequest {
+  userId: number;
+  title: string;
+  message: string;
+  type?: 'info' | 'success' | 'warning' | 'error' | 'manager_assignment';
+}
+
+export interface NotificationsResponse {
+  success: boolean;
+  data: Notification[];
+  message?: string;
+}
+
+export interface CreateNotificationResponse {
+  success: boolean;
+  data: Notification;
+  message?: string;
+}
 
 // Get all notifications for the current user
-export const getNotifications = async (userId: string | number): Promise<NotificationsResponse> => {
+export const getNotifications = async (): Promise<NotificationsResponse> => {
   const token = getAuthToken();
   if (!token) {
     throw new Error("No authentication token found");
   }
 
-  const response = await fetch(`${API_BASE_URL}/notifications/${userId}`, {
+  const response = await fetch(getApiUrl('notifications'), {
     method: "GET",
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${token}`,
     },
-    cache: "no-store",
   });
 
   if (!response.ok) {
@@ -31,43 +59,44 @@ export const getNotifications = async (userId: string | number): Promise<Notific
     throw new Error(errorData.message || "Failed to fetch notifications");
   }
 
-  return await response.json();
+  return response.json();
 };
 
-// Get unread notifications count for the current user
-export const getUnreadNotificationsCount = async (userId: string | number): Promise<number> => {
+// Create a new notification
+export const createNotification = async (
+  notificationData: CreateNotificationRequest
+): Promise<CreateNotificationResponse> => {
   const token = getAuthToken();
   if (!token) {
     throw new Error("No authentication token found");
   }
 
-  const response = await fetch(`${API_BASE_URL}/notifications/${userId}`, {
-    method: "GET",
+  const response = await fetch(getApiUrl('notifications'), {
+    method: "POST",
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${token}`,
     },
-    cache: "no-store",
+    body: JSON.stringify(notificationData),
   });
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.message || "Failed to fetch notifications");
+    throw new Error(errorData.message || "Failed to create notification");
   }
 
-  const data: NotificationsResponse = await response.json();
-  return data.data.filter((n: Notification) => !n.isRead).length;
+  return response.json();
 };
 
-// Mark a notification as read
-export const markAsRead = async (notificationId: number): Promise<MarkAsReadResponse> => {
+// Mark notification as read
+export const markNotificationAsRead = async (notificationId: number): Promise<{ success: boolean; message: string }> => {
   const token = getAuthToken();
   if (!token) {
     throw new Error("No authentication token found");
   }
 
-  const response = await fetch(`${API_BASE_URL}/notifications/${notificationId}/read`, {
-    method: "PUT",
+  const response = await fetch(getApiUrl(`notifications/${notificationId}/read`), {
+    method: "PATCH",
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${token}`,
@@ -79,5 +108,88 @@ export const markAsRead = async (notificationId: number): Promise<MarkAsReadResp
     throw new Error(errorData.message || "Failed to mark notification as read");
   }
 
-  return await response.json();
+  return response.json();
+};
+
+// Mark all notifications as read
+export const markAllNotificationsAsRead = async (): Promise<{ success: boolean; message: string }> => {
+  const token = getAuthToken();
+  if (!token) {
+    throw new Error("No authentication token found");
+  }
+
+  const response = await fetch(getApiUrl('notifications/read-all'), {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || "Failed to mark all notifications as read");
+  }
+
+  return response.json();
+};
+
+// Delete a notification
+export const deleteNotification = async (notificationId: number): Promise<{ success: boolean; message: string }> => {
+  const token = getAuthToken();
+  if (!token) {
+    throw new Error("No authentication token found");
+  }
+
+  const response = await fetch(getApiUrl(`notifications/${notificationId}`), {
+    method: "DELETE",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || "Failed to delete notification");
+  }
+
+  return response.json();
+};
+
+// Send manager assignment notification
+export const sendManagerAssignmentNotification = async (
+  userId: number,
+  projectName: string,
+  assignedBy: string
+): Promise<CreateNotificationResponse> => {
+  return createNotification({
+    userId,
+    title: "Manager Role Assigned",
+    message: `You have been assigned as a manager for the project "${projectName}" by ${assignedBy}. You now have access to the manager dashboard to oversee tasks and team members.`,
+    type: "manager_assignment",
+  });
+};
+
+// Get unread notification count
+export const getUnreadNotificationCount = async (): Promise<{ count: number }> => {
+  const token = getAuthToken();
+  if (!token) {
+    throw new Error("No authentication token found");
+  }
+
+  const response = await fetch(getApiUrl('notifications/unread-count'), {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || "Failed to fetch unread count");
+  }
+
+  return response.json();
 };

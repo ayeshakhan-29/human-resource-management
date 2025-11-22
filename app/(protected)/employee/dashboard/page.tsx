@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/card";
 import { Header } from "@/components/header";
 import { useAuth } from "@/context/AuthContext";
+import { getProjectsByManager } from "@/lib/actions/project.action";
 import { getTodaysAttendance } from "@/lib/actions/attendance.actions";
 import { getAuthToken } from "@/lib/auth/token";
 import { toast } from "sonner";
@@ -41,6 +42,7 @@ export default function EmployeeDashboard() {
   const [currentTime, setCurrentTime] = useState(new Date());
   const displayName = (user?.name || user?.fullName || mockEmployee.name) as string;
   const firstName = displayName.split(" ")[0];
+  const [isProjectManager, setIsProjectManager] = useState(false);
 
   // Calculate working hours
   const workingHours = attendance?.clockIn
@@ -84,6 +86,19 @@ export default function EmployeeDashboard() {
 
     fetchTodaysAttendance();
   }, []);
+
+  useEffect(() => {
+    const checkManager = async () => {
+      try {
+        const id = parseInt((user?.id as unknown as string) || "0", 10);
+        if (!id) return;
+        const resp = await getProjectsByManager(id, 1, 1);
+        const has = (resp?.data?.length || 0) > 0;
+        setIsProjectManager(has);
+      } catch (_) {}
+    };
+    checkManager();
+  }, [user?.id]);
 
   // Format time for display
   const formatTime = (timeString: string) => {
@@ -242,6 +257,14 @@ export default function EmployeeDashboard() {
                   View My Information
                 </Button>
               </Link>
+              {(user?.role === 'manager' || isProjectManager) && (
+                <Link href="/manager/dashboard" className="w-full">
+                  <Button className="w-full justify-start" variant="default">
+                    <User className="mr-2 h-4 w-4" />
+                    Manager Dashboard
+                  </Button>
+                </Link>
+              )}
               <Link href="/employee/attendance" className="w-full">
                 <Button className="w-full justify-start" variant="outline">
                   <Clock className="mr-2 h-4 w-4" />

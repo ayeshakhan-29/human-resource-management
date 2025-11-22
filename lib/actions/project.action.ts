@@ -223,6 +223,33 @@ export const changeProjectStatus = async (
   return await response.json();
 };
 
+// Update project progress
+export const updateProjectProgress = async (
+  projectId: number | string,
+  progress: number
+): Promise<ProjectResponse> => {
+  const token = getAuthToken();
+  if (!token) {
+    throw new Error("No authentication token found");
+  }
+
+  const response = await fetch(getFullApiUrl(`/projects/update-project-progress/${projectId}`), {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ progress }),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || "Failed to update project progress");
+  }
+
+  return await response.json();
+};
+
 // Delete a project
 export const deleteProject = async (projectId: number | string): Promise<ProjectResponse> => {
   const token = getAuthToken();
@@ -241,6 +268,35 @@ export const deleteProject = async (projectId: number | string): Promise<Project
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
     throw new Error(errorData.message || "Failed to delete project");
+  }
+
+  return await response.json();
+};
+
+// Get projects by manager
+export const getProjectsByManager = async (
+  managerId: number,
+  page = 1,
+  limit = 10
+): Promise<ProjectsResponse> => {
+  const token = getAuthToken();
+  if (!token) {
+    throw new Error("No authentication token found");
+  }
+
+  const url = getFullApiUrl(`/projects/get-project-by-manager/${managerId}?page=${page}&limit=${limit}`);
+  const response = await fetch(url, {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || "Failed to fetch projects by manager");
   }
 
   return await response.json();

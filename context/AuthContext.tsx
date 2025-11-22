@@ -47,9 +47,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const role = (userData.role || "employee").toString().toLowerCase();
     console.log("Processed role (lowercase):", role);
     
-    if (role === "admin" || role === "manager") {
+    if (role === "admin") {
       console.log("Redirecting to admin dashboard");
       router.push("/admin/dashboard");
+    } else if (role === "manager") {
+      console.log("Redirecting to manager dashboard");
+      router.push("/manager/dashboard");
     } else if (role === "client") {
       console.log("Redirecting to client dashboard");
       router.push("/client/dashboard");

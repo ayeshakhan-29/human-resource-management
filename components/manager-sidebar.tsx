@@ -2,21 +2,18 @@
 
 import type * as React from "react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import {
   Building2,
-  User,
-  Clock,
-  Calendar,
-  FileText,
   Settings,
   LogOut,
   ChevronUp,
   ChevronRight,
   Home,
-  Bell,
-  CreditCard,
+  FolderKanban,
   ListChecks,
+  SquarePlus,
+  Settings2,
 } from "lucide-react";
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -48,112 +45,59 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { useAuth } from "@/context/AuthContext";
-import { useState, useEffect } from "react";
-import { getUnreadNotificationCount } from "@/lib/actions/notification.actions";
 
 const data = {
-  user: {
-    name: "John Smith",
-    email: "john@company.com",
-    avatar: "JS",
-  },
   navMain: [
     {
       title: "Dashboard",
-      url: "/employee/dashboard",
+      url: "/manager/dashboard",
       icon: Home,
     },
     {
-      title: "My Profile",
-      url: "/employee/profile",
-      icon: User,
-    },
-    {
-      title: "Bank Information",
-      url: "/employee/bank-info",
-      icon: CreditCard,
-    },
-
-    {
-      title: "Attendance",
-      url: "/employee/attendance",
-      icon: Clock,
-    },
-    {
-      title: "Leave Management",
-      icon: Calendar,
+      title: "Task Management",
+      icon: ListChecks,
       items: [
         {
-          title: "Apply for Leave",
-          url: "/employee/leave/apply",
-          icon: Calendar,
+          title: "All Tasks",
+          url: "/manager/tasks/all-tasks",
+          icon: ListChecks,
         },
         {
-          title: "My Leave Requests",
-          url: "/employee/leave/requests",
-          icon: FileText,
+          title: "Add Task",
+          url: "/manager/tasks/add",
+          icon: SquarePlus,
         },
         {
-          title: "Leave Balance",
-          url: "/employee/leave/balance",
-          icon: CreditCard,
+          title: "Manage Tasks",
+          url: "/manager/tasks/manage-tasks",
+          icon: Settings2,
         },
       ],
     },
-     {
-      title: "My Tasks",
-      url: "/employee/tasks",
-      icon: ListChecks,
-    },
     {
-      title: "Notifications",
-      url: "/employee/notifications",
-      icon: Bell,
+      title: "Projects",
+      icon: FolderKanban,
+      items: [
+        {
+          title: "All Projects",
+          url: "/manager/projects",
+          icon: FolderKanban,
+        },
+        {
+          title: "Manage Projects",
+          url: "/manager/projects/manage-projects",
+          icon: Settings2,
+        },
+      ],
     },
   ],
 };
 
-export function EmployeeSidebar({
+export function ManagerSidebar({
   ...props
 }: React.ComponentProps<typeof Sidebar>) {
   const pathname = usePathname();
-  const router = useRouter();
-  const { user } = useAuth();
-  const [unreadCount, setUnreadCount] = useState(0);
-
-  useEffect(() => {
-    const fetchUnreadCount = async () => {
-      if (user?.id) {
-        try {
-          const resp = await getUnreadNotificationCount();
-          setUnreadCount(resp.count || 0);
-        } catch (error) {
-          console.error("Failed to fetch unread notifications count:", error);
-        }
-      }
-    };
-
-    fetchUnreadCount();
-
-    // Set up interval to check for new notifications every 30 seconds
-    const interval = setInterval(fetchUnreadCount, 30000);
-
-    // Listen for notification read events
-    const handleNotificationRead = () => {
-      fetchUnreadCount();
-    };
-
-    window.addEventListener('notificationRead', handleNotificationRead);
-
-    return () => {
-      clearInterval(interval);
-      window.removeEventListener('notificationRead', handleNotificationRead);
-    };
-  }, [user?.id]);
-
-  const handleNotificationClick = () => {
-    router.push("/employee/notifications");
-  };
+  const { user, logout } = useAuth();
 
   return (
     <Sidebar collapsible="icon" {...props}>
@@ -161,13 +105,13 @@ export function EmployeeSidebar({
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild>
-              <Link href="/employee/dashboard">
-                <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-blue-600 text-white">
+              <Link href="/manager/dashboard">
+                <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-green-600 text-white">
                   <Building2 className="size-4" />
                 </div>
                 <div className="grid flex-1 text-left text-sm leading-tight">
                   <span className="truncate font-semibold">HRM System</span>
-                  <span className="truncate text-xs">Employee Portal</span>
+                  <span className="truncate text-xs">Manager Panel</span>
                 </div>
               </Link>
             </SidebarMenuButton>
@@ -227,18 +171,6 @@ export function EmployeeSidebar({
                       <Link href={item.url}>
                         <item.icon />
                         <span>{item.title}</span>
-                        {item.title === "Notifications" && unreadCount > 0 && (
-                          <span
-                            className="ml-auto flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs text-white cursor-pointer hover:bg-red-600"
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              handleNotificationClick();
-                            }}
-                          >
-                            {unreadCount > 99 ? "99+" : unreadCount}
-                          </span>
-                        )}
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
@@ -259,14 +191,12 @@ export function EmployeeSidebar({
                 >
                   <Avatar className="h-8 w-8 rounded-lg">
                     <AvatarFallback className="rounded-lg">
-                      {data.user.avatar}
+                      {user?.name?.charAt(0) || user?.fullName?.charAt(0) || "M"}
                     </AvatarFallback>
                   </Avatar>
                   <div className="grid flex-1 text-left text-sm leading-tight">
-                    <span className="truncate font-semibold">
-                      {data.user.name}
-                    </span>
-                    <span className="truncate text-xs">{data.user.email}</span>
+                    <span className="truncate font-semibold">{user?.name || user?.fullName}</span>
+                    <span className="truncate text-xs">{user?.email}</span>
                   </div>
                   <ChevronUp className="ml-auto size-4" />
                 </SidebarMenuButton>
@@ -281,7 +211,7 @@ export function EmployeeSidebar({
                   <Settings className="mr-2 h-4 w-4" />
                   Settings
                 </DropdownMenuItem>
-                <DropdownMenuItem>
+                <DropdownMenuItem onClick={logout}>
                   <LogOut className="mr-2 h-4 w-4" />
                   Log out
                 </DropdownMenuItem>

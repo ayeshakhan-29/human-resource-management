@@ -120,3 +120,15 @@ export interface TaskStatisticsResponse {
     overdue: number;
   };
 }
+
+export interface ManagerTaskStatisticsResponse {
+  success: boolean;
+  data: {
+    totalTasks: number;
+    pendingTasks: number;
+    inProgressTasks: number;
+    completedTasks: number;
+    overdueTasks: number;
+    activeProjects: number;
+  };
+}

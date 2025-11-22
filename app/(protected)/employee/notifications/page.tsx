@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import { Header } from "@/components/header";
-import { getNotifications, markAsRead } from "@/lib/actions/notification.actions";
+import { getNotifications, markNotificationAsRead } from "@/lib/actions/notification.actions";
 import { Notification } from "@/lib/types/notification.types";
 import { useAuth } from "@/context/AuthContext";
 import { useSocket } from "@/lib/hooks/useSocket";
@@ -35,7 +35,7 @@ export default function NotificationsPage() {
   const fetchNotifications = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await getNotifications(user!.id);
+      const response = await getNotifications();
       setNotifications(response.data);
     } catch (error) {
       console.error("Failed to fetch notifications:", error);
@@ -55,7 +55,7 @@ export default function NotificationsPage() {
   const handleMarkAsRead = async (notificationId: number) => {
     try {
       setMarkingRead(notificationId);
-      await markAsRead(notificationId);
+      await markNotificationAsRead(notificationId);
 
       // Update local state
       setNotifications(prev =>
