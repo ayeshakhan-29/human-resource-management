@@ -286,17 +286,17 @@ export default function EmployeeProfilesPage() {
                     </div>
                   </div>
 
-                  {employee.userInfo?.contactNumber && (
+                  {employee.userInfo?.phone && (
                     <div className="text-sm">
                       <p className="text-muted-foreground">Contact</p>
-                      <p className="font-medium">{employee.userInfo.contactNumber}</p>
+                      <p className="font-medium">{employee.userInfo.phone}</p>
                     </div>
                   )}
 
-                  {employee.userInfo?.reportingManager && (
+                  {employee.userInfo?.department && (
                     <div className="text-sm">
-                      <p className="text-muted-foreground">Reporting Manager</p>
-                      <p className="font-medium">{employee.userInfo.reportingManager}</p>
+                      <p className="text-muted-foreground">Department</p>
+                      <p className="font-medium">{employee.userInfo.department}</p>
                     </div>
                   )}
                 </div>

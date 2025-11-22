@@ -43,7 +43,7 @@ export default function NotificationsPage() {
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  }, []);
 
   // Fetch notifications on component mount
   useEffect(() => {

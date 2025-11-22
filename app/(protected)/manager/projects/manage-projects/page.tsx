@@ -217,7 +217,7 @@ export default function ManagerProjectManagementPage() {
   });
 
   const totalProjects = projects.length;
-  const activeProjects = projects.filter(p => p.status === 'active' || p.status === 'in-progress').length;
+  const activeProjects = projects.filter(p => p.status === 'active').length;
   const completedProjects = projects.filter(p => p.status === 'completed').length;
   const urgentProjects = projects.filter(p => p.priority === 'urgent').length;
   const totalTasks = allTasks.length;

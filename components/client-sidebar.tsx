@@ -36,7 +36,7 @@ import {
 } from "@/components/ui/sidebar";
 import { useAuth } from "@/context/AuthContext";
 import { useState, useEffect } from "react";
-import { getUnreadNotificationsCount } from "@/lib/actions/notification.actions";
+import { getUnreadNotificationCount } from "@/lib/actions/notification.actions";
 
 const navMain = [
   {
@@ -77,8 +77,8 @@ export function ClientSidebar({
     const fetchUnreadCount = async () => {
       if (user?.id) {
         try {
-          const count = await getUnreadNotificationsCount(user.id);
-          setUnreadCount(count);
+          const result = await getUnreadNotificationCount();
+          setUnreadCount(result.count);
         } catch (error) {
           console.error("Failed to fetch unread notifications count:", error);
         }

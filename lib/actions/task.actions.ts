@@ -23,6 +23,9 @@ export const getAllTasks = async (
   filters?: {
     status?: string;
     priority?: string;
+    assigneeId?: string | number;
+    projectId?: string | number;
+    managerId?: string | number;
     assigneeName?: string;
     projectName?: string;
     search?: string;

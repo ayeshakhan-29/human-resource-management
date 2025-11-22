@@ -182,7 +182,7 @@ export default function ManagerTaskDetailsPage() {
     }
   };
 
-  const formatDate = (dateString: string | null) => {
+  const formatDate = (dateString: string | null | undefined) => {
     if (!dateString) return "Not set";
     return new Date(dateString).toLocaleDateString("en-US", {
       year: "numeric",
@@ -440,7 +440,7 @@ export default function ManagerTaskDetailsPage() {
                     <div className="flex items-center gap-2">
                       <Calendar className="h-4 w-4 text-gray-500" />
                       <span className="text-sm font-medium">
-                        {formatDate(task.dueDate)}
+                        {formatDate(task.dueDate ?? null)}
                       </span>
                     </div>
                   )}

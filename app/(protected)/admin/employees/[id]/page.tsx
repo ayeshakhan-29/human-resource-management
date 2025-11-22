@@ -249,7 +249,7 @@ export default function EmployeeDetailsPage() {
   };
 
   const handleRoleDialogOpen = () => {
-    setSelectedRole((employee?.role as any) || "employee");
+    setSelectedRole((employee?.role as "admin" | "employee" | "client" | "manager") || "employee");
     setShowRoleDialog(true);
   };
 
@@ -714,7 +714,7 @@ export default function EmployeeDetailsPage() {
           <div className="space-y-4 py-2">
             <div className="space-y-2">
               <Label htmlFor="role">Select Role</Label>
-              <Select value={selectedRole} onValueChange={(value) => setSelectedRole(value as any)}>
+              <Select value={selectedRole} onValueChange={(value) => setSelectedRole(value as "admin" | "employee" | "client" | "manager")}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select Role" />
                 </SelectTrigger>
