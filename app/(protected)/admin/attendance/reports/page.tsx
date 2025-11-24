@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Header } from "@/components/header";
 import {
   Card,
@@ -23,7 +23,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { getAllAttendance } from "@/lib/actions/attendance.actions";
 import { useAuth } from "@/context/AuthContext";
-import { Loader2, Search, Download, Filter } from "lucide-react";
+import { Loader2, Search, Download, Filter, RefreshCw } from "lucide-react";
 import { AllAttendanceResponse } from "@/lib/types/attendance.types";
 
 export default function AttendanceReportPage() {
@@ -33,31 +33,35 @@ export default function AttendanceReportPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
+
+  const fetchAttendance = useCallback(async () => {
+    if (!token) {
+      setError("No authentication token available");
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      const result = await getAllAttendance(token);
+      if (result.error) {
+        setError(result.error);
+      } else {
+        setData(result.data || null);
+        setError(null);
+      }
+    } catch (err) {
+      setError("Failed to fetch attendance data");
+    } finally {
+      setIsLoading(false);
+      setLastRefresh(new Date());
+    }
+  }, [token]);
 
   useEffect(() => {
-    const fetchAttendance = async () => {
-      if (!token) {
-        setError("No authentication token available");
-        setIsLoading(false);
-        return;
-      }
-
-      try {
-        const result = await getAllAttendance(token);
-        if (result.error) {
-          setError(result.error);
-        } else {
-          setData(result.data || null);
-        }
-      } catch (err) {
-        setError("Failed to fetch attendance data");
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
     fetchAttendance();
-  }, [token]);
+  }, [fetchAttendance]);
 
   const formatTime = (time?: string | null) => {
     if (!time) return "-";
@@ -84,7 +88,7 @@ export default function AttendanceReportPage() {
   // Filter data based on search and filters
   const filteredData = data?.data?.filter(emp => {
     const matchesSearch = emp.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         emp.email.toLowerCase().includes(searchTerm.toLowerCase());
+      emp.email.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === "all" || emp.status?.toLowerCase() === statusFilter;
     return matchesSearch && matchesStatus;
   }) || [];
@@ -92,6 +96,10 @@ export default function AttendanceReportPage() {
   const handleExport = () => {
     // TODO: Implement export functionality
     console.log("Exporting attendance report...");
+  };
+
+  const handleRefresh = () => {
+    fetchAttendance();
   };
 
   return (
@@ -117,7 +125,7 @@ export default function AttendanceReportPage() {
             <CardDescription>
               {error
                 ? "Failed to load attendance data"
-                : `Date: ${data?.date ?? "-"} • Total Records: ${data?.count ?? 0} • Filtered: ${filteredData.length}`}
+                : `Date: ${data?.date ?? "-"} • Total Records: ${data?.count ?? 0} • Filtered: ${filteredData.length} • Last updated: ${lastRefresh.toLocaleTimeString()}`}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -172,7 +180,7 @@ export default function AttendanceReportPage() {
                   />
                 </div>
               </div>
-              
+
               <Select value={statusFilter} onValueChange={setStatusFilter}>
                 <SelectTrigger className="w-full sm:w-[180px]">
                   <SelectValue placeholder="Status" />
@@ -185,6 +193,11 @@ export default function AttendanceReportPage() {
                   <SelectItem value="early_leave">Early Leave</SelectItem>
                 </SelectContent>
               </Select>
+
+              <Button onClick={handleRefresh} variant="outline" className="w-full sm:w-auto" disabled={isLoading}>
+                <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+                Refresh
+              </Button>
 
               <Button onClick={handleExport} variant="outline" className="w-full sm:w-auto">
                 <Download className="h-4 w-4 mr-2" />

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Header } from "@/components/header";
 import {
   Card,
@@ -23,7 +23,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { getAllAttendance } from "@/lib/actions/attendance.actions";
 import { useAuth } from "@/context/AuthContext";
-import { Loader2, Search, Download, Calendar, Users, Clock, TrendingUp, Filter } from "lucide-react";
+import { Loader2, Search, Download, Calendar, Users, Clock, TrendingUp, Filter, RefreshCw } from "lucide-react";
 import { AllAttendanceResponse } from "@/lib/types/attendance.types";
 
 export default function AttendanceReportsPage() {
@@ -34,31 +34,36 @@ export default function AttendanceReportsPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [dateFilter, setDateFilter] = useState("today");
+  const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
+
+  const fetchAttendance = useCallback(async () => {
+    if (!token) {
+      setError("No authentication token available");
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      const result = await getAllAttendance(token);
+      if (result.error) {
+        setError(result.error);
+      } else {
+        setData(result.data || null);
+        setError(null);
+      }
+    } catch (err) {
+      setError("Failed to fetch attendance data");
+    } finally {
+      setIsLoading(false);
+      setLastRefresh(new Date());
+    }
+  }, [token]);
 
   useEffect(() => {
-    const fetchAttendance = async () => {
-      if (!token) {
-        setError("No authentication token available");
-        setIsLoading(false);
-        return;
-      }
-
-      try {
-        const result = await getAllAttendance(token);
-        if (result.error) {
-          setError(result.error);
-        } else {
-          setData(result.data || null);
-        }
-      } catch (err) {
-        setError("Failed to fetch attendance data");
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
+    // Initial fetch
     fetchAttendance();
-  }, [token]);
+  }, [fetchAttendance]);
 
   const formatTime = (time?: string | null) => {
     if (!time) return "-";
@@ -92,7 +97,7 @@ export default function AttendanceReportsPage() {
   // Filter data based on search and filters
   const filteredData = data?.data?.filter(emp => {
     const matchesSearch = emp.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         emp.email.toLowerCase().includes(searchTerm.toLowerCase());
+      emp.email.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === "all" || emp.status?.toLowerCase() === statusFilter;
     return matchesSearch && matchesStatus;
   }) || [];
@@ -100,6 +105,10 @@ export default function AttendanceReportsPage() {
   const handleExport = () => {
     // TODO: Implement export functionality
     console.log("Exporting attendance data...");
+  };
+
+  const handleRefresh = () => {
+    fetchAttendance();
   };
 
   return (
@@ -187,7 +196,7 @@ export default function AttendanceReportsPage() {
                   />
                 </div>
               </div>
-              
+
               <Select value={statusFilter} onValueChange={setStatusFilter}>
                 <SelectTrigger className="w-full sm:w-[180px]">
                   <SelectValue placeholder="Status" />
@@ -213,6 +222,11 @@ export default function AttendanceReportsPage() {
                 </SelectContent>
               </Select>
 
+              <Button onClick={handleRefresh} variant="outline" className="w-full sm:w-auto" disabled={isLoading}>
+                <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+                Refresh
+              </Button>
+
               <Button onClick={handleExport} variant="outline" className="w-full sm:w-auto">
                 <Download className="h-4 w-4 mr-2" />
                 Export
@@ -228,7 +242,7 @@ export default function AttendanceReportsPage() {
             <CardDescription>
               {error
                 ? "Failed to load attendance data"
-                : `Date: ${data?.date ?? "-"} • Showing ${filteredData.length} of ${data?.count ?? 0} records`}
+                : `Date: ${data?.date ?? "-"} • Showing ${filteredData.length} of ${data?.count ?? 0} records • Last updated: ${lastRefresh.toLocaleTimeString()}`}
             </CardDescription>
           </CardHeader>
           <CardContent>

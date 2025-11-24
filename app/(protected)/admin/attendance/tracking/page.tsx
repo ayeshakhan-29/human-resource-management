@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Header } from "@/components/header";
 import {
   Card,
@@ -23,14 +23,14 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { getAllAttendance } from "@/lib/actions/attendance.actions";
 import { useAuth } from "@/context/AuthContext";
-import { 
-  Loader2, 
-  Search, 
-  Clock, 
-  Play, 
-  Pause, 
-  Square, 
-  RefreshCw, 
+import {
+  Loader2,
+  Search,
+  Clock,
+  Play,
+  Pause,
+  Square,
+  RefreshCw,
   AlertCircle,
   CheckCircle,
   XCircle,
@@ -65,63 +65,76 @@ export default function TimeTrackingPage() {
   const [timeEntries, setTimeEntries] = useState<TimeEntry[]>([]);
   const [currentTime, setCurrentTime] = useState(new Date());
 
-  useEffect(() => {
-    const fetchAttendance = async () => {
-      if (!token) {
-        setError("No authentication token available");
-        setIsLoading(false);
-        return;
-      }
+  const calculateDuration = (startTime: string): string => {
+    if (!startTime) return "00:00";
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      const start = new Date(`${today}T${startTime}`);
+      const now = new Date();
+      const diff = now.getTime() - start.getTime();
 
-      try {
-        const result = await getAllAttendance(token);
-        if (result.error) {
-          setError(result.error);
-        } else {
-          setData(result.data || null);
-          // Transform attendance data to time entries
-          if (result.data?.data) {
-            const entries: TimeEntry[] = result.data.data.map(emp => ({
-              id: emp.id.toString(),
-              employeeId: emp.id.toString(),
-              employeeName: emp.fullName,
-              date: emp.date,
-              clockIn: emp.clockIn,
-              clockOut: emp.clockOut,
-              totalHours: null,
-              status: emp.clockIn && !emp.clockOut ? 'active' : 
-                     emp.clockIn && emp.clockOut ? 'completed' : 'paused',
-              currentSession: emp.clockIn && !emp.clockOut ? {
-                startTime: emp.clockIn,
-                duration: calculateDuration(emp.clockIn)
-              } : undefined
-            }));
-            setTimeEntries(entries);
-          }
+      if (diff < 0) return "00:00";
+
+      const hours = Math.floor(diff / (1000 * 60 * 60));
+      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+    } catch (e) {
+      return "00:00";
+    }
+  };
+
+  const fetchAttendance = useCallback(async () => {
+    if (!token) {
+      setError("No authentication token available");
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      const result = await getAllAttendance(token);
+      if (result.error) {
+        setError(result.error);
+      } else {
+        setData(result.data || null);
+        setError(null);
+        // Transform attendance data to time entries
+        if (result.data?.data) {
+          const entries: TimeEntry[] = result.data.data.map(emp => ({
+            id: emp.id?.toString(),
+            employeeId: emp.id?.toString(), // Using id as employeeId since userId is not available
+            employeeName: emp.fullName,
+            date: emp.date,
+            clockIn: emp.clockIn,
+            clockOut: emp.clockOut,
+            totalHours: null,
+            status: emp.clockIn && !emp.clockOut ? 'active' :
+              emp.clockIn && emp.clockOut ? 'completed' : 'paused',
+            currentSession: emp.clockIn && !emp.clockOut ? {
+              startTime: emp.clockIn,
+              duration: calculateDuration(emp.clockIn)
+            } : undefined
+          }));
+          setTimeEntries(entries);
         }
-      } catch (err) {
-        setError("Failed to fetch attendance data");
-      } finally {
-        setIsLoading(false);
       }
-    };
-
-    fetchAttendance();
-    
-    // Update current time every second
-    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
-    
-    return () => clearInterval(timer);
+    } catch (err) {
+      setError("Failed to fetch attendance data");
+    } finally {
+      setIsLoading(false);
+    }
   }, [token]);
 
-  const calculateDuration = (startTime: string): string => {
-    const start = new Date(`2000-01-01T${startTime}`);
-    const now = new Date();
-    const diff = now.getTime() - start.getTime();
-    const hours = Math.floor(diff / (1000 * 60 * 60));
-    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
-  };
+  useEffect(() => {
+    fetchAttendance();
+
+    // Update current time every second
+    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+
+    return () => {
+      clearInterval(timer);
+    };
+  }, [fetchAttendance]);
 
   const formatTime = (time?: string | null) => {
     if (!time) return "-";
@@ -156,32 +169,31 @@ export default function TimeTrackingPage() {
   };
 
   const handleStartSession = (employeeId: string) => {
-    setTimeEntries(prev => prev.map(entry => 
-      entry.employeeId === employeeId 
+    setTimeEntries(prev => prev.map(entry =>
+      entry.employeeId === employeeId
         ? { ...entry, status: 'active', clockIn: currentTime.toTimeString().slice(0, 8) }
         : entry
     ));
   };
 
   const handlePauseSession = (employeeId: string) => {
-    setTimeEntries(prev => prev.map(entry => 
-      entry.employeeId === employeeId 
+    setTimeEntries(prev => prev.map(entry =>
+      entry.employeeId === employeeId
         ? { ...entry, status: 'paused' }
         : entry
     ));
   };
 
   const handleStopSession = (employeeId: string) => {
-    setTimeEntries(prev => prev.map(entry => 
-      entry.employeeId === employeeId 
+    setTimeEntries(prev => prev.map(entry =>
+      entry.employeeId === employeeId
         ? { ...entry, status: 'completed', clockOut: currentTime.toTimeString().slice(0, 8) }
         : entry
     ));
   };
 
   const handleRefresh = () => {
-    // Refresh data
-    window.location.reload();
+    fetchAttendance();
   };
 
   // Filter data based on search and filters
@@ -289,7 +301,7 @@ export default function TimeTrackingPage() {
                   />
                 </div>
               </div>
-              
+
               <Select value={statusFilter} onValueChange={setStatusFilter}>
                 <SelectTrigger className="w-full sm:w-[180px]">
                   <SelectValue placeholder="Status" />
@@ -302,8 +314,8 @@ export default function TimeTrackingPage() {
                 </SelectContent>
               </Select>
 
-              <Button onClick={handleRefresh} variant="outline" className="w-full sm:w-auto">
-                <RefreshCw className="h-4 w-4 mr-2" />
+              <Button onClick={handleRefresh} variant="outline" className="w-full sm:w-auto" disabled={isLoading}>
+                <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
                 Refresh
               </Button>
             </div>
@@ -379,13 +391,29 @@ export default function TimeTrackingPage() {
                           </span>
                         </TableCell>
                         <TableCell>
-                          {entry.status === 'active' && entry.currentSession ? (
+                          {entry.status === 'active' && entry.clockIn ? (
                             <div className="flex items-center gap-2">
                               <Clock className="h-4 w-4 text-green-600 animate-pulse" />
                               <span className="font-mono text-sm text-green-600">
-                                {entry.currentSession.duration}
+                                {calculateDuration(entry.clockIn)}
                               </span>
                             </div>
+                          ) : entry.clockIn && entry.clockOut ? (
+                            <span className="font-mono text-sm text-gray-600">
+                              {(() => {
+                                try {
+                                  const today = new Date().toISOString().split('T')[0];
+                                  const start = new Date(`${today}T${entry.clockIn}`);
+                                  const end = new Date(`${today}T${entry.clockOut}`);
+                                  const diff = end.getTime() - start.getTime();
+                                  const hours = Math.floor(diff / (1000 * 60 * 60));
+                                  const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                                  return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+                                } catch {
+                                  return "-";
+                                }
+                              })()}
+                            </span>
                           ) : (
                             <span className="text-gray-500">-</span>
                           )}
@@ -393,8 +421,8 @@ export default function TimeTrackingPage() {
                         <TableCell>
                           <div className="flex items-center gap-2">
                             {entry.status === 'paused' && (
-                              <Button 
-                                size="sm" 
+                              <Button
+                                size="sm"
                                 onClick={() => handleStartSession(entry.employeeId)}
                                 className="h-8 px-3 bg-green-600 hover:bg-green-700"
                               >
@@ -404,8 +432,8 @@ export default function TimeTrackingPage() {
                             )}
                             {entry.status === 'active' && (
                               <>
-                                <Button 
-                                  size="sm" 
+                                <Button
+                                  size="sm"
                                   variant="outline"
                                   onClick={() => handlePauseSession(entry.employeeId)}
                                   className="h-8 px-3"
@@ -413,15 +441,15 @@ export default function TimeTrackingPage() {
                                   <Pause className="h-3 w-3 mr-1" />
                                   Pause
                                 </Button>
-                                                                 <Button 
-                                   size="sm" 
-                                   variant="outline"
-                                   onClick={() => handleStopSession(entry.employeeId)}
-                                   className="h-8 px-3"
-                                 >
-                                   <Square className="h-3 w-3 mr-1" />
-                                   Stop
-                                 </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleStopSession(entry.employeeId)}
+                                  className="h-8 px-3"
+                                >
+                                  <Square className="h-3 w-3 mr-1" />
+                                  Stop
+                                </Button>
                               </>
                             )}
                             <Button size="sm" variant="ghost" className="h-8 px-3">

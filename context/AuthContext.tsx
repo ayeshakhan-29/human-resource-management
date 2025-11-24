@@ -35,9 +35,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const login = (userData: UserType) => {
-    console.log("Login called with userData:", userData);
-    console.log("User role:", userData.role);
-    
     setUser(userData);
     if (typeof window !== "undefined") {
       localStorage.setItem("token", userData.token || "");
@@ -45,19 +42,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     const role = (userData.role || "employee").toString().toLowerCase();
-    console.log("Processed role (lowercase):", role);
-    
+
     if (role === "admin") {
-      console.log("Redirecting to admin dashboard");
       router.push("/admin/dashboard");
     } else if (role === "manager") {
-      console.log("Redirecting to manager dashboard");
       router.push("/manager/dashboard");
     } else if (role === "client") {
-      console.log("Redirecting to client dashboard");
       router.push("/client/dashboard");
     } else {
-      console.log("Redirecting to employee dashboard");
       router.push("/employee/dashboard");
     }
   };
@@ -72,7 +64,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout }}>
+    <AuthContext.Provider value={{ user, login, logout, token: user?.token }}>
       {children}
     </AuthContext.Provider>
   );

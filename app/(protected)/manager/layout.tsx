@@ -25,19 +25,14 @@ export default function ManagerLayout({
     const checkAccess = async () => {
       // Check if user is authenticated
       if (!user) {
-        console.log("No user found, redirecting to login");
         router.push("/auth/login");
         return;
       }
 
       const userRole = (user.role || "").toString().toLowerCase();
-      console.log("Manager Layout - Checking access for user:", user.email);
-      console.log("Manager Layout - User role:", userRole);
-      console.log("Manager Layout - User object:", user);
 
       // Allow access if user has manager role
       if (userRole === "manager") {
-        console.log("✅ User has manager role - granting access");
         setHasAccess(true);
         setIsCheckingAccess(false);
         return;
@@ -50,7 +45,6 @@ export default function ManagerLayout({
           const resp = await getProjectsByManager(id, 1, 1);
           const hasProjects = (resp?.data?.length || 0) > 0;
           if (hasProjects) {
-            console.log("✅ User is assigned as a project manager - granting access");
             setHasAccess(true);
             setIsCheckingAccess(false);
             return;
@@ -61,14 +55,8 @@ export default function ManagerLayout({
       }
 
       // User doesn't have manager role
-      console.log("❌ User doesn't have manager role");
-      console.log("Current role:", userRole);
-      console.log("Required role: manager");
-      
       setHasAccess(false);
       setIsCheckingAccess(false);
-      
-      // Don't auto-redirect, show access denied message instead
     };
 
     checkAccess();
