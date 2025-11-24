@@ -13,26 +13,36 @@ import {
 } from "@/components/ui/card";
 import { Header } from "@/components/header";
 import { getAllEmployees } from "@/lib/actions/employee.actions";
+import { getAllAttendance } from "@/lib/actions/attendance.actions";
 
 export default function AdminDashboard() {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [presentCount, setPresentCount] = useState(0);
 
   useEffect(() => {
-    const fetchEmployees = async () => {
+    const fetchData = async () => {
       try {
-        const response = await getAllEmployees();
-        if (response.success) {
-          setEmployees(response.data);
+        const [employeesRes, attendanceRes] = await Promise.all([
+          getAllEmployees(),
+          getAllAttendance(),
+        ]);
+
+        if (employeesRes.success) {
+          setEmployees(employeesRes.data);
+        }
+
+        if (attendanceRes.data) {
+          setPresentCount(attendanceRes.data.count);
         }
       } catch (error) {
-        console.error("Error fetching employees:", error);
+        console.error("Error fetching dashboard data:", error);
       } finally {
         setIsLoading(false);
       }
     };
 
-    fetchEmployees();
+    fetchData();
   }, []);
   return (
     <>
@@ -80,9 +90,14 @@ export default function AdminDashboard() {
               <Clock className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">18</div>
+              <div className="text-2xl font-bold">
+                {isLoading ? "..." : presentCount}
+              </div>
               <p className="text-xs text-muted-foreground">
-                75% attendance rate
+                {employees.length > 0
+                  ? `${Math.round((presentCount / employees.length) * 100)}%`
+                  : "0%"}
+                {" attendance rate"}
               </p>
             </CardContent>
           </Card>
@@ -144,7 +159,9 @@ export default function AdminDashboard() {
                   <span className="text-sm font-medium">
                     Employees Present:
                   </span>
-                  <span className="text-sm text-gray-600">18/24</span>
+                  <span className="text-sm text-gray-600">
+                    {presentCount}/{employees.length}
+                  </span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-sm font-medium">
