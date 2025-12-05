@@ -129,28 +129,17 @@ export function WorkInformationForm({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Reporting Manager */}
           <div className="space-y-2">
-            <Label>Reporting Manager</Label>
-            <Select
-              onValueChange={(value) =>
-                onInputChange("reportingManager", value)
-              }
+            <Label htmlFor="reportingManager">Reporting Manager</Label>
+            <Input
+              id="reportingManager"
               value={formData.reportingManager}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select manager" />
-              </SelectTrigger>
-              <SelectContent>
-                {["ayesha-rashid", "shamiam", "areej", "waleed"].map(
-                  (manager) => (
-                    <SelectItem key={manager} value={manager}>
-                      {manager
-                        .replace("-", " ")
-                        .replace(/\b\w/g, (c) => c.toUpperCase())}
-                    </SelectItem>
-                  )
-                )}
-              </SelectContent>
-            </Select>
+              onChange={(e) => onInputChange("reportingManager", e.target.value)}
+              placeholder="Enter manager name"
+              className={fieldHasError("reportingManager") ? "border-red-500" : ""}
+            />
+            {fieldHasError("reportingManager") && (
+              <p className="text-red-500 text-sm">{errors.reportingManager?.message}</p>
+            )}
           </div>
 
           {/* Employment Type */}

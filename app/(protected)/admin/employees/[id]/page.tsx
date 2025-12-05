@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { ArrowLeft, Edit, Save, X, Loader2, Key, User, Trash2, Shield, Eye, EyeOff } from "lucide-react";
+import { ArrowLeft, Edit, Save, X, Loader2, Key, User, Trash2, Shield, Eye, EyeOff, Paperclip, Download, Upload } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -41,8 +41,10 @@ import {
   UpdateEmployeeData,
   changeEmployeePassword,
   updateEmployeeRole,
+  uploadEmployeeAttachments,
+  removeEmployeeAttachment,
 } from "@/lib/actions/employee.actions";
-import { EmployeeInfoResponse } from "@/lib/types/employee.types";
+import { EmployeeInfoResponse, Attachment } from "@/lib/types/employee.types";
 
 const DEPARTMENTS = [
   "development",
@@ -74,6 +76,9 @@ export default function EmployeeDetailsPage() {
   const [showRoleDialog, setShowRoleDialog] = useState(false);
   const [selectedRole, setSelectedRole] = useState<"admin" | "employee" | "client" | "manager">("employee");
   const [changingRole, setChangingRole] = useState(false);
+  const [attachments, setAttachments] = useState<Attachment[]>([]);
+  const [newAttachments, setNewAttachments] = useState<File[]>([]);
+  const [uploadingAttachments, setUploadingAttachments] = useState(false);
   const [formData, setFormData] = useState<UpdateEmployeeData>({
     fullName: "",
     email: "",
@@ -93,6 +98,9 @@ export default function EmployeeDetailsPage() {
         const response = await getEmployeeInfoById(employeeId);
         if (response && response.success) {
           setEmployee(response.data);
+          // Ensure attachments is always an array
+          const employeeAttachments = response.data.personalInfo?.attachments;
+          setAttachments(Array.isArray(employeeAttachments) ? employeeAttachments : []);
           setFormData({
             fullName: response.data.fullName || "",
             email: response.data.email || "",
@@ -251,6 +259,107 @@ export default function EmployeeDetailsPage() {
   const handleRoleDialogOpen = () => {
     setSelectedRole((employee?.role as "admin" | "employee" | "client" | "manager") || "employee");
     setShowRoleDialog(true);
+  };
+
+  const handleUploadAttachments = async () => {
+    if (newAttachments.length === 0) {
+      toast.error("Please select files to upload");
+      return;
+    }
+
+    try {
+      setUploadingAttachments(true);
+      const response = await uploadEmployeeAttachments(employeeId, newAttachments);
+      
+      if (response && response.success) {
+        const uploadedAttachments = response.data.attachments;
+        
+        // Filter out any invalid attachments
+        const validAttachments = Array.isArray(uploadedAttachments) 
+          ? uploadedAttachments.filter(att => att && att.filename && att.originalName)
+          : [];
+        
+        setAttachments(validAttachments);
+        setNewAttachments([]);
+        toast.success(`${response.data.newAttachments?.length || 0} attachment(s) uploaded successfully`);
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to upload attachments";
+      toast.error(message);
+    } finally {
+      setUploadingAttachments(false);
+    }
+  };
+
+  const handleRemoveAttachment = async (filename: string) => {
+    if (!confirm("Are you sure you want to delete this attachment?")) {
+      return;
+    }
+
+    try {
+      const response = await removeEmployeeAttachment(employeeId, filename);
+      
+      if (response && response.success) {
+        const remainingAttachments = response.data.remainingAttachments;
+        setAttachments(Array.isArray(remainingAttachments) ? remainingAttachments : []);
+        toast.success("Attachment removed successfully");
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to remove attachment";
+      toast.error(message);
+    }
+  };
+
+  const handleDownloadAttachment = async (filename: string, originalName: string) => {
+    try {
+      const token = localStorage.getItem('token');
+      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5001/api';
+      const downloadUrl = `${backendUrl}/employee/${employeeId}/download-attachment/${filename}`;
+      
+      // Create a temporary link and trigger download
+      const a = document.createElement('a');
+      a.href = `${downloadUrl}?token=${token}`;
+      a.download = originalName || filename;
+      a.target = '_blank';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      
+      toast.success("Download started");
+    } catch (error) {
+      console.error('Error downloading attachment:', error);
+      toast.error('Failed to download attachment');
+    }
+  };
+
+  const handleViewAttachment = async (filename: string, path: string) => {
+    try {
+      // Always use the backend endpoint to get a proper signed URL
+      const token = localStorage.getItem('token');
+      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5001/api';
+      const viewUrl = `${backendUrl}/employee/${employeeId}/view-attachment/${filename}?token=${token}`;
+      window.open(viewUrl, '_blank');
+    } catch (error) {
+      console.error('Error viewing attachment:', error);
+      toast.error('Failed to view attachment');
+    }
+  };
+
+  const formatFileSize = (bytes: number) => {
+    if (bytes === 0) return "0 Bytes";
+    const k = 1024;
+    const sizes = ["Bytes", "KB", "MB", "GB"];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
+  };
+
+  const getFileIcon = (mimetype: string | undefined) => {
+    if (!mimetype) return "📎";
+    if (mimetype.startsWith("image/")) return "🖼️";
+    if (mimetype.includes("pdf")) return "📄";
+    if (mimetype.includes("word")) return "📝";
+    if (mimetype.includes("excel") || mimetype.includes("spreadsheet")) return "📊";
+    return "📎";
   };
 
   const formatDate = (dateString: string | null) => {
@@ -574,6 +683,133 @@ export default function EmployeeDetailsPage() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Attachments Section */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Paperclip className="h-5 w-5" />
+              Employee Attachments
+            </CardTitle>
+            <CardDescription>
+              {isEditing 
+                ? "Upload, view, and manage employee documents (contracts, certificates, etc.)"
+                : "View and download employee documents (contracts, certificates, etc.)"}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* Upload New Attachments - Only show in edit mode */}
+            {isEditing && (
+              <div className="space-y-3">
+                <Label htmlFor="newAttachments">Upload New Attachments</Label>
+                <div className="flex gap-2">
+                  <Input
+                    id="newAttachments"
+                    type="file"
+                    multiple
+                    onChange={(e) => {
+                      if (e.target.files) {
+                        setNewAttachments(Array.from(e.target.files));
+                      }
+                    }}
+                    accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg,.gif,.txt"
+                    className="flex-1"
+                  />
+                  <Button
+                    onClick={handleUploadAttachments}
+                    disabled={uploadingAttachments || newAttachments.length === 0}
+                  >
+                    {uploadingAttachments ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Uploading...
+                      </>
+                    ) : (
+                      <>
+                        <Upload className="mr-2 h-4 w-4" />
+                        Upload
+                      </>
+                    )}
+                  </Button>
+                </div>
+                {newAttachments.length > 0 && (
+                  <p className="text-sm text-muted-foreground">
+                    {newAttachments.length} file(s) selected
+                  </p>
+                )}
+              </div>
+            )}
+
+            {/* Existing Attachments */}
+            {attachments && attachments.length > 0 ? (
+              <div className="space-y-2">
+                <Label>{isEditing ? "Existing Attachments" : "Employee Attachments"} ({attachments.length})</Label>
+                <div className="space-y-2">
+                  {attachments.map((attachment, index) => (
+                    <div
+                      key={attachment.filename || `attachment-${index}`}
+                      className="flex items-center justify-between p-3 bg-blue-50 rounded-lg border border-blue-200"
+                    >
+                      <div className="flex items-center space-x-3">
+                        <span className="text-lg">
+                          {getFileIcon(attachment.mimetype)}
+                        </span>
+                        <div>
+                          <p className="text-sm font-medium text-gray-900">
+                            {attachment.originalName || attachment.filename || "Unknown file"}
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            {formatFileSize(attachment.size || 0)} • Uploaded{" "}
+                            {attachment.uploadedAt ? new Date(attachment.uploadedAt).toLocaleDateString() : "Unknown date"}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleViewAttachment(attachment.filename, attachment.path)}
+                          className="text-green-600 hover:text-green-700 hover:bg-green-100"
+                          title="View attachment"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDownloadAttachment(attachment.filename, attachment.originalName || attachment.filename)}
+                          className="text-blue-600 hover:text-blue-700 hover:bg-blue-100"
+                          title="Download attachment"
+                        >
+                          <Download className="h-4 w-4" />
+                        </Button>
+                        {isEditing && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleRemoveAttachment(attachment.filename)}
+                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                            title="Delete attachment"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                <Paperclip className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                <p>No attachments uploaded yet</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
 
       {/* Delete Confirmation Dialog */}

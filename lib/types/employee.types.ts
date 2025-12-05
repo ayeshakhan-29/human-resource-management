@@ -170,6 +170,7 @@ export interface EmployeeInfoResponse {
       salary: number;
       position: string;
       team: string;
+      attachments?: Attachment[];
     };
   };
 }

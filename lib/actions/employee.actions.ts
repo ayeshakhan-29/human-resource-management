@@ -330,6 +330,24 @@ export const uploadEmployeeAttachments = async (
   return response.json();
 };
 
+export const getEmployeeAttachments = async (
+  employeeId: number
+): Promise<Attachment[]> => {
+  const token = getAuthToken();
+  if (!token) {
+    throw new Error("No authentication token found");
+  }
+
+  const response = await getEmployeeInfoById(employeeId);
+  
+  if (response && response.success && response.data) {
+    // Attachments are stored in userInfo
+    return response.data.personalInfo?.attachments || [];
+  }
+
+  return [];
+};
+
 export const removeEmployeeAttachment = async (
   employeeId: number,
   attachmentId: string
