@@ -93,7 +93,16 @@ export async function clockInAction(token: string): Promise<{
   }
 }
 
-export async function clockOutAction(token: string | null): Promise<{
+export async function clockOutAction(
+  token: string | null,
+  checkoutData?: {
+    taskId: number;
+    taskStatus: "planning" | "in-progress" | "testing" | "blocked" | "completed";
+    workNote?: string;
+    deliverableLink?: string;
+    deliverables?: File[];
+  }
+): Promise<{
   data?: ClockOutResponse;
   error?: string;
   status?: number;
@@ -103,12 +112,37 @@ export async function clockOutAction(token: string | null): Promise<{
       throw new Error("No authentication token found");
     }
 
+    // If there are files, use FormData, otherwise use JSON
+    const files = checkoutData?.deliverables ?? [];
+    const hasFiles = files.length > 0;
+    const formData = new FormData();
+    
+    if (hasFiles) {
+      if (!checkoutData) {
+        throw new Error("Missing checkout data for file upload");
+      }
+      formData.append("taskId", checkoutData.taskId.toString());
+      formData.append("taskStatus", checkoutData.taskStatus);
+      if (checkoutData.workNote) formData.append("workNote", checkoutData.workNote);
+      if (checkoutData.deliverableLink) formData.append("deliverableLink", checkoutData.deliverableLink);
+      files.forEach((file) => {
+        formData.append("deliverables", file);
+      });
+    }
+
+    const headers: HeadersInit = {
+      Authorization: `Bearer ${token}`,
+    };
+
+    if (!hasFiles) {
+      headers["Content-Type"] = "application/json";
+    }
+    // Don't set Content-Type for FormData - browser will set it with boundary
+
     const response = await fetch(getApiUrl('attendance/clock-out'), {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
+      headers,
+      body: hasFiles ? formData : JSON.stringify(checkoutData || {}),
     });
 
     if (!response.ok) {
@@ -134,6 +168,46 @@ export async function clockOutAction(token: string | null): Promise<{
       localStorage.removeItem("user");
     }
 
+    return { error: errorMessage, status };
+  }
+}
+
+export async function getActiveTasksForCheckout(token?: string): Promise<{
+  data?: { id: number; title: string; status: string; priority: string; project?: { id: number; name: string } }[];
+  error?: string;
+  status?: number;
+}> {
+  try {
+    const authToken = token || getAuthToken();
+    if (!authToken) {
+      throw new Error("No authentication token found");
+    }
+
+    const response = await fetch(getApiUrl('attendance/active-tasks'), {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${authToken}`,
+      },
+      cache: "no-store",
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw {
+        status: response.status,
+        message: errorData.message || "Failed to fetch active tasks",
+        response: errorData,
+      };
+    }
+
+    const data = await response.json();
+    return { data: data.data || [] };
+  } catch (error) {
+    const { error: errorMessage, status } = handleApiError(
+      error,
+      "Failed to fetch active tasks. Please try again."
+    );
     return { error: errorMessage, status };
   }
 }

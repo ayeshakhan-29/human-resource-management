@@ -14,6 +14,7 @@ import {
   ListChecks,
   SquarePlus,
   Settings2,
+  FileText,
 } from "lucide-react";
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -89,6 +90,11 @@ const data = {
           icon: Settings2,
         },
       ],
+    },
+    {
+      title: "Daily Work Records",
+      url: "/manager/daily-work-records",
+      icon: FileText,
     },
   ],
 };

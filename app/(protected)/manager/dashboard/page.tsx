@@ -115,6 +115,14 @@ export default function ManagerDashboard() {
           </p>
         </div>
 
+        <div className="flex justify-end">
+          <Button asChild variant="outline">
+            <Link href="/employee/dashboard">
+              Go to Employee Dashboard
+            </Link>
+          </Button>
+        </div>
+
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
           <Card className="bg-gradient-to-r from-blue-50 to-blue-100 border-blue-200">

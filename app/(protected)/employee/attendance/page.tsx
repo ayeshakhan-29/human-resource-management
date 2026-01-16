@@ -25,6 +25,7 @@ import {
 } from "@/lib/actions/attendance.actions";
 import { WeeklyAttendanceRecord as BackendWeeklyRecord } from "@/lib/types/attendance.types";
 import { AttendanceHistoryTable } from "@/components/attendance/AttendanceHistoryTable";
+import { CheckoutForm } from "@/components/attendance/CheckoutForm";
 
 // SWR fetcher function
 const fetcher = async (url: string) => {
@@ -78,6 +79,7 @@ export default function EmployeeAttendancePage() {
   const [checkInTime, setCheckInTime] = useState<Date | null>(null);
   const [workingHours, setWorkingHours] = useState(0);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [showCheckoutForm, setShowCheckoutForm] = useState(false);
   const { mutate: globalMutate } = useSWRConfig();
 
   // Use SWR for real-time data fetching with polling
@@ -324,7 +326,17 @@ export default function EmployeeAttendancePage() {
     }
   };
 
-  const handleCheckOut = async () => {
+  const handleCheckOutClick = () => {
+    setShowCheckoutForm(true);
+  };
+
+  const handleCheckOut = async (checkoutData: {
+    taskId: number;
+    taskStatus: "planning" | "in-progress" | "testing" | "blocked" | "completed";
+    workNote?: string;
+    deliverableLink?: string;
+    deliverables?: File[];
+  }) => {
     const token = getAuthToken();
     if (!token) {
       throw new Error("No authentication token found");
@@ -362,8 +374,8 @@ export default function EmployeeAttendancePage() {
       // Update the cache optimistically
       await mutateWeeklyData(optimisticData, false);
 
-      // Make the API call
-      const { data, error } = await clockOutAction(token);
+      // Make the API call with checkout data
+      const { data, error } = await clockOutAction(token, checkoutData);
 
       if (error) throw new Error(error);
 
@@ -394,6 +406,7 @@ export default function EmployeeAttendancePage() {
       toast.error("Check-out failed", {
         description: err.message || "Failed to check out. Please try again.",
       });
+      throw error; // Re-throw to let the form handle it
     } finally {
       setIsLoading(false);
     }
@@ -480,7 +493,7 @@ export default function EmployeeAttendancePage() {
                 </Button>
               ) : attendanceStatus === "checked_in" ? (
                 <Button
-                  onClick={handleCheckOut}
+                  onClick={handleCheckOutClick}
                   variant="destructive"
                   className="w-full"
                   size="lg"
@@ -578,6 +591,13 @@ export default function EmployeeAttendancePage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Checkout Form Dialog */}
+      <CheckoutForm
+        open={showCheckoutForm}
+        onOpenChange={setShowCheckoutForm}
+        onCheckout={handleCheckOut}
+      />
     </>
   );
 }

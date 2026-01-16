@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useEffect } from "react";
 import { Header } from "@/components/header";
-import { getTasksByAssignee, updateTaskProgress, updateTask, submitDeliverables } from "@/lib/actions/task.actions";
+import { getTasksByAssignee } from "@/lib/actions/task.actions";
 import { Task, TaskStatus, TaskPriority } from "@/lib/types/task.types";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
@@ -32,11 +32,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Progress } from "@/components/ui/progress";
-import { ListChecks, Calendar, Users, BarChart3, Upload, FileText } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+import { ListChecks, Calendar, Users, BarChart3 } from "lucide-react";
 
 export default function EmployeeTasksPage() {
   const { user } = useAuth();
@@ -44,10 +40,6 @@ export default function EmployeeTasksPage() {
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState("all");
   const [priorityFilter, setPriorityFilter] = useState("all");
-  const [updatingProgress, setUpdatingProgress] = useState<number | null>(null);
-  const [submittingDeliverables, setSubmittingDeliverables] = useState<number | null>(null);
-  const [deliverablesFile, setDeliverablesFile] = useState<File | null>(null);
-  const [deliverablesComment, setDeliverablesComment] = useState("");
 
   // Fetch tasks assigned to current user
   useEffect(() => {
@@ -121,54 +113,6 @@ export default function EmployeeTasksPage() {
     }
   };
 
-  const handleUpdateProgress = async (taskId: number, newProgress: number) => {
-    try {
-      setUpdatingProgress(taskId);
-      await updateTaskProgress(taskId, { progress: newProgress });
-      // Update local state
-      setTasks(tasks.map(task =>
-        task.id === taskId ? { ...task, progress: newProgress, status: newProgress === 100 ? 'completed' : newProgress > 0 ? 'in-progress' : 'pending' } : task
-      ));
-      toast.success("Progress updated successfully!");
-    } catch (error) {
-      console.error("Failed to update progress:", error);
-      toast.error("Failed to update progress, please try again!");
-    } finally {
-      setUpdatingProgress(null);
-    }
-  };
-
-  const handleSubmitDeliverables = async (taskId: number) => {
-    if (!deliverablesFile) {
-      toast.error("Please select a file to upload!");
-      return;
-    }
-
-    try {
-      setSubmittingDeliverables(taskId);
-      const formData = new FormData();
-      formData.append('files', deliverablesFile);
-      if (deliverablesComment) {
-        formData.append('comment', deliverablesComment);
-      }
-
-      await submitDeliverables(taskId, formData);
-
-      // Refresh tasks to show updated status
-      const response = await getTasksByAssignee(parseInt(user?.id || '0'));
-      setTasks(response.data);
-
-      toast.success("Deliverables submitted successfully!");
-      setDeliverablesFile(null);
-      setDeliverablesComment("");
-      // Close the dialog by setting submitting state to null
-      setSubmittingDeliverables(null);
-    } catch (error) {
-      console.error("Failed to submit deliverables:", error);
-      toast.error("Failed to submit deliverables, please try again!");
-      setSubmittingDeliverables(null);
-    }
-  };
 
   return (
     <>
@@ -294,20 +238,18 @@ export default function EmployeeTasksPage() {
                     <TableHead className="font-semibold">Due Date</TableHead>
                     <TableHead className="font-semibold">Priority</TableHead>
                     <TableHead className="font-semibold">Status</TableHead>
-                    <TableHead className="font-semibold">Progress</TableHead>
-                    <TableHead className="font-semibold">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {loading ? (
                     <TableRow>
-                      <TableCell colSpan={7} className="text-center py-10 text-gray-500">
+                      <TableCell colSpan={5} className="text-center py-10 text-gray-500">
                         Loading tasks...
                       </TableCell>
                     </TableRow>
                   ) : filteredTasks.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={7} className="text-center py-10 text-gray-500">
+                      <TableCell colSpan={5} className="text-center py-10 text-gray-500">
                         No tasks found. Adjust filters or check with your manager.
                       </TableCell>
                     </TableRow>
@@ -324,62 +266,6 @@ export default function EmployeeTasksPage() {
                         <TableCell>{task.dueDate ? formatDate(task.dueDate) : "No due date"}</TableCell>
                         <TableCell>{priorityBadge(task.priority)}</TableCell>
                         <TableCell>{statusBadge(task.status)}</TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            <Progress value={task.progress} className="w-20" />
-                            <span className="text-sm">{task.progress}%</span>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex gap-2">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleUpdateProgress(task.id, Math.min(task.progress + 25, 100))}
-                              disabled={updatingProgress === task.id || task.status === 'completed'}
-                            >
-                              {updatingProgress === task.id ? "Updating..." : "Update Progress"}
-                            </Button>
-                            <Dialog>
-                              <DialogTrigger asChild>
-                                <Button size="sm" variant="outline">
-                                  <Upload className="h-4 w-4 mr-1" />
-                                  Submit Deliverables
-                                </Button>
-                              </DialogTrigger>
-                              <DialogContent>
-                                <DialogHeader>
-                                  <DialogTitle>Submit Deliverables for {task.title}</DialogTitle>
-                                </DialogHeader>
-                                <div className="space-y-4">
-                                  <div>
-                                    <Label htmlFor="file">Upload File</Label>
-                                    <Input
-                                      id="file"
-                                      type="file"
-                                      onChange={(e) => setDeliverablesFile(e.target.files?.[0] || null)}
-                                    />
-                                  </div>
-                                  <div>
-                                    <Label htmlFor="comment">Comment (optional)</Label>
-                                    <Textarea
-                                      id="comment"
-                                      value={deliverablesComment}
-                                      onChange={(e) => setDeliverablesComment(e.target.value)}
-                                      placeholder="Add any comments about the deliverables..."
-                                    />
-                                  </div>
-                                  <Button
-                                    onClick={() => handleSubmitDeliverables(task.id)}
-                                    disabled={submittingDeliverables === task.id}
-                                  >
-                                    {submittingDeliverables === task.id ? "Submitting..." : "Submit"}
-                                  </Button>
-                                </div>
-                              </DialogContent>
-                            </Dialog>
-                          </div>
-                        </TableCell>
                       </TableRow>
                     ))
                   )}

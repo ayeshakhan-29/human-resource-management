@@ -95,6 +95,11 @@ const data = {
           icon: Clock,
         },
         {
+          title: "Daily Work Records",
+          url: "/admin/daily-work-records",
+          icon: FileText,
+        },
+        {
           title: "Attendance Reports",
           url: "/admin/attendance/reports",
           icon: BarChart3,
