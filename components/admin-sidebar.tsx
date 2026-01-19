@@ -99,11 +99,7 @@ const data = {
           url: "/admin/daily-work-records",
           icon: FileText,
         },
-        {
-          title: "Attendance Reports",
-          url: "/admin/attendance/reports",
-          icon: BarChart3,
-        },
+
         {
           title: "Time Tracking",
           url: "/admin/attendance/tracking",
