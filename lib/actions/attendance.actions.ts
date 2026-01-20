@@ -119,8 +119,12 @@ export async function clockOutAction(
       if (!checkoutData) {
         throw new Error("Missing checkout data for file upload");
       }
-      formData.append("taskId", checkoutData.taskId.toString());
-      formData.append("taskStatus", checkoutData.taskStatus);
+      if (typeof checkoutData.taskId === "number") {
+        formData.append("taskId", checkoutData.taskId.toString());
+      }
+      if (checkoutData.taskStatus) {
+        formData.append("taskStatus", checkoutData.taskStatus);
+      }
       if (checkoutData.workNote) formData.append("workNote", checkoutData.workNote);
       if (checkoutData.deliverableLink) formData.append("deliverableLink", checkoutData.deliverableLink);
       files.forEach((file) => {
