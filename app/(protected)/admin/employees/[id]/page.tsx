@@ -48,18 +48,24 @@ import { EmployeeInfoResponse, Attachment } from "@/lib/types/employee.types";
 
 const DEPARTMENTS = [
   "development",
-  "design", 
+  "design",
   "seo",
   "marketing",
   "content writing",
-  "human resources",
-  "dispatch",
+  "client",
 ];
 
 export default function EmployeeDetailsPage() {
   const router = useRouter();
   const params = useParams();
   const employeeId = parseInt(params.id as string);
+
+  const toDateInputValue = (value: string | undefined | null) => {
+    if (!value) return "";
+    const d = new Date(value);
+    if (isNaN(d.valueOf())) return "";
+    return d.toISOString().split("T")[0];
+  };
 
   const [employee, setEmployee] = useState<EmployeeInfoResponse["data"] | null>(null);
   const [loading, setLoading] = useState(true);
@@ -107,7 +113,7 @@ export default function EmployeeDetailsPage() {
             status: response.data.status || "",
             contactNumber: response.data.personalInfo?.contactNumber || "",
             address: response.data.personalInfo?.address || "",
-            dob: response.data.personalInfo?.dob || "",
+            dob: toDateInputValue(response.data.personalInfo?.dob),
             department: response.data.personalInfo?.department || "",
             position: response.data.personalInfo?.position || "",
             reportingManager: response.data.personalInfo?.reportingManager || "",
@@ -175,7 +181,7 @@ export default function EmployeeDetailsPage() {
         status: employee.status || "",
         contactNumber: employee.personalInfo?.contactNumber || "",
         address: employee.personalInfo?.address || "",
-        dob: employee.personalInfo?.dob || "",
+        dob: toDateInputValue(employee.personalInfo?.dob),
         department: employee.personalInfo?.department || "",
         position: employee.personalInfo?.position || "",
         reportingManager: employee.personalInfo?.reportingManager || "",
