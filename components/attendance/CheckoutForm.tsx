@@ -38,8 +38,8 @@ interface CheckoutFormProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onCheckout: (data: {
-    taskId: number;
-    taskStatus: "planning" | "in-progress" | "testing" | "blocked" | "completed";
+    taskId?: number;
+    taskStatus?: "planning" | "in-progress" | "testing" | "blocked" | "completed";
     workNote?: string;
     deliverableLink?: string;
     deliverables?: File[];
@@ -111,11 +111,6 @@ export function CheckoutForm({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.taskId || !formData.taskStatus) {
-      toast.error("Please fill in all required fields");
-      return;
-    }
-
     // Validate work note length
     if (formData.workNote && formData.workNote.length > 120) {
       toast.error("Work note must be 120 characters or less");
@@ -134,13 +129,30 @@ export function CheckoutForm({
 
     try {
       setSubmitting(true);
-      await onCheckout({
-        taskId: parseInt(formData.taskId),
-        taskStatus: formData.taskStatus as "planning" | "in-progress" | "testing" | "blocked" | "completed",
-        workNote: formData.workNote || undefined,
-        deliverableLink: formData.deliverableLink || undefined,
-        deliverables: deliverableFiles.length > 0 ? deliverableFiles : undefined,
-      });
+      const payload: {
+        taskId?: number;
+        taskStatus?: "planning" | "in-progress" | "testing" | "blocked" | "completed";
+        workNote?: string;
+        deliverableLink?: string;
+        deliverables?: File[];
+      } = {};
+      if (formData.taskId) {
+        payload.taskId = parseInt(formData.taskId);
+      }
+      if (formData.taskStatus) {
+        payload.taskStatus = formData.taskStatus as "planning" | "in-progress" | "testing" | "blocked" | "completed";
+      }
+      if (formData.workNote) {
+        payload.workNote = formData.workNote;
+      }
+      if (formData.deliverableLink) {
+        payload.deliverableLink = formData.deliverableLink;
+      }
+      if (deliverableFiles.length > 0) {
+        payload.deliverables = deliverableFiles;
+      }
+
+      await onCheckout(payload);
       onOpenChange(false);
     } catch (error) {
       console.error("Checkout error:", error);
@@ -163,7 +175,7 @@ export function CheckoutForm({
           {/* Task Selection */}
           <div className="space-y-2">
             <Label htmlFor="task">
-              Task <span className="text-red-500">*</span>
+              Task
             </Label>
             {loading ? (
               <div className="flex items-center justify-center py-4">
@@ -175,7 +187,6 @@ export function CheckoutForm({
                 onValueChange={(value) =>
                   setFormData({ ...formData, taskId: value })
                 }
-                required
               >
                 <SelectTrigger id="task">
                   <SelectValue placeholder="Select a task" />
@@ -206,7 +217,7 @@ export function CheckoutForm({
           {/* Task Status */}
           <div className="space-y-2">
             <Label htmlFor="taskStatus">
-              Task Status <span className="text-red-500">*</span>
+              Task Status
             </Label>
             <Select
               value={formData.taskStatus}
@@ -216,7 +227,6 @@ export function CheckoutForm({
                   taskStatus: value as typeof formData.taskStatus,
                 })
               }
-              required
             >
               <SelectTrigger id="taskStatus">
                 <SelectValue placeholder="Select task status" />

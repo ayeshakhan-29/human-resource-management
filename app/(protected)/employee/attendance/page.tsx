@@ -331,8 +331,8 @@ export default function EmployeeAttendancePage() {
   };
 
   const handleCheckOut = async (checkoutData: {
-    taskId: number;
-    taskStatus: "planning" | "in-progress" | "testing" | "blocked" | "completed";
+    taskId?: number;
+    taskStatus?: "planning" | "in-progress" | "testing" | "blocked" | "completed";
     workNote?: string;
     deliverableLink?: string;
     deliverables?: File[];

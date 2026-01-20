@@ -94,8 +94,8 @@ export async function clockInAction(token: string): Promise<{
 export async function clockOutAction(
   token: string | null,
   checkoutData?: {
-    taskId: number;
-    taskStatus: "planning" | "in-progress" | "testing" | "blocked" | "completed";
+    taskId?: number;
+    taskStatus?: "planning" | "in-progress" | "testing" | "blocked" | "completed";
     workNote?: string;
     deliverableLink?: string;
     deliverables?: File[];
