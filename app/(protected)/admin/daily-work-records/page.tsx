@@ -132,7 +132,8 @@ export default function AdminDailyWorkRecordsPage() {
     fetchRecords();
   }, [fetchRecords]);
 
-  const getStatusBadgeVariant = (status: string) => {
+  const getStatusBadgeVariant = (status: string | null) => {
+    if (!status) return "outline";
     switch (status) {
       case "completed":
         return "default";
@@ -177,7 +178,7 @@ export default function AdminDailyWorkRecordsPage() {
       formatTime(record.checkIn) || "-",
       formatTime(record.checkOut) || "-",
       record.task?.name || "No task assigned",
-      record.taskStatus,
+      record.taskStatus || "No Status",
       record.workNote || "-",
       record.deliverableLink || "-",
       record.formattedHours,
@@ -361,7 +362,7 @@ export default function AdminDailyWorkRecordsPage() {
                           <Badge
                             variant={getStatusBadgeVariant(record.taskStatus)}
                           >
-                            {record.taskStatus}
+                            {record.taskStatus || "No Status"}
                           </Badge>
                         </TableCell>
                         <TableCell className="max-w-[200px] truncate">

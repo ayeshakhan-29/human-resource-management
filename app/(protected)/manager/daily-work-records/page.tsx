@@ -120,7 +120,8 @@ export default function ManagerDailyWorkRecordsPage() {
     fetchRecords();
   }, [fetchRecords]);
 
-  const getStatusBadgeVariant = (status: string) => {
+  const getStatusBadgeVariant = (status: string | null) => {
+    if (!status) return "outline";
     switch (status) {
       case "completed":
         return "default";
@@ -302,7 +303,7 @@ export default function ManagerDailyWorkRecordsPage() {
                           <Badge
                             variant={getStatusBadgeVariant(record.taskStatus)}
                           >
-                            {record.taskStatus}
+                            {record.taskStatus || "No Status"}
                           </Badge>
                         </TableCell>
                         <TableCell className="max-w-[200px] truncate">
