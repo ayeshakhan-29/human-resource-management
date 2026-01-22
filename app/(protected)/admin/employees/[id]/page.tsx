@@ -46,15 +46,6 @@ import {
 } from "@/lib/actions/employee.actions";
 import { EmployeeInfoResponse, Attachment } from "@/lib/types/employee.types";
 
-const DEPARTMENTS = [
-  "development",
-  "design",
-  "seo",
-  "marketing",
-  "content writing",
-  "client",
-];
-
 export default function EmployeeDetailsPage() {
   const router = useRouter();
   const params = useParams();
@@ -617,21 +608,12 @@ export default function EmployeeDetailsPage() {
               <div className="space-y-2">
                 <Label htmlFor="department">Department</Label>
                 {isEditing ? (
-                  <Select
+                  <Input
+                    id="department"
                     value={formData.department}
-                    onValueChange={(value) => handleInputChange("department", value)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select department" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {DEPARTMENTS.map((dept) => (
-                        <SelectItem key={dept} value={dept}>
-                          {dept.charAt(0).toUpperCase() + dept.slice(1)}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                    onChange={(e) => handleInputChange("department", e.target.value)}
+                    placeholder="Enter department"
+                  />
                 ) : (
                   <p className="text-sm font-medium">
                     {employee.personalInfo?.department || "Not provided"}

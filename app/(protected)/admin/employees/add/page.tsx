@@ -32,25 +32,6 @@ export default function AddEmployeePage() {
   );
   const [createdUserId, setCreatedUserId] = useState<number | undefined>(undefined);
 
-  const validateField = (field: string, value: string | number) => {
-    const errors: Record<string, { message: string }> = {};
-
-    try {
-      const tempData = { [field]: value };
-      employeeFormSchema.pick({ [field]: true }).parse(tempData);
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        error.issues.forEach((issue) => {
-          if (issue.path[0] === field) {
-            errors[field] = { message: issue.message };
-          }
-        });
-      }
-    }
-
-    return errors;
-  };
-
   const handleInputChange = (field: string, value: string | number) => {
     setFormData((prev) => ({
       ...prev,
@@ -62,6 +43,7 @@ export default function AddEmployeePage() {
           : value,
     }));
 
+    // Clear field error when user starts typing
     if (formErrors[field]) {
       setFormErrors((prev) => {
         const newErrors = { ...prev };
@@ -70,17 +52,32 @@ export default function AddEmployeePage() {
       });
     }
 
-    const fieldErrors = validateField(
-      field,
-      field === "salary" && typeof value === "string"
-        ? parseInt(value, 10) || 0
-        : value
-    );
-    if (Object.keys(fieldErrors).length > 0) {
-      setFormErrors((prev) => ({
-        ...prev,
-        ...fieldErrors,
-      }));
+    // Real-time validation for specific fields
+    if (field === "email" && value && typeof value === "string") {
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+        setFormErrors((prev) => ({
+          ...prev,
+          [field]: { message: "Please enter a valid email address" },
+        }));
+      }
+    }
+
+    if (field === "cnic" && value && typeof value === "string") {
+      if (!/^\d{5}-\d{7}-\d{1}$/.test(value)) {
+        setFormErrors((prev) => ({
+          ...prev,
+          [field]: { message: "CNIC format should be 12345-1234567-1" },
+        }));
+      }
+    }
+
+    if (field === "contactNumber" && value && typeof value === "string") {
+      if (!/^[\+]?[0-9\s\-\(\)]{10,}$/.test(value)) {
+        setFormErrors((prev) => ({
+          ...prev,
+          [field]: { message: "Please enter a valid phone number" },
+        }));
+      }
     }
   };
 
@@ -94,7 +91,10 @@ export default function AddEmployeePage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Check for required fields
+    // Clear previous errors
+    setFormErrors({});
+
+    // Check for required fields and set individual field errors
     const requiredFields = [
       "fullName",
       "email",
@@ -106,20 +106,39 @@ export default function AddEmployeePage() {
       "employmentType",
     ];
 
-    const missingFields = requiredFields.filter((field) => {
+    const newErrors: Record<string, { message: string }> = {};
+    let hasErrors = false;
+
+    requiredFields.forEach((field) => {
       const value = formData[field as keyof typeof formData];
-      return value === "" || value === undefined || value === null;
+      if (value === "" || value === undefined || value === null) {
+        newErrors[field] = { message: "This field is required" };
+        hasErrors = true;
+      }
     });
 
-    if (missingFields.length > 0) {
-      setFormErrors((prev) => ({
-        ...prev,
-        form: {
-          message: `Missing required fields: ${missingFields.join(", ")}`,
-        },
-      }));
+    // Additional validation for specific fields
+    if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      newErrors.email = { message: "Please enter a valid email address" };
+      hasErrors = true;
+    }
+
+    if (formData.cnic && !/^\d{5}-\d{7}-\d{1}$/.test(formData.cnic)) {
+      newErrors.cnic = { message: "CNIC format should be 12345-1234567-1" };
+      hasErrors = true;
+    }
+
+    if (formData.contactNumber && !/^[\+]?[0-9\s\-\(\)]{10,}$/.test(formData.contactNumber)) {
+      newErrors.contactNumber = { message: "Please enter a valid phone number" };
+      hasErrors = true;
+    }
+
+    if (hasErrors) {
+      setFormErrors(newErrors);
+      toast.error("Please fill in all required fields correctly");
       return;
     }
+
     setIsLoading(true);
 
     try {
@@ -240,6 +259,13 @@ export default function AddEmployeePage() {
           className="space-y-6"
           id="addEmployeeForm"
         >
+          {formErrors.form && (
+            <Alert className="border-red-200 bg-red-50">
+              <AlertDescription className="text-red-800">
+                {formErrors.form.message}
+              </AlertDescription>
+            </Alert>
+          )}
           <PersonalInformationForm
             formData={formData}
             onInputChange={handleInputChange}

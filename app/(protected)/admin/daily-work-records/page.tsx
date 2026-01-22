@@ -56,8 +56,8 @@ interface DailyWorkRecord {
     name: string;
     status: string;
     priority: string;
-  };
-  taskStatus: "planning" | "in-progress" | "testing" | "blocked" | "completed";
+  } | null; // Task can be null when no task was selected during checkout
+  taskStatus: "planning" | "in-progress" | "testing" | "blocked" | "completed" | null;
   workNote: string | null;
   deliverableLink: string | null;
   deliverables: Deliverable[];
@@ -176,7 +176,7 @@ export default function AdminDailyWorkRecordsPage() {
       format(new Date(record.date), "MMM dd, yyyy"),
       formatTime(record.checkIn) || "-",
       formatTime(record.checkOut) || "-",
-      record.task.name,
+      record.task?.name || "No task assigned",
       record.taskStatus,
       record.workNote || "-",
       record.deliverableLink || "-",
@@ -351,9 +351,9 @@ export default function AdminDailyWorkRecordsPage() {
                         <TableCell>{formatTime(record.checkOut)}</TableCell>
                         <TableCell>
                           <div>
-                            <div className="font-medium">{record.task.name}</div>
+                            <div className="font-medium">{record.task?.name || "No task assigned"}</div>
                             <div className="text-xs text-gray-500">
-                              {record.task.priority}
+                              {record.task?.priority || "N/A"}
                             </div>
                           </div>
                         </TableCell>

@@ -59,18 +59,7 @@ export default function AddProjectPage() {
   const [clients, setClients] = useState<Client[]>([]);
   const [loadingClients, setLoadingClients] = useState(false);
 
-  // Department and team state
-  const DEPARTMENTS = [
-    "Development",
-    "Design",
-    "Seo",
-    "Marketing",
-    "Content Writing",
-    "Human Resources",
-    "Dispatch",
-  ] as const;
-
-  const [selectedDepartment, setSelectedDepartment] = useState<string>("");
+  // Team state
   const [allEmployees, setAllEmployees] = useState<Employee[]>([]);
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>("");
@@ -208,7 +197,6 @@ export default function AddProjectPage() {
       clientId: ''
     });
     setTeamMembers([]);
-    setSelectedDepartment("");
     setSelectedEmployeeId("");
     setErrors({});
     setSelectedFile(null);
@@ -228,12 +216,6 @@ export default function AddProjectPage() {
     };
     run();
   }, []);
-
-  // Employees filtered by selected department
-  const filteredEmployees = useMemo(() => {
-    if (!selectedDepartment) return [] as Employee[];
-    return (allEmployees || []).filter(e => (e.userInfo?.department || "").toLowerCase() === selectedDepartment.toLowerCase());
-  }, [allEmployees, selectedDepartment]);
 
   return (
     <>
@@ -428,43 +410,26 @@ export default function AddProjectPage() {
               )}
             </div>
 
-            {/* Department Selection */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="department">Department</Label>
-                <Select value={selectedDepartment} onValueChange={setSelectedDepartment}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select department" />
+            {/* Team Member Selection */}
+            <div className="space-y-2">
+              <Label htmlFor="teamAdd">Add Team Member</Label>
+              <div className="flex gap-2">
+                <Select value={selectedEmployeeId} onValueChange={setSelectedEmployeeId}>
+                  <SelectTrigger className="flex-1">
+                    <SelectValue placeholder="Select employee" />
                   </SelectTrigger>
                   <SelectContent>
-                    {DEPARTMENTS.map((dep) => (
-                      <SelectItem key={dep} value={dep}>{dep}</SelectItem>
+                    {allEmployees.map((emp: Employee) => (
+                      <SelectItem key={emp.id} value={String(emp.id)}>
+                        {emp.fullName} ({emp.email}) - {emp.userInfo?.department || 'No Dept'}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
-              </div>
-
-              {/* Add Employee from selected department */}
-              <div className="space-y-2">
-                <Label htmlFor="teamAdd">Add Team Member</Label>
-                <div className="flex gap-2">
-                  <Select value={selectedEmployeeId} onValueChange={setSelectedEmployeeId}>
-                    <SelectTrigger className="flex-1">
-                      <SelectValue placeholder={selectedDepartment ? "Select employee" : "Select department first"} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {filteredEmployees.map((emp: Employee) => (
-                        <SelectItem key={emp.id} value={String(emp.id)}>
-                          {emp.fullName} ({emp.email})
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <Button type="button" variant="outline" onClick={addTeamMember} disabled={!selectedEmployeeId}>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add
-                  </Button>
-                </div>
+                <Button type="button" variant="outline" onClick={addTeamMember} disabled={!selectedEmployeeId}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add
+                </Button>
               </div>
             </div>
 

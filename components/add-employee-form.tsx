@@ -133,23 +133,15 @@ export function AddEmployeeForm({ onSuccess }: AddEmployeeFormProps) {
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label htmlFor="department">Department</Label>
-          <Select
+          <Input
+            id="department"
             value={formData.department}
-            onValueChange={(value) =>
-              setFormData((prev) => ({ ...prev, department: value }))
+            onChange={(e) =>
+              setFormData((prev) => ({ ...prev, department: e.target.value }))
             }
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Select department" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="engineering">Engineering</SelectItem>
-              <SelectItem value="marketing">Marketing</SelectItem>
-              <SelectItem value="sales">Sales</SelectItem>
-              <SelectItem value="hr">Human Resources</SelectItem>
-              <SelectItem value="finance">Finance</SelectItem>
-            </SelectContent>
-          </Select>
+            placeholder="Enter department"
+            required
+          />
         </div>
         <div className="space-y-2">
           <Label htmlFor="position">Position</Label>

@@ -17,16 +17,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-const DEPARTMENTS = [
-    "Development",
-    "Design",
-    "Seo",
-    "Marketing",
-    "Content Writing",
-    "Human Resources",
-    "Dispatch",
-] as const;
-
 const EMPLOYMENT_TYPES = [
   "permanent",
   "contract",
@@ -81,28 +71,14 @@ export function WorkInformationForm({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Department */}
           <div className="space-y-2">
-            <Label>Department *</Label>
-            <div
-              className={
-                fieldHasError("department") ? "border-red-500 rounded-md" : ""
-              }
-            >
-              <Select
-                onValueChange={(value) => onInputChange("department", value)}
-                value={formData.department}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select department" />
-                </SelectTrigger>
-                <SelectContent>
-                  {DEPARTMENTS.map((dept) => (
-                    <SelectItem key={dept} value={dept}>
-                      {dept.charAt(0).toUpperCase() + dept.slice(1)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            <Label htmlFor="department">Department *</Label>
+            <Input
+              id="department"
+              value={formData.department}
+              onChange={(e) => onInputChange("department", e.target.value)}
+              placeholder="Enter department (e.g., Development, Design, Marketing)"
+              className={fieldHasError("department") ? "border-red-500" : ""}
+            />
             {fieldHasError("department") && (
               <p className="text-red-500 text-sm">
                 {errors.department?.message}
@@ -145,31 +121,23 @@ export function WorkInformationForm({
           {/* Employment Type */}
           <div className="space-y-2">
             <Label>Employment Type *</Label>
-            <div
-              className={
-                fieldHasError("employmentType")
-                  ? "border-red-500 rounded-md"
-                  : ""
+            <Select
+              onValueChange={(value) =>
+                onInputChange("employmentType", value)
               }
+              value={formData.employmentType}
             >
-              <Select
-                onValueChange={(value) =>
-                  onInputChange("employmentType", value)
-                }
-                value={formData.employmentType}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select employment type" />
-                </SelectTrigger>
-                <SelectContent>
-                  {EMPLOYMENT_TYPES.map((type) => (
-                    <SelectItem key={type} value={type}>
-                      {type.charAt(0).toUpperCase() + type.slice(1)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+              <SelectTrigger className={`w-full ${fieldHasError("employmentType") ? "border-red-500" : ""}`}>
+                <SelectValue placeholder="Select employment type" />
+              </SelectTrigger>
+              <SelectContent>
+                {EMPLOYMENT_TYPES.map((type) => (
+                  <SelectItem key={type} value={type}>
+                    {type.charAt(0).toUpperCase() + type.slice(1)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             {fieldHasError("employmentType") && (
               <p className="text-red-500 text-sm">
                 {errors.employmentType?.message}
@@ -224,7 +192,11 @@ export function WorkInformationForm({
               onChange={(e) =>
                 onInputChange("probationEndDate", e.target.value)
               }
+              className={fieldHasError("probationEndDate") ? "border-red-500" : ""}
             />
+            {fieldHasError("probationEndDate") && (
+              <p className="text-red-500 text-sm">{errors.probationEndDate?.message}</p>
+            )}
           </div>
 
           {/* Team */}
@@ -234,7 +206,7 @@ export function WorkInformationForm({
               onValueChange={(value) => onInputChange("team", value)}
               value={formData.team}
             >
-              <SelectTrigger>
+              <SelectTrigger className={fieldHasError("team") ? "border-red-500" : ""}>
                 <SelectValue placeholder="Select team" />
               </SelectTrigger>
               <SelectContent>
@@ -245,6 +217,9 @@ export function WorkInformationForm({
                 ))}
               </SelectContent>
             </Select>
+            {fieldHasError("team") && (
+              <p className="text-red-500 text-sm">{errors.team?.message}</p>
+            )}
           </div>
         </div>
       </CardContent>
