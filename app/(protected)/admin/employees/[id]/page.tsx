@@ -610,7 +610,7 @@ export default function EmployeeDetailsPage() {
                 <Label htmlFor="department">Department</Label>
                 {isEditing ? (
                   <DepartmentManager
-                    value={formData.department}
+                    value={formData.department ?? ""}
                     onValueChange={(value) => handleInputChange("department", value)}
                     placeholder="Select department"
                   />
