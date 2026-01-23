@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/select";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { CheckCircle } from "lucide-react";
+import { DepartmentManager } from "@/components/department-manager";
 
 interface AddEmployeeFormProps {
   onSuccess: () => void;
@@ -133,14 +134,12 @@ export function AddEmployeeForm({ onSuccess }: AddEmployeeFormProps) {
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label htmlFor="department">Department</Label>
-          <Input
-            id="department"
+          <DepartmentManager
             value={formData.department}
-            onChange={(e) =>
-              setFormData((prev) => ({ ...prev, department: e.target.value }))
+            onValueChange={(value) =>
+              setFormData((prev) => ({ ...prev, department: value }))
             }
-            placeholder="Enter department"
-            required
+            placeholder="Select department"
           />
         </div>
         <div className="space-y-2">

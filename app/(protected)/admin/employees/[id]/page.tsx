@@ -34,6 +34,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Header } from "@/components/header";
+import { DepartmentManager } from "@/components/department-manager";
 import {
   getEmployeeInfoById,
   updateEmployee,
@@ -608,11 +609,10 @@ export default function EmployeeDetailsPage() {
               <div className="space-y-2">
                 <Label htmlFor="department">Department</Label>
                 {isEditing ? (
-                  <Input
-                    id="department"
+                  <DepartmentManager
                     value={formData.department}
-                    onChange={(e) => handleInputChange("department", e.target.value)}
-                    placeholder="Enter department"
+                    onValueChange={(value) => handleInputChange("department", value)}
+                    placeholder="Select department"
                   />
                 ) : (
                   <p className="text-sm font-medium">

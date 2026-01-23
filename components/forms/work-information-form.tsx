@@ -16,6 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { DepartmentManager } from "@/components/department-manager";
 
 const EMPLOYMENT_TYPES = [
   "permanent",
@@ -72,12 +73,11 @@ export function WorkInformationForm({
           {/* Department */}
           <div className="space-y-2">
             <Label htmlFor="department">Department *</Label>
-            <Input
-              id="department"
+            <DepartmentManager
               value={formData.department}
-              onChange={(e) => onInputChange("department", e.target.value)}
-              placeholder="Enter department (e.g., Development, Design, Marketing)"
-              className={fieldHasError("department") ? "border-red-500" : ""}
+              onValueChange={(value) => onInputChange("department", value)}
+              error={fieldHasError("department")}
+              placeholder="Select department"
             />
             {fieldHasError("department") && (
               <p className="text-red-500 text-sm">
