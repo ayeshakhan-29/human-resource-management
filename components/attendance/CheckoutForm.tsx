@@ -56,7 +56,7 @@ export function CheckoutForm({
   const [submitting, setSubmitting] = useState(false);
   const [deliverableFiles, setDeliverableFiles] = useState<File[]>([]);
   const [formData, setFormData] = useState({
-    taskId: "",
+    taskId: "continued",
     taskStatus: "" as "planning" | "in-progress" | "testing" | "blocked" | "completed" | "",
     workNote: "",
     deliverableLink: "",
@@ -77,7 +77,7 @@ export function CheckoutForm({
     } else {
       // Reset form when dialog closes
       setFormData({
-        taskId: "",
+        taskId: "continued",
         taskStatus: "",
         workNote: "",
         deliverableLink: "",
@@ -99,7 +99,8 @@ export function CheckoutForm({
         return;
       }
 
-      setTasks(data || []);
+      const list = data || [];
+      setTasks(list);
     } catch (error) {
       console.error("Error fetching active tasks:", error);
       toast.error("Failed to load tasks");
@@ -136,14 +137,18 @@ export function CheckoutForm({
         deliverableLink?: string;
         deliverables?: File[];
       } = {};
-      if (formData.taskId) {
-        payload.taskId = parseInt(formData.taskId);
+      const idNum = Number(formData.taskId);
+      const isNumericTask = !Number.isNaN(idNum) && Number.isInteger(idNum) && idNum > 0;
+      if (isNumericTask) {
+        payload.taskId = idNum;
       }
       if (formData.taskStatus) {
         payload.taskStatus = formData.taskStatus as "planning" | "in-progress" | "testing" | "blocked" | "completed";
       }
       if (formData.workNote) {
         payload.workNote = formData.workNote;
+      } else if (!isNumericTask) {
+        payload.workNote = "General work - no specific task";
       }
       if (formData.deliverableLink) {
         payload.deliverableLink = formData.deliverableLink;
@@ -192,6 +197,7 @@ export function CheckoutForm({
                   <SelectValue placeholder="Select a task" />
                 </SelectTrigger>
                 <SelectContent>
+                <SelectItem value="continued">Task continued</SelectItem>
                   {tasks.length === 0 ? (
                     <SelectItem value="no-tasks" disabled>
                       No assigned tasks found
