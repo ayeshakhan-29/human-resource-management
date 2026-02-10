@@ -14,9 +14,12 @@ import {
 import { Header } from "@/components/header";
 import { useAuth } from "@/context/AuthContext";
 import { getProjectsByManager } from "@/lib/actions/project.action";
-import { getTodaysAttendance } from "@/lib/actions/attendance.actions";
+import { getTodaysAttendance, getWeeklyAttendance } from "@/lib/actions/attendance.actions";
+import { getAllLeaveTypes, getMyLeavesAction } from "@/lib/actions/leave.actions";
 import { getAuthToken } from "@/lib/auth/token";
 import { toast } from "sonner";
+
+import { LeaveType, LeaveRequest } from "@/lib/types/leave.types";
 
 import { AttendanceData as BaseAttendanceData } from "@/lib/types/attendance.types";
 
@@ -24,31 +27,22 @@ interface AttendanceData extends BaseAttendanceData {
   overtime?: string;
 }
 
-const mockEmployee = {
-  name: "Ayesha Rashid Khan",
-  email: "ayesha@company.com",
-  department: "Engineering",
-  position: "Software Engineer",
-  joinDate: "January 15, 2024",
-  phone: "+1 (555) 123-4567",
-  address: "123 Main St, City, State 12345",
-  manager: "Sarah Johnson",
-};
-
 export default function EmployeeDashboard() {
   const { user } = useAuth();
   const [attendance, setAttendance] = useState<AttendanceData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [currentTime, setCurrentTime] = useState(new Date());
-  const displayName = (user?.name || user?.fullName || mockEmployee.name) as string;
+  const displayName = (user?.name || user?.fullName || "Employee") as string;
   const firstName = displayName.split(" ")[0];
   const [isProjectManager, setIsProjectManager] = useState(false);
+  const [leaveBalance, setLeaveBalance] = useState(0);
+  const [weeklyHours, setWeeklyHours] = useState("0");
 
   // Calculate working hours
   const workingHours = attendance?.clockIn
     ? (currentTime.getTime() -
-        new Date(`${attendance.date}T${attendance.clockIn}`).getTime()) /
-      (1000 * 60 * 60)
+      new Date(`${attendance.date}T${attendance.clockIn}`).getTime()) /
+    (1000 * 60 * 60)
     : 0;
 
   // Update current time every minute
@@ -57,34 +51,47 @@ export default function EmployeeDashboard() {
     return () => clearInterval(timer);
   }, []);
 
-  // Fetch today's attendance
+  // Fetch dashboard data
   useEffect(() => {
-    const fetchTodaysAttendance = async () => {
+    const fetchDashboardData = async () => {
       try {
         setIsLoading(true);
         const token = getAuthToken();
-        if (!token) {
-          throw new Error("No authentication token found");
+        if (!token) return;
+
+        const [attendanceRes, weeklyRes, leaveTypesRes, myLeavesRes] = await Promise.all([
+          getTodaysAttendance(token),
+          getWeeklyAttendance(token),
+          getAllLeaveTypes(),
+          getMyLeavesAction()
+        ]);
+
+        if (attendanceRes && 'data' in attendanceRes && attendanceRes.data) {
+          setAttendance(attendanceRes.data);
         }
 
-        const { data, error } = await getTodaysAttendance(token);
-
-        if (error) {
-          throw new Error(error);
+        if (weeklyRes && 'data' in weeklyRes && weeklyRes.data) {
+          const hours = weeklyRes.data.summary.formattedTotalHours.split(' ')[0];
+          setWeeklyHours(hours);
         }
 
-        if (data) {
-          setAttendance(data);
+        if (leaveTypesRes && 'data' in leaveTypesRes && leaveTypesRes.data && myLeavesRes && 'data' in myLeavesRes && myLeavesRes.data) {
+          const activeTypes = (leaveTypesRes.data as LeaveType[]).filter((t) => t.status === "active" && t.annual_quota > 0);
+          const approvedLeaves = (myLeavesRes.data as LeaveRequest[]).filter((l) => l.status === "approved");
+
+          const totalQuota = activeTypes.reduce((acc: number, t) => acc + t.annual_quota, 0);
+          const totalUsed = approvedLeaves.reduce((acc: number, l) => acc + l.totalDays, 0);
+          setLeaveBalance(Math.max(0, totalQuota - totalUsed));
         }
+
       } catch (error) {
-        console.error("Error fetching today's attendance:", error);
-        toast.error("Failed to load attendance data");
+        console.error("Error fetching dashboard data:", error);
       } finally {
         setIsLoading(false);
       }
     };
 
-    fetchTodaysAttendance();
+    fetchDashboardData();
   }, []);
 
   useEffect(() => {
@@ -95,7 +102,7 @@ export default function EmployeeDashboard() {
         const resp = await getProjectsByManager(id, 1, 1);
         const has = (resp?.data?.length || 0) > 0;
         setIsProjectManager(has);
-      } catch (_) {}
+      } catch (_) { }
     };
     checkManager();
   }, [user?.id]);
@@ -188,8 +195,8 @@ export default function EmployeeDashboard() {
                 {isLoading
                   ? "Loading..."
                   : attendance?.clockIn
-                  ? `Checked in at ${formatTime(attendance.clockIn)}`
-                  : "Not checked in today"}
+                    ? `Checked in at ${formatTime(attendance.clockIn)}`
+                    : "Not checked in today"}
               </p>
             </CardContent>
           </Card>
@@ -203,15 +210,15 @@ export default function EmployeeDashboard() {
                 {isLoading
                   ? "--"
                   : attendance
-                  ? workingHours.toFixed(1)
-                  : "0.0"}
+                    ? workingHours.toFixed(1)
+                    : "0.0"}
               </div>
               <p className="text-xs text-muted-foreground">
                 {isLoading
                   ? "Loading..."
                   : attendance?.clockOut
-                  ? "Completed"
-                  : "Still working"}
+                    ? "Completed"
+                    : "Still working"}
               </p>
             </CardContent>
           </Card>
@@ -222,7 +229,7 @@ export default function EmployeeDashboard() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {isLoading ? "--" : "32.5"}
+                {isLoading ? "--" : weeklyHours}
               </div>
               <p className="text-xs text-muted-foreground">
                 {isLoading ? "Loading..." : "Hours this week"}
@@ -237,7 +244,9 @@ export default function EmployeeDashboard() {
               <Calendar className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">18</div>
+              <div className="text-2xl font-bold">
+                {isLoading ? "--" : leaveBalance}
+              </div>
               <p className="text-xs text-muted-foreground">Days remaining</p>
             </CardContent>
           </Card>
@@ -293,8 +302,8 @@ export default function EmployeeDashboard() {
                     {isLoading
                       ? "--:--"
                       : attendance?.clockIn
-                      ? formatTime(attendance.clockIn)
-                      : "--:--"}
+                        ? formatTime(attendance.clockIn)
+                        : "--:--"}
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
@@ -305,8 +314,8 @@ export default function EmployeeDashboard() {
                     {isLoading
                       ? "--:--"
                       : attendance?.clockIn
-                      ? getExpectedCheckoutTime(attendance.clockIn)
-                      : "--:--"}
+                        ? getExpectedCheckoutTime(attendance.clockIn)
+                        : "--:--"}
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
@@ -315,8 +324,8 @@ export default function EmployeeDashboard() {
                     {isLoading
                       ? "--"
                       : attendance
-                      ? workingHours.toFixed(1)
-                      : "0.0"}{" "}
+                        ? workingHours.toFixed(1)
+                        : "0.0"}{" "}
                     / 8.0
                   </span>
                 </div>
