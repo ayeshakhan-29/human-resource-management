@@ -3,7 +3,7 @@
 import type React from "react";
 
 import { useState, useEffect } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { Eye, EyeOff, CheckCircle, Building2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -20,6 +20,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export default function ResetPasswordPage() {
   const params = useParams();
+  const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -70,7 +71,7 @@ export default function ResetPasswordPage() {
       setSuccess(true);
 
       setTimeout(() => {
-        window.location.href = "/login";
+        router.push("/login");
       }, 2000);
     } catch {
       setError("Failed to reset password. Please try again.");

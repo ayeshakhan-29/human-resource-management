@@ -125,10 +125,10 @@ export function SetPasswordForm() {
       setSuccess(true);
       toast.success("Password set successfully! Redirecting...");
 
-      // Redirect to dashboard after successful password set
+      // Redirect to login after successful password set
       setTimeout(() => {
-        console.log("Redirecting to dashboard after successful password set");
-        router.push("/dashboard");
+        console.log("Redirecting to login after successful password set");
+        router.push("/login");
       }, 2000);
     } catch (err) {
       console.error("Error in handleSubmit:", err);
@@ -210,8 +210,8 @@ export function SetPasswordForm() {
                 Password Set Successfully!
               </h2>
               <p className="text-gray-600 mb-4">
-                Welcome to {inviteData?.companyName || "the team"}! You&apos;ll be
-                redirected to complete your profile.
+                Welcome to {inviteData?.companyName || "the team"}! Your password has been set.
+                You&apos;ll be redirected to the login page shortly.
               </p>
             </div>
           </CardContent>
