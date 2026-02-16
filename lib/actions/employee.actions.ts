@@ -179,8 +179,7 @@ export const inviteEmployee = async (
 
         const errorMessages = (errorData.errors as ValidationError[]).map(
           (err) =>
-            `${err.field ? `${err.field}: ` : ""}${
-              err.message || "Validation error"
+            `${err.field ? `${err.field}: ` : ""}${err.message || "Validation error"
             }`
         );
         const errorMessage = errorMessages.join("\n");
@@ -339,7 +338,7 @@ export const getEmployeeAttachments = async (
   }
 
   const response = await getEmployeeInfoById(employeeId);
-  
+
   if (response && response.success && response.data) {
     // Attachments are stored in userInfo
     return response.data.personalInfo?.attachments || [];
@@ -482,18 +481,63 @@ export const updateEmployee = async (
     throw new Error("No authentication token found");
   }
 
+  // Remove undefined, null, and empty string values
+  const cleanedData: Record<string, unknown> = {};
+  Object.entries(updateData).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && value !== '') {
+      cleanedData[key] = value;
+    }
+  });
+
+  console.log('=== UPDATE EMPLOYEE ===');
+  console.log('Employee ID:', employeeId);
+  console.log('Original Update Data:', updateData);
+  console.log('Cleaned Update Data:', cleanedData);
+  console.log('Cleaned Data Keys:', Object.keys(cleanedData));
+  console.log('Cleaned Data JSON:', JSON.stringify(cleanedData, null, 2));
+
   const response = await fetch(getApiUrl(`employee/${employeeId}/profile`), {
     method: "PUT",
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${token}`,
     },
-    body: JSON.stringify(updateData),
+    body: JSON.stringify(cleanedData),
   });
 
+  console.log('Response Status:', response.status);
+  console.log('Response OK:', response.ok);
+
   if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.message || "Failed to update employee");
+    let errorData: { message?: string; errors?: { field: string; message: string }[] } = {};
+    const contentType = response.headers.get('content-type');
+
+    try {
+      if (contentType && contentType.includes('application/json')) {
+        errorData = await response.json();
+      } else {
+        const text = await response.text();
+        console.error('Response Text:', text);
+        errorData = { message: text || 'Unknown error' };
+      }
+    } catch (e) {
+      console.error('Error parsing response:', e);
+      errorData = { message: 'Failed to parse error response' };
+    }
+
+    console.error('=== UPDATE FAILED ===');
+    console.error('Status:', response.status);
+    console.error('Error Data:', errorData);
+
+    // Show detailed validation errors if available
+    if (errorData.errors && Array.isArray(errorData.errors)) {
+      const errorMessages = errorData.errors.map((e) =>
+        `${e.field}: ${e.message}`
+      ).join(', ');
+      throw new Error(errorMessages || errorData.message || "Failed to update employee");
+    }
+
+    throw new Error(errorData.message || `Failed to update employee (Status: ${response.status})`);
   }
 
   return response.json();

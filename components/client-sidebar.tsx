@@ -49,7 +49,11 @@ const navMain = [
     url: "/client/projects",
     icon: FolderOpen,
   },
-
+  {
+    title: "Notifications",
+    url: "/client/notifications",
+    icon: Bell,
+  },
 ];
 
 export function ClientSidebar({

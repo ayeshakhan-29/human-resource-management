@@ -96,7 +96,7 @@ export const markNotificationAsRead = async (notificationId: number): Promise<{ 
   }
 
   const response = await fetch(getApiUrl(`notifications/${notificationId}/read`), {
-    method: "PATCH",
+    method: "PUT",
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${token}`,
@@ -118,8 +118,8 @@ export const markAllNotificationsAsRead = async (): Promise<{ success: boolean; 
     throw new Error("No authentication token found");
   }
 
-  const response = await fetch(getApiUrl('notifications/read-all'), {
-    method: "PATCH",
+  const response = await fetch(getApiUrl('notifications/mark-all-read'), {
+    method: "PUT",
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${token}`,

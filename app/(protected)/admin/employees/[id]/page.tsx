@@ -148,18 +148,75 @@ export default function EmployeeDetailsPage() {
   const handleSave = async () => {
     try {
       setSaving(true);
-      const response = await updateEmployee(employeeId, formData);
-      
+
+      // Build update data object with only non-empty values
+      const updateData: Record<string, unknown> = {};
+
+      // Helper function to check if value is valid (not empty, not undefined, not null)
+      const isValidValue = (value: unknown): boolean => {
+        if (value === undefined || value === null) return false;
+        if (typeof value === 'string' && value.trim() === '') return false;
+        return true;
+      };
+
+      // Only add fields that have valid values
+      if (isValidValue(formData.fullName)) {
+        updateData.fullName = String(formData.fullName).trim();
+      }
+      if (isValidValue(formData.email)) {
+        updateData.email = String(formData.email).trim();
+      }
+      if (isValidValue(formData.status)) {
+        updateData.status = String(formData.status).trim();
+      }
+      if (isValidValue(formData.contactNumber)) {
+        updateData.contactNumber = String(formData.contactNumber).trim();
+      }
+      if (isValidValue(formData.address)) {
+        updateData.address = String(formData.address).trim();
+      }
+      if (isValidValue(formData.dob)) {
+        updateData.dob = String(formData.dob).trim();
+      }
+      if (isValidValue(formData.department)) {
+        updateData.department = String(formData.department).trim();
+      }
+      if (isValidValue(formData.position)) {
+        updateData.position = String(formData.position).trim();
+      }
+      if (isValidValue(formData.reportingManager)) {
+        updateData.reportingManager = String(formData.reportingManager).trim();
+      }
+
+      console.log('FormData before filtering:', formData);
+      console.log('Sending update data:', updateData);
+      console.log('Update data keys:', Object.keys(updateData));
+      console.log('Update data JSON:', JSON.stringify(updateData, null, 2));
+
+      // Verify no undefined values are being sent
+      Object.entries(updateData).forEach(([key, value]) => {
+        if (value === undefined) {
+          console.warn(`WARNING: Field "${key}" has undefined value, removing it`);
+          delete updateData[key];
+        }
+      });
+
+      const response = await updateEmployee(employeeId, updateData);
+
       if (response && response.success) {
         setEmployee(response.data);
         toast.success("Employee updated successfully");
         setIsEditing(false);
+
+        // Refresh the page to show updated data
+        window.location.reload();
       } else {
         throw new Error("Failed to update employee");
       }
     } catch (error) {
       const message = error instanceof Error ? error.message : "Failed to update employee";
       toast.error(message);
+      console.error('Update error:', error);
     } finally {
       setSaving(false);
     }
@@ -234,14 +291,14 @@ export default function EmployeeDetailsPage() {
       setChangingRole(true);
       const response = await updateEmployeeRole(employeeId, selectedRole);
       toast.success(response.message || "Role updated successfully");
-      
+
       // Update local employee data
       if (employee) {
         setEmployee({ ...employee, role: selectedRole });
       }
-      
+
       setShowRoleDialog(false);
-      
+
       // Show additional message if promoted to manager
       if (selectedRole === "manager") {
         toast.info("Employee can now access the Manager Dashboard");
@@ -268,15 +325,15 @@ export default function EmployeeDetailsPage() {
     try {
       setUploadingAttachments(true);
       const response = await uploadEmployeeAttachments(employeeId, newAttachments);
-      
+
       if (response && response.success) {
         const uploadedAttachments = response.data.attachments;
-        
+
         // Filter out any invalid attachments
-        const validAttachments = Array.isArray(uploadedAttachments) 
+        const validAttachments = Array.isArray(uploadedAttachments)
           ? uploadedAttachments.filter(att => att && att.filename && att.originalName)
           : [];
-        
+
         setAttachments(validAttachments);
         setNewAttachments([]);
         toast.success(`${response.data.newAttachments?.length || 0} attachment(s) uploaded successfully`);
@@ -296,7 +353,7 @@ export default function EmployeeDetailsPage() {
 
     try {
       const response = await removeEmployeeAttachment(employeeId, filename);
-      
+
       if (response && response.success) {
         const remainingAttachments = response.data.remainingAttachments;
         setAttachments(Array.isArray(remainingAttachments) ? remainingAttachments : []);
@@ -313,7 +370,7 @@ export default function EmployeeDetailsPage() {
       const token = localStorage.getItem('token');
       const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5001/api';
       const downloadUrl = `${backendUrl}/employee/${employeeId}/download-attachment/${filename}`;
-      
+
       // Create a temporary link and trigger download
       const a = document.createElement('a');
       a.href = `${downloadUrl}?token=${token}`;
@@ -322,7 +379,7 @@ export default function EmployeeDetailsPage() {
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
-      
+
       toast.success("Download started");
     } catch (error) {
       console.error('Error downloading attachment:', error);
@@ -408,8 +465,8 @@ export default function EmployeeDetailsPage() {
             <div className="flex items-center gap-3">
               <Avatar className="h-12 w-12">
                 {employee.profilePicture && (
-                  <AvatarImage 
-                    src={employee.profilePicture} 
+                  <AvatarImage
+                    src={employee.profilePicture}
                     alt={employee.fullName}
                     className="object-cover"
                   />
@@ -449,23 +506,23 @@ export default function EmployeeDetailsPage() {
               </>
             ) : (
               <>
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   onClick={() => setShowDeleteDialog(true)}
                   className="text-red-600 hover:text-red-700"
                 >
                   <Trash2 className="mr-2 h-4 w-4" />
                   Delete Employee
                 </Button>
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   onClick={handleRoleDialogOpen}
                 >
                   <Shield className="mr-2 h-4 w-4" />
                   Change Role
                 </Button>
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   onClick={() => setShowPasswordDialog(true)}
                 >
                   <Key className="mr-2 h-4 w-4" />
@@ -680,7 +737,7 @@ export default function EmployeeDetailsPage() {
               Employee Attachments
             </CardTitle>
             <CardDescription>
-              {isEditing 
+              {isEditing
                 ? "Upload, view, and manage employee documents (contracts, certificates, etc.)"
                 : "View and download employee documents (contracts, certificates, etc.)"}
             </CardDescription>
@@ -806,7 +863,7 @@ export default function EmployeeDetailsPage() {
           <DialogHeader>
             <DialogTitle>Delete Employee</DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete <strong>{employee?.fullName}</strong>? 
+              Are you sure you want to delete <strong>{employee?.fullName}</strong>?
               This action cannot be undone and will permanently remove the employee and all associated data.
             </DialogDescription>
           </DialogHeader>
