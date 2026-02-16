@@ -8,6 +8,8 @@ import {
   InviteEmployeeResponse,
   SetPasswordRequest,
   SetPasswordResponse,
+  RequestPasswordResetRequest,
+  PasswordResetResponse,
 } from "@/lib/types/auth.types";
 
 export async function loginUserAction(
@@ -74,9 +76,8 @@ export async function inviteEmployeeAction(
     const payloadWithResetToken = {
       ...payload,
       resetToken,
-      resetUrl: `${
-        process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
-      }/set-password?token=${resetToken}`,
+      resetUrl: `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
+        }/set-password?token=${resetToken}`,
     };
 
     // Ensure proper URL construction with trailing slash handling
@@ -187,6 +188,45 @@ export async function setPasswordAction(
       message:
         "Unable to connect to the server. Please check your internet connection and try again.",
       code: "NETWORK_ERROR",
+    };
+  }
+}
+
+export async function requestPasswordResetAction(
+  request: RequestPasswordResetRequest
+): Promise<PasswordResetResponse | ApiError> {
+  const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
+
+  if (!backendUrl) {
+    return { error: "Backend URL is not configured" };
+  }
+
+  try {
+    const baseUrl = backendUrl.endsWith('/') ? backendUrl : `${backendUrl}/`;
+    const response = await fetch(`${baseUrl}auth/request-password-reset`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(request),
+      cache: "no-store",
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      return {
+        error: "Reset Request Failed",
+        message: data.message || "Failed to request password reset. Please try again.",
+      };
+    }
+
+    return data as PasswordResetResponse;
+  } catch (error) {
+    console.error("Password reset request error:", error);
+    return {
+      error: "Network Error",
+      message: "An error occurred while requesting password reset. Please try again later.",
     };
   }
 }

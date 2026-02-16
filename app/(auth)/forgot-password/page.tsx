@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { requestPasswordResetAction } from '@/lib/actions/auth.actions';
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('');
@@ -18,7 +19,7 @@ export default function ForgotPasswordPage() {
     e.preventDefault();
     setError('');
     setMessage('');
-    
+
     if (!email) {
       setError('Please enter your email address');
       return;
@@ -26,17 +27,17 @@ export default function ForgotPasswordPage() {
 
     try {
       setIsLoading(true);
-      // In a real app, you would call your API endpoint here
-      // For example: await api.post('/auth/forgot-password', { email });
-      
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      setMessage('If an account exists with this email, you will receive a password reset link.');
-      setEmail('');
+      const result = await requestPasswordResetAction({ email });
+
+      if ('error' in result) {
+        setError(result.message || 'Failed to send reset email. Please try again.');
+      } else {
+        setMessage(result.message || 'If an account exists with this email, you will receive a password reset link.');
+        setEmail('');
+      }
     } catch (err) {
       console.error('Error:', err);
-      setError('Failed to send reset email. Please try again.');
+      setError('An unexpected error occurred. Please try again later.');
     } finally {
       setIsLoading(false);
     }
@@ -63,7 +64,7 @@ export default function ForgotPasswordPage() {
                 <AlertDescription>{message}</AlertDescription>
               </Alert>
             )}
-            
+
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input
@@ -79,7 +80,7 @@ export default function ForgotPasswordPage() {
             <Button type="submit" className="w-full" disabled={isLoading}>
               {isLoading ? 'Sending...' : 'Send Reset Link'}
             </Button>
-            
+
             <div className="text-center text-sm">
               <Link href="/login" className="text-blue-600 hover:underline">
                 Back to login

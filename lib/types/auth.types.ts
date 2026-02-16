@@ -52,3 +52,11 @@ export interface SetPasswordResponse {
   message: string;
   user?: User;
 }
+
+export interface RequestPasswordResetRequest {
+  email: string;
+}
+
+export interface PasswordResetResponse {
+  message: string;
+}
