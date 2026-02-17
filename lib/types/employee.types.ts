@@ -39,6 +39,11 @@ export interface Employee {
 export interface EmployeesResponse {
   success: boolean;
   data: Employee[];
+  pagination?: {
+    totalItems: number;
+    totalPages: number;
+    currentPage: number;
+  };
 }
 
 export interface EmployeeFormData {

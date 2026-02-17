@@ -9,6 +9,8 @@ import {
   Trash2,
   Loader2,
   User,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import Link from "next/link";
 import { UserPlus } from "lucide-react";
@@ -85,33 +87,41 @@ export default function AdminEmployeesPage() {
   const [error, setError] = useState<string | null>(null);
   const [employeeToDelete, setEmployeeToDelete] = useState<EmployeeWithStatus | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+  const limit = 10;
+
+  const fetchEmployees = async (page: number) => {
+    try {
+      setIsLoading(true);
+      const response = await getAllEmployees(page, limit);
+      console.log(response, "response");
+      if (response.success) {
+        const normalizedEmployees = response.data.map((emp) => ({
+          ...emp,
+          status: normalizeStatus(emp.status),
+        }));
+        setEmployees(normalizedEmployees);
+        if (response.pagination) {
+          setTotalPages(response.pagination.totalPages);
+          setTotalItems(response.pagination.totalItems);
+        }
+      } else {
+        throw new Error("Failed to fetch employees");
+      }
+    } catch (err) {
+      console.error("Error fetching employees:", err);
+      setError("Failed to load employees. Please try again later.");
+      toast.error("Failed to load employees");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchEmployees = async () => {
-      try {
-        setIsLoading(true);
-        const response = await getAllEmployees();
-        console.log(response, "response");
-        if (response.success) {
-          const normalizedEmployees = response.data.map((emp) => ({
-            ...emp,
-            status: normalizeStatus(emp.status),
-          }));
-          setEmployees(normalizedEmployees);
-        } else {
-          throw new Error("Failed to fetch employees");
-        }
-      } catch (err) {
-        console.error("Error fetching employees:", err);
-        setError("Failed to load employees. Please try again later.");
-        toast.error("Failed to load employees");
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchEmployees();
-  }, []);
+    fetchEmployees(currentPage);
+  }, [currentPage]);
 
   const filteredEmployees = employees.filter(
     (employee) =>
@@ -128,10 +138,10 @@ export default function AdminEmployeesPage() {
     try {
       setIsDeleting(true);
       await deleteEmployee(employeeToDelete.id);
-      
+
       // Remove employee from local state
       setEmployees(employees.filter(emp => emp.id !== employeeToDelete.id));
-      
+
       toast.success("Employee deleted successfully");
       setEmployeeToDelete(null);
     } catch (error) {
@@ -178,7 +188,7 @@ export default function AdminEmployeesPage() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {employees.length}
+                {totalItems}
               </div>
               <p className="text-xs text-muted-foreground">Employees in system</p>
             </CardContent>
@@ -276,8 +286,8 @@ export default function AdminEmployeesPage() {
                         <div className="flex items-center space-x-3">
                           <Avatar>
                             {employee.profilePicture && (
-                              <AvatarImage 
-                                src={employee.profilePicture} 
+                              <AvatarImage
+                                src={employee.profilePicture}
                                 alt={employee.fullName}
                                 className="object-cover"
                               />
@@ -300,25 +310,25 @@ export default function AdminEmployeesPage() {
                       <TableCell>
                         {employee.userInfo?.department
                           ? employee.userInfo.department
-                              .split(" ")
-                              .map(
-                                (word) =>
-                                  word.charAt(0).toUpperCase() +
-                                  word.slice(1).toLowerCase()
-                              )
-                              .join(" ")
+                            .split(" ")
+                            .map(
+                              (word) =>
+                                word.charAt(0).toUpperCase() +
+                                word.slice(1).toLowerCase()
+                            )
+                            .join(" ")
                           : "Not specified"}
                       </TableCell>
                       <TableCell>
                         {employee.userInfo?.position
                           ? employee.userInfo.position
-                              .split(" ")
-                              .map(
-                                (word) =>
-                                  word.charAt(0).toUpperCase() +
-                                  word.slice(1).toLowerCase()
-                              )
-                              .join(" ")
+                            .split(" ")
+                            .map(
+                              (word) =>
+                                word.charAt(0).toUpperCase() +
+                                word.slice(1).toLowerCase()
+                            )
+                            .join(" ")
                           : "Not specified"}
                       </TableCell>
                       <TableCell>
@@ -327,8 +337,8 @@ export default function AdminEmployeesPage() {
                             employee.status === "active"
                               ? "default"
                               : employee.status === "on_leave"
-                              ? "secondary"
-                              : "destructive"
+                                ? "secondary"
+                                : "destructive"
                           }
                         >
                           {employee.status}
@@ -337,8 +347,8 @@ export default function AdminEmployeesPage() {
                       <TableCell>
                         {(employee.userInfo as UserInfo)?.startDate
                           ? new Date(
-                              (employee.userInfo as UserInfo).startDate!
-                            ).toLocaleDateString()
+                            (employee.userInfo as UserInfo).startDate!
+                          ).toLocaleDateString()
                           : "N/A"}
                       </TableCell>
                       <TableCell className="text-right">
@@ -362,7 +372,7 @@ export default function AdminEmployeesPage() {
                               Edit Details
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
-                            <DropdownMenuItem 
+                            <DropdownMenuItem
                               className="text-red-600"
                               onClick={() => setEmployeeToDelete(employee)}
                             >
@@ -377,23 +387,60 @@ export default function AdminEmployeesPage() {
                 </TableBody>
               </Table>
             </div>
+
+            {/* Pagination Controls */}
+            {!searchTerm && totalPages > 1 && (
+              <div className="flex items-center justify-between mt-6">
+                <p className="text-sm text-muted-foreground">
+                  Showing <span className="font-medium">{(currentPage - 1) * limit + 1}</span> to{" "}
+                  <span className="font-medium">
+                    {Math.min(currentPage * limit, totalItems)}
+                  </span>{" "}
+                  of <span className="font-medium">{totalItems}</span> employees
+                </p>
+                <div className="flex items-center space-x-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                    disabled={currentPage === 1 || isLoading}
+                  >
+                    <ChevronLeft className="h-4 w-4 mr-1" />
+                    Previous
+                  </Button>
+                  <div className="flex items-center px-4 text-sm font-medium">
+                    Page {currentPage} of {totalPages}
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+                    disabled={currentPage === totalPages || isLoading}
+                  >
+                    Next
+                    <ChevronRight className="h-4 w-4 ml-1" />
+                  </Button>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
-      </div>
+      </div >
 
       {/* Delete Confirmation Dialog */}
-      <Dialog open={!!employeeToDelete} onOpenChange={() => setEmployeeToDelete(null)}>
+      < Dialog open={!!employeeToDelete
+      } onOpenChange={() => setEmployeeToDelete(null)}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Delete Employee</DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete <strong>{employeeToDelete?.fullName}</strong>? 
+              Are you sure you want to delete <strong>{employeeToDelete?.fullName}</strong>?
               This action cannot be undone and will permanently remove the employee and all associated data.
             </DialogDescription>
           </DialogHeader>
           <div className="flex justify-end gap-3 mt-6">
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               onClick={() => setEmployeeToDelete(null)}
               disabled={isDeleting}
             >
@@ -415,7 +462,7 @@ export default function AdminEmployeesPage() {
             </Button>
           </div>
         </DialogContent>
-      </Dialog>
+      </Dialog >
     </>
   );
 }

@@ -18,13 +18,13 @@ const getApiUrl = (endpoint: string) => {
   return `${baseUrl}${endpoint}`;
 };
 
-export const getAllEmployees = async (): Promise<EmployeesResponse> => {
+export const getAllEmployees = async (page: number = 1, limit: number = 10): Promise<EmployeesResponse> => {
   const token = getAuthToken();
   if (!token) {
     throw new Error("No authentication token found");
   }
 
-  const response = await fetch(getApiUrl('employee/all'), {
+  const response = await fetch(getApiUrl(`employee/all?page=${page}&limit=${limit}`), {
     method: "GET",
     headers: {
       "Content-Type": "application/json",
@@ -49,13 +49,13 @@ interface UpdateStatusResponse {
     updatedAt: string;
   };
 }
-export const getAllUsers = async (): Promise<EmployeesResponse> => {
+export const getAllUsers = async (page: number = 1, limit: number = 10): Promise<EmployeesResponse> => {
   const token = getAuthToken();
   if (!token) {
     throw new Error("No authentication token found");
   }
 
-  const response = await fetch(getApiUrl('employee/all'), {
+  const response = await fetch(getApiUrl(`employee/all?page=${page}&limit=${limit}`), {
     method: "GET",
     headers: {
       "Content-Type": "application/json",
