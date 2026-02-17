@@ -28,7 +28,16 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Loader2, ExternalLink, Download } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Separator } from "@/components/ui/separator";
+import { Loader2, ExternalLink, Download, Eye, Clock, Calendar, User, FileText, Link as LinkIcon, Paperclip, CheckCircle2 } from "lucide-react";
 import { getAuthToken } from "@/lib/auth/token";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -78,6 +87,8 @@ export default function AdminDailyWorkRecordsPage() {
   const [allEmployees, setAllEmployees] = useState<
     { id: number; name: string; email: string }[]
   >([]);
+  const [selectedRecord, setSelectedRecord] = useState<DailyWorkRecord | null>(null);
+  const [isDetailsOpen, setIsDetailsOpen] = useState(false);
 
   const fetchRecords = useCallback(async () => {
     try {
@@ -332,6 +343,7 @@ export default function AdminDailyWorkRecordsPage() {
                       <TableHead>Deliverable Link</TableHead>
                       <TableHead>Deliverable Files</TableHead>
                       <TableHead>Hours</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -404,6 +416,19 @@ export default function AdminDailyWorkRecordsPage() {
                           )}
                         </TableCell>
                         <TableCell>{record.formattedHours}</TableCell>
+                        <TableCell className="text-right">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedRecord(record);
+                              setIsDetailsOpen(true);
+                            }}
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -413,6 +438,132 @@ export default function AdminDailyWorkRecordsPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Record Details Dialog */}
+      <Dialog open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh]">
+          <DialogHeader>
+            <DialogTitle>Work Record Details</DialogTitle>
+            <DialogDescription>
+              Detailed information for {selectedRecord?.employee.name} on {selectedRecord?.date ? format(new Date(selectedRecord.date), "MMMM dd, yyyy") : ""}
+            </DialogDescription>
+          </DialogHeader>
+
+          <ScrollArea className="max-h-[60vh] pr-4">
+            <div className="space-y-6">
+              {/* Employee & Time Info */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <Label className="text-muted-foreground">Employee</Label>
+                  <p className="font-medium">{selectedRecord?.employee.name}</p>
+                  <p className="text-sm text-muted-foreground">{selectedRecord?.employee.email}</p>
+                </div>
+                <div className="space-y-1 text-right">
+                  <Label className="text-muted-foreground">Duration</Label>
+                  <p className="text-xl font-bold text-blue-600">{selectedRecord?.formattedHours}</p>
+                </div>
+              </div>
+
+              <Separator />
+
+              {/* Timing Details */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <Label className="text-muted-foreground">Check-in</Label>
+                  <p className="flex items-center gap-2">
+                    <Clock className="h-4 w-4 text-gray-400" />
+                    {formatTime(selectedRecord?.checkIn || null)}
+                  </p>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-muted-foreground">Check-out</Label>
+                  <p className="flex items-center gap-2">
+                    <Clock className="h-4 w-4 text-gray-400" />
+                    {formatTime(selectedRecord?.checkOut || null)}
+                  </p>
+                </div>
+              </div>
+
+              <Separator />
+
+              {/* Task Info */}
+              <div className="space-y-3">
+                <Label className="text-muted-foreground">Task Information</Label>
+                <div className="flex items-start justify-between">
+                  <div>
+                    <p className="font-semibold text-lg">{selectedRecord?.task?.name || "No task specified"}</p>
+                    <p className="text-sm text-muted-foreground">Priority: {selectedRecord?.task?.priority || "N/A"}</p>
+                  </div>
+                  <Badge variant={getStatusBadgeVariant(selectedRecord?.taskStatus || null)} className="capitalize">
+                    {selectedRecord?.taskStatus || "No Status"}
+                  </Badge>
+                </div>
+              </div>
+
+              <Separator />
+
+              {/* Work Note */}
+              <div className="space-y-2">
+                <Label className="text-muted-foreground">Work Note</Label>
+                <div className="rounded-md bg-muted/50 p-3">
+                  <p className="text-sm whitespace-pre-wrap leading-relaxed">
+                    {selectedRecord?.workNote || "No notes provided."}
+                  </p>
+                </div>
+              </div>
+
+              {/* Deliverables */}
+              {(selectedRecord?.deliverableLink || (selectedRecord?.deliverables && selectedRecord.deliverables.length > 0)) && (
+                <>
+                  <Separator />
+                  <div className="space-y-4">
+                    {selectedRecord?.deliverableLink && (
+                      <div className="space-y-2">
+                        <Label className="text-muted-foreground">Deliverable Link</Label>
+                        <a
+                          href={selectedRecord.deliverableLink}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-2 text-sm text-blue-600 hover:underline"
+                        >
+                          <ExternalLink className="h-4 w-4" />
+                          View External Resource
+                        </a>
+                      </div>
+                    )}
+
+                    {selectedRecord?.deliverables && selectedRecord.deliverables.length > 0 && (
+                      <div className="space-y-2">
+                        <Label className="text-muted-foreground">Attached Files</Label>
+                        <div className="grid grid-cols-1 gap-2">
+                          {selectedRecord.deliverables.map((file, idx) => (
+                            <a
+                              key={idx}
+                              href={file.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex items-center gap-2 p-2 border rounded-md hover:bg-muted/50 transition-colors text-sm"
+                            >
+                              <Download className="h-4 w-4 text-muted-foreground" />
+                              <span className="truncate">{file.filename}</span>
+                            </a>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
+          </ScrollArea>
+
+          <div className="flex justify-end pt-4">
+            <Button variant="outline" onClick={() => setIsDetailsOpen(false)}>
+              Close
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

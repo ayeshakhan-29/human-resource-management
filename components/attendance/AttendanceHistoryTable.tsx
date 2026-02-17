@@ -91,7 +91,7 @@ export function AttendanceHistoryTable({
               </TableCell>
             </TableRow>
           ) : data && data.length > 0 ? (
-            data.slice(0, 7).map((record, index) => (
+            data.map((record, index) => (
               <TableRow key={`${record.id || 'no-id'}-${record.date}-${index}`}>
                 <TableCell>
                   {new Date(record.date).toLocaleDateString("en-US", {

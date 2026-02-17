@@ -26,6 +26,16 @@ import {
 import { WeeklyAttendanceRecord as BackendWeeklyRecord } from "@/lib/types/attendance.types";
 import { AttendanceHistoryTable } from "@/components/attendance/AttendanceHistoryTable";
 import { CheckoutForm } from "@/components/attendance/CheckoutForm";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, FilterX } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 // SWR fetcher function
 const fetcher = async (url: string) => {
@@ -80,6 +90,13 @@ export default function EmployeeAttendancePage() {
   const [workingHours, setWorkingHours] = useState(0);
   const [showSuccess, setShowSuccess] = useState(false);
   const [showCheckoutForm, setShowCheckoutForm] = useState(false);
+
+  // History State
+  const [historyPage, setHistoryPage] = useState(1);
+  const [historyLimit] = useState(10);
+  const [filterDate, setFilterDate] = useState("");
+  const [historyStatus, setHistoryStatus] = useState("all");
+
   const { mutate: globalMutate } = useSWRConfig();
 
   // Use SWR for real-time data fetching with polling
@@ -119,6 +136,29 @@ export default function EmployeeAttendancePage() {
       errorRetryInterval: 1000,
       // Disable deduping interval to ensure we always get fresh data
       dedupingInterval: 0,
+    }
+  );
+
+  // New History SWR with Pagination and Filters
+  const {
+    data: historyData,
+    error: historyError,
+    isLoading: isLoadingHistoryData,
+    mutate: mutateHistoryData,
+  } = useSWR<{
+    success: boolean;
+    data: BackendWeeklyRecord[];
+    pagination: {
+      totalItems: number;
+      totalPages: number;
+      currentPage: number;
+    };
+  }>(
+    `${process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5005/api"}/attendance/history?page=${historyPage}&limit=${historyLimit}${filterDate ? `&date=${filterDate}` : ""}${historyStatus !== "all" ? `&status=${historyStatus}` : ""}`,
+    fetcher,
+    {
+      revalidateOnFocus: true,
+      dedupingInterval: 2000,
     }
   );
 
@@ -567,22 +607,116 @@ export default function EmployeeAttendancePage() {
 
         {/* Attendance History */}
         <Card>
-          <CardHeader>
-            <CardTitle>Attendance History</CardTitle>
-            <CardDescription>Your recent attendance records</CardDescription>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0">
+            <div>
+              <CardTitle>Attendance History</CardTitle>
+              <CardDescription>Your all-time attendance records</CardDescription>
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="rounded-md border">
+            {/* History Filters */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+              <div className="space-y-2">
+                <Label htmlFor="filterDate">Filter by Date</Label>
+                <div className="relative">
+                  <Input
+                    id="filterDate"
+                    type="date"
+                    value={filterDate}
+                    onChange={(e) => {
+                      setFilterDate(e.target.value);
+                      setHistoryPage(1);
+                    }}
+                    className="pl-9"
+                  />
+                  <CalendarIcon className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="statusFilter">Status</Label>
+                <Select
+                  value={historyStatus}
+                  onValueChange={(value) => {
+                    setHistoryStatus(value);
+                    setHistoryPage(1);
+                  }}
+                >
+                  <SelectTrigger id="statusFilter">
+                    <SelectValue placeholder="All Statuses" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Statuses</SelectItem>
+                    <SelectItem value="present">Present</SelectItem>
+                    <SelectItem value="absent">Absent</SelectItem>
+                    <SelectItem value="late">Late</SelectItem>
+                    <SelectItem value="half_day">Half Day</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex items-end">
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => {
+                    setFilterDate("");
+                    setHistoryStatus("all");
+                    setHistoryPage(1);
+                  }}
+                >
+                  <FilterX className="h-4 w-4 mr-2" />
+                  Clear Filters
+                </Button>
+              </div>
+            </div>
+
+            <div className="rounded-md border mb-4">
               <AttendanceHistoryTable
-                data={weeklyData?.data?.map((record) => ({
+                data={historyData?.data?.map((record) => ({
                   ...record,
                   id: record.id?.toString() || "",
                   formattedHours: record.formattedHours || "0h 0m",
                 }))}
-                isLoading={isLoadingHistory}
-                error={weeklyError}
+                isLoading={isLoadingHistoryData}
+                error={historyError}
               />
             </div>
+
+            {/* Pagination Controls */}
+            {historyData?.pagination && historyData.pagination.totalPages > 1 && (
+              <div className="flex items-center justify-between border-t pt-4">
+                <div className="text-sm text-muted-foreground">
+                  Showing Page <span className="font-medium">{historyPage}</span> of{" "}
+                  <span className="font-medium">{historyData.pagination.totalPages}</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setHistoryPage((p) => Math.max(1, p - 1))}
+                    disabled={historyPage === 1 || isLoadingHistoryData}
+                  >
+                    <ChevronLeft className="h-4 w-4 mr-1" />
+                    Previous
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() =>
+                      setHistoryPage((p) =>
+                        Math.min(historyData.pagination.totalPages, p + 1)
+                      )
+                    }
+                    disabled={
+                      historyPage === historyData.pagination.totalPages ||
+                      isLoadingHistoryData
+                    }
+                  >
+                    Next
+                    <ChevronRight className="h-4 w-4 ml-1" />
+                  </Button>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
