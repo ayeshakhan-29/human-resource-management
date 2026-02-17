@@ -101,8 +101,7 @@ export default function EmployeeAttendancePage() {
       formattedTotalHours: string;
     };
   }>(
-    `${
-      process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5005/api"
+    `${process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5005/api"
     }/attendance/weekly`,
     fetcher,
     {
@@ -155,9 +154,7 @@ export default function EmployeeAttendancePage() {
         mutateWeeklyData();
 
         if (attendance?.clockIn && !attendance.clockOut) {
-          const checkInDateTime = parseISO(
-            `${attendance.date}T${attendance.clockIn}`
-          );
+          const checkInDateTime = parseISO(attendance.clockIn);
           const now = new Date();
           const diffHours =
             (now.getTime() - checkInDateTime.getTime()) / (1000 * 60 * 60);
@@ -167,13 +164,11 @@ export default function EmployeeAttendancePage() {
           setWorkingHours(parseFloat(diffHours.toFixed(2)));
         } else if (attendance?.clockIn && attendance.clockOut) {
           setAttendanceStatus("checked_out");
-          setCheckInTime(parseISO(`${attendance.date}T${attendance.clockIn}`));
-          const checkOutDateTime = parseISO(
-            `${attendance.date}T${attendance.clockOut}`
-          );
+          setCheckInTime(parseISO(attendance.clockIn));
+          const checkOutDateTime = parseISO(attendance.clockOut);
           const diffHours =
             (checkOutDateTime.getTime() -
-              parseISO(`${attendance.date}T${attendance.clockIn}`).getTime()) /
+              parseISO(attendance.clockIn).getTime()) /
             (1000 * 60 * 60);
           setWorkingHours(parseFloat(diffHours.toFixed(2)));
         } else {
@@ -260,7 +255,7 @@ export default function EmployeeAttendancePage() {
 
       if (data?.attendance) {
         const { date, clockIn } = data.attendance;
-        const checkInDate = parseISO(`${date}T${clockIn}`);
+        const checkInDate = parseISO(clockIn);
 
         // Update local state
         setCheckInTime(checkInDate);
@@ -465,16 +460,16 @@ export default function EmployeeAttendancePage() {
                   attendanceStatus === "checked_in"
                     ? "default"
                     : attendanceStatus === "checked_out"
-                    ? "secondary"
-                    : "outline"
+                      ? "secondary"
+                      : "outline"
                 }
                 className="text-sm"
               >
                 {attendanceStatus === "checked_in"
                   ? "Checked In"
                   : attendanceStatus === "checked_out"
-                  ? "Checked Out"
-                  : "Not Checked In"}
+                    ? "Checked Out"
+                    : "Not Checked In"}
               </Badge>
             </CardContent>
           </Card>
@@ -531,15 +526,15 @@ export default function EmployeeAttendancePage() {
                       attendanceStatus === "checked_in"
                         ? "default"
                         : attendanceStatus === "checked_out"
-                        ? "secondary"
-                        : "outline"
+                          ? "secondary"
+                          : "outline"
                     }
                   >
                     {attendanceStatus === "checked_in"
                       ? "Working"
                       : attendanceStatus === "checked_out"
-                      ? "Completed"
-                      : "Not Started"}
+                        ? "Completed"
+                        : "Not Started"}
                   </Badge>
                 </div>
                 <div className="flex justify-between items-center">

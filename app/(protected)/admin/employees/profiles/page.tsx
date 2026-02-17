@@ -55,8 +55,8 @@ export default function EmployeeProfilesPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [employees, setEmployees] = useState<EmployeeWithStatus[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null); 
- useEffect(() => {
+  const [error, setError] = useState<string | null>(null);
+  useEffect(() => {
     const fetchEmployees = async () => {
       try {
         setIsLoading(true);
@@ -122,7 +122,7 @@ export default function EmployeeProfilesPage() {
       />
       <div className="flex flex-1 flex-col gap-4 p-4">
         {/* Header Section */}
-        <div className="flex justify-between items-center">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 md:gap-0">
           <div>
             <h1 className="text-3xl font-bold tracking-tight">Employee Profiles</h1>
             <p className="text-muted-foreground">
@@ -164,8 +164,8 @@ export default function EmployeeProfilesPage() {
               />
             </div>
           </CardContent>
-        </Card>   
-     {/* Employee Profiles Grid */}
+        </Card>
+        {/* Employee Profiles Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredEmployees.map((employee) => (
             <Card key={employee.id} className="hover:shadow-lg transition-shadow">
@@ -173,8 +173,8 @@ export default function EmployeeProfilesPage() {
                 <div className="flex items-center space-x-4">
                   <Avatar className="h-16 w-16">
                     {employee.profilePicture && (
-                      <AvatarImage 
-                        src={employee.profilePicture} 
+                      <AvatarImage
+                        src={employee.profilePicture}
                         alt={employee.fullName}
                         className="object-cover"
                       />
@@ -198,8 +198,8 @@ export default function EmployeeProfilesPage() {
                         employee.status === "active"
                           ? "default"
                           : employee.status === "on_leave"
-                          ? "secondary"
-                          : "destructive"
+                            ? "secondary"
+                            : "destructive"
                       }
                       className="mt-1"
                     >
@@ -235,8 +235,8 @@ export default function EmployeeProfilesPage() {
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>
-              </CardHeader>       
-       <CardContent className="pt-0">
+              </CardHeader>
+              <CardContent className="pt-0">
                 <div className="space-y-3">
                   <div className="grid grid-cols-2 gap-4 text-sm">
                     <div>
@@ -244,13 +244,13 @@ export default function EmployeeProfilesPage() {
                       <p className="font-medium">
                         {employee.userInfo?.department
                           ? employee.userInfo.department
-                              .split(" ")
-                              .map(
-                                (word) =>
-                                  word.charAt(0).toUpperCase() +
-                                  word.slice(1).toLowerCase()
-                              )
-                              .join(" ")
+                            .split(" ")
+                            .map(
+                              (word) =>
+                                word.charAt(0).toUpperCase() +
+                                word.slice(1).toLowerCase()
+                            )
+                            .join(" ")
                           : "Not specified"}
                       </p>
                     </div>
@@ -259,18 +259,18 @@ export default function EmployeeProfilesPage() {
                       <p className="font-medium">
                         {employee.userInfo?.position
                           ? employee.userInfo.position
-                              .split(" ")
-                              .map(
-                                (word) =>
-                                  word.charAt(0).toUpperCase() +
-                                  word.slice(1).toLowerCase()
-                              )
-                              .join(" ")
+                            .split(" ")
+                            .map(
+                              (word) =>
+                                word.charAt(0).toUpperCase() +
+                                word.slice(1).toLowerCase()
+                            )
+                            .join(" ")
                           : "Not specified"}
                       </p>
                     </div>
                   </div>
-                  
+
                   <div className="grid grid-cols-2 gap-4 text-sm">
                     <div>
                       <p className="text-muted-foreground">Employee ID</p>
@@ -323,8 +323,8 @@ export default function EmployeeProfilesPage() {
               </CardContent>
             </Card>
           ))}
-        </div> 
-       {filteredEmployees.length === 0 && !isLoading && (
+        </div>
+        {filteredEmployees.length === 0 && !isLoading && (
           <Card>
             <CardContent className="flex flex-col items-center justify-center py-12">
               <User className="h-12 w-12 text-muted-foreground mb-4" />

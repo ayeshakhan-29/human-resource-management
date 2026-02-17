@@ -69,110 +69,112 @@ export function AdminLeaveRequests() {
     return (
         <Card className="w-full border-none shadow-xl bg-white/60 backdrop-blur-md">
             <CardHeader>
-                <div className="flex justify-between items-center">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                     <div>
                         <CardTitle className="text-2xl font-bold text-gray-800">Pending Leave Requests</CardTitle>
                         <CardDescription>Review and manage employee leave applications</CardDescription>
                     </div>
-                    <Button variant="outline" size="sm" onClick={fetchLeaves} className="gap-2">
+                    <Button variant="outline" size="sm" onClick={fetchLeaves} className="gap-2 w-full sm:w-auto">
                         <RotateCcw className="size-4" /> Refresh
                     </Button>
                 </div>
             </CardHeader>
             <CardContent>
-                <div className="rounded-xl overflow-hidden border border-gray-100">
-                    <Table>
-                        <TableHeader className="bg-gray-50">
-                            <TableRow>
-                                <TableHead>Employee</TableHead>
-                                <TableHead>Leave Type</TableHead>
-                                <TableHead>Dates</TableHead>
-                                <TableHead>Total Days</TableHead>
-                                <TableHead>Reason</TableHead>
-                                <TableHead className="text-right">Actions</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {loading ? (
-                                Array.from({ length: 5 }).map((_, i) => (
-                                    <TableRow key={i}>
-                                        <TableCell><Skeleton className="h-4 w-32" /></TableCell>
-                                        <TableCell><Skeleton className="h-4 w-24" /></TableCell>
-                                        <TableCell><Skeleton className="h-4 w-32" /></TableCell>
-                                        <TableCell><Skeleton className="h-4 w-12" /></TableCell>
-                                        <TableCell><Skeleton className="h-4 w-40" /></TableCell>
-                                        <TableCell className="text-right"><Skeleton className="h-8 w-24 ml-auto" /></TableCell>
-                                    </TableRow>
-                                ))
-                            ) : leaves.length === 0 ? (
+                <div className="rounded-xl border border-gray-100 overflow-hidden">
+                    <div className="overflow-x-auto">
+                        <Table>
+                            <TableHeader className="bg-gray-50">
                                 <TableRow>
-                                    <TableCell colSpan={6} className="text-center py-12 text-gray-500 italic bg-gray-50/20">
-                                        No pending leave requests found.
-                                    </TableCell>
+                                    <TableHead>Employee</TableHead>
+                                    <TableHead>Leave Type</TableHead>
+                                    <TableHead>Dates</TableHead>
+                                    <TableHead>Total Days</TableHead>
+                                    <TableHead>Reason</TableHead>
+                                    <TableHead className="text-right">Actions</TableHead>
                                 </TableRow>
-                            ) : (
-                                leaves.map((leave) => (
-                                    <TableRow key={leave.id} className="hover:bg-blue-50/30 transition-colors">
-                                        <TableCell>
-                                            <div className="flex items-center gap-3">
-                                                <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-bold text-xs">
-                                                    {leave.user?.fullName.charAt(0)}
-                                                </div>
-                                                <div className="flex flex-col">
-                                                    <span className="font-semibold text-gray-900">{leave.user?.fullName}</span>
-                                                    <span className="text-xs text-gray-500">{leave.user?.email}</span>
-                                                </div>
-                                            </div>
-                                        </TableCell>
-                                        <TableCell>
-                                            <Badge variant="outline" className="bg-gray-100 text-gray-700 border-none font-medium">
-                                                {leave.leaveType?.name}
-                                            </Badge>
-                                        </TableCell>
-                                        <TableCell>
-                                            <div className="text-sm">
-                                                <span className="font-medium text-gray-700">{format(new Date(leave.startDate), "MMM dd")}</span>
-                                                {leave.startDate !== leave.endDate && (
-                                                    <span className="text-gray-400"> - {format(new Date(leave.endDate), "MMM dd, yyyy")}</span>
-                                                )}
-                                                {leave.startDate === leave.endDate && <span className="text-gray-400">, {format(new Date(leave.endDate), "yyyy")}</span>}
-                                            </div>
-                                            <div className="text-[10px] uppercase font-bold text-gray-400">{leave.leaveMode}</div>
-                                        </TableCell>
-                                        <TableCell className="font-medium text-gray-700">{leave.totalDays} days</TableCell>
-                                        <TableCell className="max-w-[200px]">
-                                            <p className="text-sm text-gray-600 truncate italic" title={leave.reason}>&quot;{leave.reason}&quot;</p>
-                                        </TableCell>
-                                        <TableCell className="text-right">
-                                            <div className="flex justify-end gap-2">
-                                                <Button
-                                                    size="icon"
-                                                    variant="ghost"
-                                                    className="h-8 w-8 text-green-600 hover:text-green-700 hover:bg-green-50 rounded-full"
-                                                    onClick={() => handleApprove(leave.id)}
-                                                    disabled={processing}
-                                                >
-                                                    <Check className="size-4" />
-                                                </Button>
-                                                <Button
-                                                    size="icon"
-                                                    variant="ghost"
-                                                    className="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-full"
-                                                    onClick={() => {
-                                                        setSelectedLeave(leave);
-                                                        setRejectionDialogOpen(true);
-                                                    }}
-                                                    disabled={processing}
-                                                >
-                                                    <X className="size-4" />
-                                                </Button>
-                                            </div>
+                            </TableHeader>
+                            <TableBody>
+                                {loading ? (
+                                    Array.from({ length: 5 }).map((_, i) => (
+                                        <TableRow key={i}>
+                                            <TableCell><Skeleton className="h-4 w-32" /></TableCell>
+                                            <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                                            <TableCell><Skeleton className="h-4 w-32" /></TableCell>
+                                            <TableCell><Skeleton className="h-4 w-12" /></TableCell>
+                                            <TableCell><Skeleton className="h-4 w-40" /></TableCell>
+                                            <TableCell className="text-right"><Skeleton className="h-8 w-24 ml-auto" /></TableCell>
+                                        </TableRow>
+                                    ))
+                                ) : leaves.length === 0 ? (
+                                    <TableRow>
+                                        <TableCell colSpan={6} className="text-center py-12 text-gray-500 italic bg-gray-50/20">
+                                            No pending leave requests found.
                                         </TableCell>
                                     </TableRow>
-                                ))
-                            )}
-                        </TableBody>
-                    </Table>
+                                ) : (
+                                    leaves.map((leave) => (
+                                        <TableRow key={leave.id} className="hover:bg-blue-50/30 transition-colors">
+                                            <TableCell>
+                                                <div className="flex items-center gap-3">
+                                                    <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-bold text-xs">
+                                                        {leave.user?.fullName.charAt(0)}
+                                                    </div>
+                                                    <div className="flex flex-col">
+                                                        <span className="font-semibold text-gray-900">{leave.user?.fullName}</span>
+                                                        <span className="text-xs text-gray-500">{leave.user?.email}</span>
+                                                    </div>
+                                                </div>
+                                            </TableCell>
+                                            <TableCell>
+                                                <Badge variant="outline" className="bg-gray-100 text-gray-700 border-none font-medium">
+                                                    {leave.leaveType?.name}
+                                                </Badge>
+                                            </TableCell>
+                                            <TableCell>
+                                                <div className="text-sm">
+                                                    <span className="font-medium text-gray-700">{format(new Date(leave.startDate), "MMM dd")}</span>
+                                                    {leave.startDate !== leave.endDate && (
+                                                        <span className="text-gray-400"> - {format(new Date(leave.endDate), "MMM dd, yyyy")}</span>
+                                                    )}
+                                                    {leave.startDate === leave.endDate && <span className="text-gray-400">, {format(new Date(leave.endDate), "yyyy")}</span>}
+                                                </div>
+                                                <div className="text-[10px] uppercase font-bold text-gray-400">{leave.leaveMode}</div>
+                                            </TableCell>
+                                            <TableCell className="font-medium text-gray-700">{leave.totalDays} days</TableCell>
+                                            <TableCell className="max-w-[200px]">
+                                                <p className="text-sm text-gray-600 truncate italic" title={leave.reason}>&quot;{leave.reason}&quot;</p>
+                                            </TableCell>
+                                            <TableCell className="text-right">
+                                                <div className="flex justify-end gap-2">
+                                                    <Button
+                                                        size="icon"
+                                                        variant="ghost"
+                                                        className="h-8 w-8 text-green-600 hover:text-green-700 hover:bg-green-50 rounded-full"
+                                                        onClick={() => handleApprove(leave.id)}
+                                                        disabled={processing}
+                                                    >
+                                                        <Check className="size-4" />
+                                                    </Button>
+                                                    <Button
+                                                        size="icon"
+                                                        variant="ghost"
+                                                        className="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-full"
+                                                        onClick={() => {
+                                                            setSelectedLeave(leave);
+                                                            setRejectionDialogOpen(true);
+                                                        }}
+                                                        disabled={processing}
+                                                    >
+                                                        <X className="size-4" />
+                                                    </Button>
+                                                </div>
+                                            </TableCell>
+                                        </TableRow>
+                                    ))
+                                )}
+                            </TableBody>
+                        </Table>
+                    </div>
                 </div>
             </CardContent>
 

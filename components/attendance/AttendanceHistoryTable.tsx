@@ -28,11 +28,23 @@ interface AttendanceHistoryTableProps {
 // Helper function to format time from 24h to 12h format
 const formatTime = (timeString: string) => {
   if (!timeString) return "-";
+
+  // Check if it's an ISO string or Date string
+  const date = new Date(timeString);
+  if (!isNaN(date.getTime())) {
+    return date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true });
+  }
+
+  // Fallback for HH:MM format
   const [hours, minutes] = timeString.split(":");
-  const hour = parseInt(hours, 10);
-  const ampm = hour >= 12 ? "PM" : "AM";
-  const formattedHour = hour % 12 || 12;
-  return `${formattedHour}:${minutes} ${ampm}`;
+  if (hours && minutes) {
+    const hour = parseInt(hours, 10);
+    const ampm = hour >= 12 ? "PM" : "AM";
+    const formattedHour = hour % 12 || 12;
+    return `${formattedHour}:${minutes} ${ampm}`;
+  }
+
+  return timeString;
 };
 
 const getStatusBadge = (status: string) => {

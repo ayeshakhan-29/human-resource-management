@@ -1,12 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { ManagerTaskStatisticsResponse } from "@/lib/types/task.types";
-import { getManagerTaskStatistics } from "@/lib/actions/task.actions";
 import { ListChecks, AlertCircle, CheckCircle, Timer, FolderKanban, Eye, Users, Calendar } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
+import { useApi } from "@/hooks/use-api";
+import { DashboardSkeleton } from "@/components/dashboard-skeleton";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -20,80 +19,54 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Header } from "@/components/header";
 
-interface Project {
-  id: number;
-  name: string;
-  description: string;
-  status: string;
-  startDate: string;
-  endDate: string;
-  teamMembers?: { id: number }[];
+interface DashboardData {
+  role: string;
+  stats: {
+    managedProjectsCount: number;
+    totalTasks: number;
+    completedTasks: number;
+    activeProjects: number;
+    inProgressTasks?: number;
+    pendingTasks?: number;
+    overdueTasks?: number;
+  };
+  managedProjects?: {
+    id: number;
+    name: string;
+    description: string;
+    status: string;
+    startDate: string;
+    endDate: string;
+    teamMembers?: { id: number }[];
+  }[];
 }
 
 export default function ManagerDashboard() {
   const { user } = useAuth();
   const router = useRouter();
-  const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState({
-    totalTasks: 0,
-    completedTasks: 0,
-    inProgressTasks: 0,
-    pendingTasks: 0,
-    overdueTasks: 0,
-    activeProjects: 0,
-  });
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [projectsLoading, setProjectsLoading] = useState(true);
 
-  // Fetch manager-specific task statistics
-  useEffect(() => {
-    const fetchStats = async () => {
-      try {
-        const response: ManagerTaskStatisticsResponse = await getManagerTaskStatistics();
-        if (response?.success && response?.data) {
-          setStats(response.data);
-        }
-      } catch (error) {
-        console.error("Error fetching manager statistics:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchStats();
-  }, []);
+  const { data: response, isLoading } = useApi<{ success: boolean; data: DashboardData }>("/dashboard/summary");
+  const dashboardData = response?.data;
 
-  // Fetch manager's projects
-  useEffect(() => {
-    const fetchProjects = async () => {
-      try {
-        setProjectsLoading(true);
-        const token = typeof window !== 'undefined' ? localStorage.getItem("token") : null;
-        const baseUrl = (process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5001/api/").replace(/\/?$/, "/");
-        
-        const response = await fetch(`${baseUrl}projects/get-all-projects?managerId=${user?.id}`, {
-          headers: {
-            "Content-Type": "application/json",
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-          },
-          cache: "no-store",
-        });
+  if (isLoading) {
+    return (
+      <>
+        <Header breadcrumbs={[{ label: "Manager", href: "/manager" }, { label: "Dashboard" }]} />
+        <DashboardSkeleton />
+      </>
+    );
+  }
 
-        const data = await response.json();
-        if (response.ok && data?.success && Array.isArray(data.data)) {
-          setProjects(data.data.slice(0, 3)); // Show only first 3 projects
-        }
-      } catch (error) {
-        console.error("Error fetching projects:", error);
-      } finally {
-        setProjectsLoading(false);
-      }
-    };
+  const stats = {
+    totalTasks: dashboardData?.stats.totalTasks || 0,
+    completedTasks: dashboardData?.stats.completedTasks || 0,
+    inProgressTasks: dashboardData?.stats.inProgressTasks || 0,
+    pendingTasks: dashboardData?.stats.pendingTasks || 0,
+    overdueTasks: dashboardData?.stats.overdueTasks || 0,
+    activeProjects: dashboardData?.stats.activeProjects || 0,
+  };
 
-    if (user?.id) {
-      fetchProjects();
-    }
-  }, [user?.id]);
-
+  const projects = dashboardData?.managedProjects || [];
   const completionRate = stats.totalTasks > 0 ? (stats.completedTasks / stats.totalTasks) * 100 : 0;
 
   return (
@@ -132,7 +105,7 @@ export default function ManagerDashboard() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-blue-900">
-                {loading ? "..." : stats.totalTasks}
+                {stats.totalTasks}
               </div>
               <p className="text-xs text-blue-600">
                 In your projects
@@ -147,10 +120,10 @@ export default function ManagerDashboard() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-green-900">
-                {loading ? "..." : stats.completedTasks}
+                {stats.completedTasks}
               </div>
               <p className="text-xs text-green-600">
-                {loading ? "..." : `${completionRate.toFixed(1)}% completion rate`}
+                {`${completionRate.toFixed(1)}% completion rate`}
               </p>
             </CardContent>
           </Card>
@@ -162,7 +135,7 @@ export default function ManagerDashboard() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-yellow-900">
-                {loading ? "..." : stats.inProgressTasks}
+                {stats.inProgressTasks}
               </div>
               <p className="text-xs text-yellow-600">
                 Currently active
@@ -177,7 +150,7 @@ export default function ManagerDashboard() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-gray-900">
-                {loading ? "..." : stats.pendingTasks}
+                {stats.pendingTasks}
               </div>
               <p className="text-xs text-gray-600">
                 Not started
@@ -192,7 +165,7 @@ export default function ManagerDashboard() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-red-900">
-                {loading ? "..." : stats.overdueTasks}
+                {stats.overdueTasks}
               </div>
               <p className="text-xs text-red-600">
                 Need attention
@@ -217,25 +190,25 @@ export default function ManagerDashboard() {
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
                   <span>Completion Rate</span>
-                  <span className="font-semibold">{loading ? "..." : completionRate.toFixed(1)}%</span>
+                  <span className="font-semibold">{completionRate.toFixed(1)}%</span>
                 </div>
                 <Progress value={completionRate} className="h-2" />
               </div>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-2">
                 <div className="text-center p-3 bg-green-50 rounded-lg">
-                  <div className="text-2xl font-bold text-green-700">{loading ? "..." : stats.completedTasks}</div>
+                  <div className="text-2xl font-bold text-green-700">{stats.completedTasks}</div>
                   <div className="text-xs text-green-600">Completed</div>
                 </div>
                 <div className="text-center p-3 bg-blue-50 rounded-lg">
-                  <div className="text-2xl font-bold text-blue-700">{loading ? "..." : stats.inProgressTasks}</div>
+                  <div className="text-2xl font-bold text-blue-700">{stats.inProgressTasks}</div>
                   <div className="text-xs text-blue-600">In Progress</div>
                 </div>
                 <div className="text-center p-3 bg-gray-50 rounded-lg">
-                  <div className="text-2xl font-bold text-gray-700">{loading ? "..." : stats.pendingTasks}</div>
+                  <div className="text-2xl font-bold text-gray-700">{stats.pendingTasks}</div>
                   <div className="text-xs text-gray-600">Pending</div>
                 </div>
                 <div className="text-center p-3 bg-red-50 rounded-lg">
-                  <div className="text-2xl font-bold text-red-700">{loading ? "..." : stats.overdueTasks}</div>
+                  <div className="text-2xl font-bold text-red-700">{stats.overdueTasks}</div>
                   <div className="text-xs text-red-600">Overdue</div>
                 </div>
               </div>
@@ -257,18 +230,12 @@ export default function ManagerDashboard() {
             </div>
             <Button asChild variant="outline" size="sm">
               <Link href="/manager/projects">
-                View All ({loading ? "..." : stats.activeProjects})
+                View All ({stats.activeProjects})
               </Link>
             </Button>
           </CardHeader>
           <CardContent>
-            {projectsLoading ? (
-              <div className="flex items-center justify-center py-8">
-                <div className="text-center">
-                  <div className="text-sm text-gray-500">Loading projects...</div>
-                </div>
-              </div>
-            ) : projects.length === 0 ? (
+            {projects.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-8 text-center">
                 <FolderKanban className="h-12 w-12 text-gray-400 mb-3" />
                 <p className="text-sm text-gray-600">No projects assigned yet</p>
@@ -348,41 +315,6 @@ export default function ManagerDashboard() {
                   View Projects
                 </Link>
               </Button>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Recent Activity */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Recent Activity</CardTitle>
-            <CardDescription>
-              Latest updates from your projects
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="flex items-center gap-3 p-3 border rounded-lg">
-                <CheckCircle className="h-5 w-5 text-green-600" />
-                <div className="flex-1">
-                  <p className="text-sm font-medium">Task &quot;API Integration&quot; completed</p>
-                  <p className="text-xs text-muted-foreground">by John Doe • 2 hours ago</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-3 p-3 border rounded-lg">
-                <AlertCircle className="h-5 w-5 text-yellow-600" />
-                <div className="flex-1">
-                  <p className="text-sm font-medium">Task &quot;Database Migration&quot; is overdue</p>
-                  <p className="text-xs text-muted-foreground">assigned to Jane Smith • 1 day overdue</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-3 p-3 border rounded-lg">
-                <FolderKanban className="h-5 w-5 text-blue-600" />
-                <div className="flex-1">
-                  <p className="text-sm font-medium">New project milestone reached</p>
-                  <p className="text-xs text-muted-foreground">Project Alpha • 3 hours ago</p>
-                </div>
-              </div>
             </div>
           </CardContent>
         </Card>

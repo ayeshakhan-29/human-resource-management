@@ -41,6 +41,7 @@ export interface AllAttendanceResponse {
   count: number;
   data: Array<{
     id: number;
+    userId: number;
     fullName: string;
     email: string;
     date: string;

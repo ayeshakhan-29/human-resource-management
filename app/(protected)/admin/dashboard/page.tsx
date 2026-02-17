@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import { Users, Clock, Calendar, TrendingUp } from "lucide-react";
-import { Employee } from "@/lib/types/employee.types";
+import { Header } from "@/components/header";
+import { useApi } from "@/hooks/use-api";
+import { DashboardSkeleton } from "@/components/dashboard-skeleton";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -11,85 +12,35 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Header } from "@/components/header";
-import { getAllEmployees } from "@/lib/actions/employee.actions";
-import { getAllAttendance } from "@/lib/actions/attendance.actions";
-import { getTodaysLeavesAction, getAllLeavesAdminAction } from "@/lib/actions/leave.actions";
-import { getTaskStatistics } from "@/lib/actions/task.actions";
-import { AllAttendanceResponse } from "@/lib/types/attendance.types";
+
+interface DashboardData {
+  role: string;
+  stats: {
+    totalEmployees: number;
+    presentToday: number;
+    lateToday: number;
+    avgCheckIn: string;
+    onLeaveToday: number;
+    pendingLeaves: number;
+    performance: string;
+  };
+}
 
 export default function AdminDashboard() {
-  const [employees, setEmployees] = useState<Employee[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [presentCount, setPresentCount] = useState(0);
-  const [onLeaveToday, setOnLeaveToday] = useState(0);
-  const [pendingLeaves, setPendingLeaves] = useState(0);
-  const [lateCount, setLateCount] = useState(0);
-  const [avgCheckIn, setAvgCheckIn] = useState("--:--");
-  const [performance, setPerformance] = useState("0%");
+  const { data: response, isLoading } = useApi<{ success: boolean; data: DashboardData }>("/dashboard/summary");
+  const dashboardData = response?.data;
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [employeesRes, attendanceRes, todayLeavesRes, pendingLeavesRes, taskStatsRes] = await Promise.all([
-          getAllEmployees(),
-          getAllAttendance(),
-          getTodaysLeavesAction({ status: "approved" }),
-          getAllLeavesAdminAction({ status: "pending" }),
-          getTaskStatistics(),
-        ]);
+  if (isLoading) {
+    return (
+      <>
+        <Header breadcrumbs={[{ label: "Admin", href: "/admin" }, { label: "Dashboard" }]} />
+        <DashboardSkeleton />
+      </>
+    );
+  }
 
-        if (employeesRes && employeesRes.success) {
-          setEmployees(employeesRes.data || []);
-        }
+  const stats = dashboardData?.stats;
 
-        if (attendanceRes && attendanceRes.data) {
-          const stats = attendanceRes.data;
-          setPresentCount(stats.count || 0);
-
-          const attendanceData = stats.data || [];
-          const lates = attendanceData.filter((a: AllAttendanceResponse['data'][0]) => a.status?.toLowerCase() === 'late').length;
-          setLateCount(lates);
-
-          const checkInTimes = attendanceData
-            .filter((a: AllAttendanceResponse['data'][0]) => a.clockIn)
-            .map((a: AllAttendanceResponse['data'][0]) => {
-              const [hours, minutes] = a.clockIn!.split(':');
-              return parseInt(hours) * 60 + parseInt(minutes);
-            });
-
-          if (checkInTimes.length > 0) {
-            const avgMinutes = checkInTimes.reduce((a: number, b: number) => a + b, 0) / checkInTimes.length;
-            const h = Math.floor(avgMinutes / 60);
-            const m = Math.floor(avgMinutes % 60);
-            const ampm = h >= 12 ? 'PM' : 'AM';
-            const h12 = h % 12 || 12;
-            setAvgCheckIn(`${h12}:${m.toString().padStart(2, '0')} ${ampm}`);
-          }
-        }
-
-        if (todayLeavesRes && 'data' in todayLeavesRes && todayLeavesRes.data) {
-          setOnLeaveToday(todayLeavesRes.data.length || 0);
-        }
-
-        if (pendingLeavesRes && 'data' in pendingLeavesRes && pendingLeavesRes.data) {
-          setPendingLeaves(pendingLeavesRes.data.length || 0);
-        }
-
-        if (taskStatsRes && taskStatsRes.success && taskStatsRes.data) {
-          const { completed, total } = taskStatsRes.data;
-          const perf = total > 0 ? Math.round((completed / total) * 100) : 0;
-          setPerformance(`${perf}%`);
-        }
-      } catch (error) {
-        console.error("Error fetching dashboard data:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchData();
-  }, []);
   return (
     <>
       <Header
@@ -105,8 +56,7 @@ export default function AdminDashboard() {
             Dashboard Overview
           </h2>
           <p className="text-gray-600">
-            Welcome to your HRM admin panel. Manage employees and track
-            attendance.
+            Welcome to your HRM admin panel. Manage employees and track attendance.
           </p>
         </div>
 
@@ -121,10 +71,10 @@ export default function AdminDashboard() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {isLoading ? "..." : employees.length}
+                {stats?.totalEmployees || 0}
               </div>
               <p className="text-xs text-muted-foreground">
-                +2 from last month
+                Current active employees
               </p>
             </CardContent>
           </Card>
@@ -137,11 +87,11 @@ export default function AdminDashboard() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {isLoading ? "..." : presentCount}
+                {stats?.presentToday || 0}
               </div>
               <p className="text-xs text-muted-foreground">
-                {employees.length > 0
-                  ? `${Math.round((presentCount / employees.length) * 100)}%`
+                {stats?.totalEmployees && stats.totalEmployees > 0
+                  ? `${Math.round((stats.presentToday / stats.totalEmployees) * 100)}%`
                   : "0%"}
                 {" attendance rate"}
               </p>
@@ -154,7 +104,7 @@ export default function AdminDashboard() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {isLoading ? "..." : onLeaveToday}
+                {stats?.onLeaveToday || 0}
               </div>
               <p className="text-xs text-muted-foreground">Employees on leave today</p>
             </CardContent>
@@ -165,7 +115,7 @@ export default function AdminDashboard() {
               <TrendingUp className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{isLoading ? "..." : performance}</div>
+              <div className="text-2xl font-bold">{stats?.performance || "0%"}</div>
               <p className="text-xs text-muted-foreground">
                 Task completion rate
               </p>
@@ -208,24 +158,24 @@ export default function AdminDashboard() {
                     Employees Present:
                   </span>
                   <span className="text-sm text-gray-600">
-                    {presentCount}/{employees.length}
+                    {stats?.presentToday || 0}/{stats?.totalEmployees || 0}
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-sm font-medium">
                     Average Check-in Time:
                   </span>
-                  <span className="text-sm text-gray-600">{isLoading ? "..." : avgCheckIn}</span>
+                  <span className="text-sm text-gray-600">{stats?.avgCheckIn || "--:--"}</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-sm font-medium">Late Arrivals:</span>
-                  <span className="text-sm text-gray-600">{isLoading ? "..." : lateCount}</span>
+                  <span className="text-sm text-gray-600">{stats?.lateToday || 0}</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-sm font-medium">
                     Pending Leave Requests:
                   </span>
-                  <span className="text-sm text-gray-600">{pendingLeaves}</span>
+                  <span className="text-sm text-gray-600">{stats?.pendingLeaves || 0}</span>
                 </div>
               </div>
             </CardContent>

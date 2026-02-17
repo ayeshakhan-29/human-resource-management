@@ -25,7 +25,7 @@ export default function ManagerLayout({
     const checkAccess = async () => {
       // Check if user is authenticated
       if (!user) {
-        router.push("/auth/login");
+        router.push("/login");
         return;
       }
 

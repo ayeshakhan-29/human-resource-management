@@ -22,12 +22,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { 
-  getEmployeeInfoById, 
+import {
+  getEmployeeInfoById,
   updateEmployeeProfile,
   UpdateProfileData,
   uploadProfilePicture,
-  deleteProfilePicture 
+  deleteProfilePicture
 } from "@/lib/actions/employee.actions";
 import { EmployeeInfoResponse } from "@/lib/types/employee.types";
 import { toast } from "sonner";
@@ -183,7 +183,7 @@ export default function EmployeeProfilePage() {
         toast.success("Profile picture updated successfully");
         // Update employee state with new profile picture
         setEmployee(prev => prev ? { ...prev, profilePicture: response.data.profilePicture } : null);
-        
+
         // Reset the file input so the same file can be selected again if needed
         e.target.value = '';
       } else {
@@ -261,14 +261,14 @@ export default function EmployeeProfilePage() {
           <Card className="lg:col-span-1">
             <CardHeader className="text-center">
               <div className="relative inline-block mb-4">
-                <Avatar 
+                <Avatar
                   key={employee?.profilePicture || 'no-picture'}
                   className="h-24 w-24 mx-auto cursor-pointer hover:opacity-80 transition-opacity"
                   onClick={() => employee?.profilePicture && setIsImagePreviewOpen(true)}
                 >
                   {employee?.profilePicture ? (
-                    <AvatarImage 
-                      src={employee.profilePicture} 
+                    <AvatarImage
+                      src={employee.profilePicture}
                       alt={employee.fullName}
                       className="object-cover"
                     />
@@ -313,8 +313,8 @@ export default function EmployeeProfilePage() {
               <CardDescription>
                 {employee?.personalInfo?.position}
               </CardDescription>
-              <Button 
-                className="mt-4" 
+              <Button
+                className="mt-4"
                 variant="outline"
                 onClick={handleEditClick}
               >
@@ -340,8 +340,8 @@ export default function EmployeeProfilePage() {
                     <p className="text-sm text-gray-600">
                       {employee?.personalInfo?.startDate
                         ? new Date(
-                            employee.personalInfo.startDate
-                          ).toLocaleDateString()
+                          employee.personalInfo.startDate
+                        ).toLocaleDateString()
                         : "N/A"}
                     </p>
                   </div>
@@ -429,8 +429,8 @@ export default function EmployeeProfilePage() {
                     <p className="text-sm text-gray-600">
                       {employee?.personalInfo?.startDate
                         ? new Date(
-                            employee.personalInfo.startDate
-                          ).toLocaleDateString()
+                          employee.personalInfo.startDate
+                        ).toLocaleDateString()
                         : "N/A"}
                     </p>
                   </div>
@@ -566,7 +566,7 @@ export default function EmployeeProfilePage() {
               View {employee?.fullName}&apos;s profile picture
             </DialogDescription>
           </DialogHeader>
-          <div className="relative">
+          <div className="relative w-full h-[500px]">
             <button
               onClick={() => setIsImagePreviewOpen(false)}
               className="absolute top-4 right-4 z-10 bg-black/50 text-white rounded-full p-2 hover:bg-black/70 transition-colors"
@@ -580,7 +580,7 @@ export default function EmployeeProfilePage() {
                 alt={employee.fullName}
                 fill
                 unoptimized
-                sizes="100vw"
+                sizes="(max-width: 800px) 100vw, 800px"
                 className="object-contain rounded-lg"
                 priority
               />

@@ -89,7 +89,7 @@ export function LeaveTypeManager() {
     return (
         <Card className="w-full border-none shadow-xl bg-white/70 backdrop-blur-md">
             <CardHeader>
-                <div className="flex justify-between items-center">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                     <div>
                         <CardTitle className="text-2xl font-bold flex items-center gap-2">
                             <Settings className="text-blue-600 size-6" />
@@ -97,73 +97,75 @@ export function LeaveTypeManager() {
                         </CardTitle>
                         <CardDescription>Configure different types of leaves and their rules</CardDescription>
                     </div>
-                    <Button onClick={() => handleOpenDialog()} className="bg-blue-600 hover:bg-blue-700 gap-2">
+                    <Button onClick={() => handleOpenDialog()} className="bg-blue-600 hover:bg-blue-700 gap-2 w-full sm:w-auto">
                         <Plus className="size-4" /> Add Leave Type
                     </Button>
                 </div>
             </CardHeader>
             <CardContent>
                 <div className="rounded-xl border border-gray-100 overflow-hidden">
-                    <Table>
-                        <TableHeader className="bg-gray-50">
-                            <TableRow>
-                                <TableHead>Leave Type</TableHead>
-                                <TableHead>Paid/Unpaid</TableHead>
-                                <TableHead>Annual Quota</TableHead>
-                                <TableHead>Max Consecutive</TableHead>
-                                <TableHead>Half-Day</TableHead>
-                                <TableHead>Status</TableHead>
-                                <TableHead className="text-right">Actions</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {loading ? (
-                                Array.from({ length: 4 }).map((_, i) => (
-                                    <TableRow key={i}>
-                                        <TableCell><Skeleton className="h-4 w-32" /></TableCell>
-                                        <TableCell><Skeleton className="h-4 w-20" /></TableCell>
-                                        <TableCell><Skeleton className="h-4 w-12" /></TableCell>
-                                        <TableCell><Skeleton className="h-4 w-12" /></TableCell>
-                                        <TableCell><Skeleton className="h-4 w-12" /></TableCell>
-                                        <TableCell><Skeleton className="h-6 w-20" /></TableCell>
-                                        <TableCell className="text-right"><Skeleton className="h-8 w-8 ml-auto" /></TableCell>
-                                    </TableRow>
-                                ))
-                            ) : (
-                                types.map((type) => (
-                                    <TableRow key={type.id} className="hover:bg-blue-50/20">
-                                        <TableCell className="font-bold text-gray-700">{type.name}</TableCell>
-                                        <TableCell>
-                                            {type.is_paid ? (
-                                                <Badge className="bg-green-100 text-green-700 hover:bg-green-100 border-none font-medium">Paid</Badge>
-                                            ) : (
-                                                <Badge className="bg-gray-100 text-gray-600 hover:bg-gray-100 border-none font-medium">Unpaid</Badge>
-                                            )}
-                                        </TableCell>
-                                        <TableCell className="font-semibold text-gray-600">{type.annual_quota} days</TableCell>
-                                        <TableCell className="text-gray-500">{type.max_consecutive_days || "No limit"}</TableCell>
-                                        <TableCell>
-                                            {type.half_day_allowed ? (
-                                                <Check className="size-4 text-green-600" />
-                                            ) : (
-                                                <X className="size-4 text-red-400" />
-                                            )}
-                                        </TableCell>
-                                        <TableCell>
-                                            <Badge variant={type.status === 'active' ? 'outline' : 'secondary'} className={type.status === 'active' ? 'bg-green-50 text-green-700 border-green-200' : ''}>
-                                                {type.status}
-                                            </Badge>
-                                        </TableCell>
-                                        <TableCell className="text-right">
-                                            <Button variant="ghost" size="icon" className="text-blue-600 hover:bg-blue-50" onClick={() => handleOpenDialog(type)}>
-                                                <Edit2 className="size-4" />
-                                            </Button>
-                                        </TableCell>
-                                    </TableRow>
-                                ))
-                            )}
-                        </TableBody>
-                    </Table>
+                    <div className="overflow-x-auto">
+                        <Table>
+                            <TableHeader className="bg-gray-50">
+                                <TableRow>
+                                    <TableHead>Leave Type</TableHead>
+                                    <TableHead>Paid/Unpaid</TableHead>
+                                    <TableHead>Annual Quota</TableHead>
+                                    <TableHead>Max Consecutive</TableHead>
+                                    <TableHead>Half-Day</TableHead>
+                                    <TableHead>Status</TableHead>
+                                    <TableHead className="text-right">Actions</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {loading ? (
+                                    Array.from({ length: 4 }).map((_, i) => (
+                                        <TableRow key={i}>
+                                            <TableCell><Skeleton className="h-4 w-32" /></TableCell>
+                                            <TableCell><Skeleton className="h-4 w-20" /></TableCell>
+                                            <TableCell><Skeleton className="h-4 w-12" /></TableCell>
+                                            <TableCell><Skeleton className="h-4 w-12" /></TableCell>
+                                            <TableCell><Skeleton className="h-4 w-12" /></TableCell>
+                                            <TableCell><Skeleton className="h-6 w-20" /></TableCell>
+                                            <TableCell className="text-right"><Skeleton className="h-8 w-8 ml-auto" /></TableCell>
+                                        </TableRow>
+                                    ))
+                                ) : (
+                                    types.map((type) => (
+                                        <TableRow key={type.id} className="hover:bg-blue-50/20">
+                                            <TableCell className="font-bold text-gray-700">{type.name}</TableCell>
+                                            <TableCell>
+                                                {type.is_paid ? (
+                                                    <Badge className="bg-green-100 text-green-700 hover:bg-green-100 border-none font-medium">Paid</Badge>
+                                                ) : (
+                                                    <Badge className="bg-gray-100 text-gray-600 hover:bg-gray-100 border-none font-medium">Unpaid</Badge>
+                                                )}
+                                            </TableCell>
+                                            <TableCell className="font-semibold text-gray-600">{type.annual_quota} days</TableCell>
+                                            <TableCell className="text-gray-500">{type.max_consecutive_days || "No limit"}</TableCell>
+                                            <TableCell>
+                                                {type.half_day_allowed ? (
+                                                    <Check className="size-4 text-green-600" />
+                                                ) : (
+                                                    <X className="size-4 text-red-400" />
+                                                )}
+                                            </TableCell>
+                                            <TableCell>
+                                                <Badge variant={type.status === 'active' ? 'outline' : 'secondary'} className={type.status === 'active' ? 'bg-green-50 text-green-700 border-green-200' : ''}>
+                                                    {type.status}
+                                                </Badge>
+                                            </TableCell>
+                                            <TableCell className="text-right">
+                                                <Button variant="ghost" size="icon" className="text-blue-600 hover:bg-blue-50" onClick={() => handleOpenDialog(type)}>
+                                                    <Edit2 className="size-4" />
+                                                </Button>
+                                            </TableCell>
+                                        </TableRow>
+                                    ))
+                                )}
+                            </TableBody>
+                        </Table>
+                    </div>
                 </div>
             </CardContent>
 

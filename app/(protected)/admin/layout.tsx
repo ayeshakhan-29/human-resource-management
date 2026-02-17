@@ -23,7 +23,7 @@ export default function AdminLayout({
   useEffect(() => {
     const checkAccess = async () => {
       if (!user) {
-        router.push("/auth/login");
+        router.push("/login");
         return;
       }
 
@@ -31,11 +31,9 @@ export default function AdminLayout({
       if (userRole === "admin") {
         setHasAccess(true);
         setIsCheckingAccess(false);
-        return;
+      } else {
+        router.push("/login");
       }
-
-      setHasAccess(false);
-      setIsCheckingAccess(false);
     };
 
     checkAccess();

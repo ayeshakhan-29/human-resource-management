@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { Header } from "@/components/header";
+import Link from "next/link";
 import {
   Card,
   CardContent,
@@ -319,9 +320,11 @@ export default function AttendanceReportsPage() {
                         </TableCell>
                         <TableCell>{statusBadge(rec.status)}</TableCell>
                         <TableCell>
-                          <Button variant="ghost" size="sm" className="h-8 px-3">
-                            View Details
-                          </Button>
+                          <Link href={`/admin/daily-work-records?employeeId=${rec.userId}&date=${rec.date}`}>
+                            <Button variant="ghost" size="sm" className="h-8 px-3">
+                              View Details
+                            </Button>
+                          </Link>
                         </TableCell>
                       </TableRow>
                     ))
