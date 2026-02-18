@@ -68,6 +68,11 @@ export default function EmployeeDashboard() {
     absent: "text-red-600",
     "not-marked": "text-gray-600",
   };
+  const displayAttendanceStatus = (() => {
+    const s = stats?.attendanceStatus;
+    if (!s) return "Not Marked";
+    return s.replace(/-/g, " ");
+  })();
 
   return (
     <>
@@ -99,7 +104,7 @@ export default function EmployeeDashboard() {
             </CardHeader>
             <CardContent>
               <div className={`text-2xl font-bold capitalize ${statusColors[stats?.attendanceStatus || "not-marked"]}`}>
-                {stats?.attendanceStatus.replace("-", " ") || "Not Marked"}
+                {displayAttendanceStatus}
               </div>
               <p className="text-xs text-muted-foreground">
                 Attendance for {new Date().toLocaleDateString()}

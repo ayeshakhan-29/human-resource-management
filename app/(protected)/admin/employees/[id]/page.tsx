@@ -862,9 +862,21 @@ export default function EmployeeDetailsPage() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Delete Employee</DialogTitle>
-            <DialogDescription>
-              Are you sure you want to delete <strong>{employee?.fullName}</strong>?
-              This action cannot be undone and will permanently remove the employee and all associated data.
+            <DialogDescription className="space-y-3">
+              <p>
+                Are you sure you want to delete <strong>{employee?.fullName}</strong>?
+              </p>
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-sm text-yellow-800">
+                <p className="font-semibold mb-1">⚠️ Warning:</p>
+                <p>This action cannot be undone and will permanently:</p>
+                <ul className="list-disc list-inside mt-2 space-y-1">
+                  <li>Remove the employee from the system</li>
+                  <li>Delete all their personal information</li>
+                  <li>Delete all projects they manage (if any)</li>
+                  <li>Delete all tasks in those projects</li>
+                  <li>Remove all their attendance records</li>
+                </ul>
+              </div>
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>

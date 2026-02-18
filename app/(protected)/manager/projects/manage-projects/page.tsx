@@ -443,7 +443,6 @@ export default function ManagerProjectManagementPage() {
                   <SelectItem value="all">All Status</SelectItem>
                   <SelectItem value="planning">Planning</SelectItem>
                   <SelectItem value="active">Active</SelectItem>
-                  <SelectItem value="in-progress">In Progress</SelectItem>
                   <SelectItem value="on-hold">On Hold</SelectItem>
                   <SelectItem value="completed">Completed</SelectItem>
                   <SelectItem value="cancelled">Cancelled</SelectItem>
@@ -653,7 +652,6 @@ export default function ManagerProjectManagementPage() {
                                 <SelectContent>
                                   <SelectItem value="planning">Planning</SelectItem>
                                   <SelectItem value="active">Active</SelectItem>
-                                  <SelectItem value="in-progress">In Progress</SelectItem>
                                   <SelectItem value="on-hold">On Hold</SelectItem>
                                   <SelectItem value="completed">Completed</SelectItem>
                                   <SelectItem value="cancelled">Cancelled</SelectItem>

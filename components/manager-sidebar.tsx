@@ -2,7 +2,7 @@
 
 import type * as React from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   Building2,
   Settings,
@@ -15,6 +15,7 @@ import {
   SquarePlus,
   Settings2,
   FileText,
+  ArrowRightLeft,
 } from "lucide-react";
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -47,6 +48,7 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { useAuth } from "@/context/AuthContext";
+import { Button } from "@/components/ui/button";
 
 const data = {
   navMain: [
@@ -104,8 +106,17 @@ export function ManagerSidebar({
   ...props
 }: React.ComponentProps<typeof Sidebar>) {
   const pathname = usePathname();
+  const router = useRouter();
   const { user, logout } = useAuth();
   const { setOpenMobile } = useSidebar();
+
+  const handleSwitchToEmployee = () => {
+    router.push("/employee/dashboard");
+    setOpenMobile(false);
+  };
+
+  // Check if user's primary role is employee (meaning they're an employee who was assigned as project manager)
+  const isEmployeeWithManagerRole = user?.role?.toLowerCase() === "employee";
 
   return (
     <Sidebar collapsible="icon" {...props}>
@@ -127,6 +138,22 @@ export function ManagerSidebar({
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
+        {/* Switch to Employee Dashboard Button - only show if user's primary role is employee */}
+        {isEmployeeWithManagerRole && (
+          <SidebarGroup>
+            <SidebarGroupContent>
+              <Button
+                onClick={handleSwitchToEmployee}
+                className="w-full justify-start gap-2 bg-blue-600 hover:bg-blue-700 text-white"
+                size="sm"
+              >
+                <ArrowRightLeft className="h-4 w-4" />
+                Switch to Employee Dashboard
+              </Button>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
+
         <SidebarGroup>
           <SidebarGroupLabel>Navigation</SidebarGroupLabel>
           <SidebarGroupContent>

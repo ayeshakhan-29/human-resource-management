@@ -31,30 +31,36 @@ export default function ManagerLayout({
 
       const userRole = (user.role || "").toString().toLowerCase();
 
-      // Allow access if user has manager role
-      if (userRole === "manager") {
+      // Allow access if user has manager or admin role
+      if (userRole === "manager" || userRole === "admin") {
         setHasAccess(true);
         setIsCheckingAccess(false);
         return;
       }
 
-      // Otherwise, check if the user is assigned as a project manager
-      try {
-        const id = parseInt((user.id as unknown as string) || "0", 10);
-        if (id) {
-          const resp = await getProjectsByManager(id, 1, 1);
-          const hasProjects = (resp?.data?.length || 0) > 0;
-          if (hasProjects) {
+      // Check if employee is assigned as a project manager
+      if (userRole === "employee") {
+        try {
+          const token = localStorage.getItem("token");
+          const apiUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5001/api';
+          const response = await fetch(`${apiUrl}/auth/check-project-manager`, {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          });
+          const data = await response.json();
+          
+          if (data.success && data.isProjectManager) {
             setHasAccess(true);
             setIsCheckingAccess(false);
             return;
           }
+        } catch (error) {
+          console.error("Failed to check manager status:", error);
         }
-      } catch (err) {
-        console.warn("Error checking project manager assignments:", err);
       }
 
-      // User doesn't have manager role
+      // User doesn't have manager access
       setHasAccess(false);
       setIsCheckingAccess(false);
     };
@@ -83,14 +89,14 @@ export default function ManagerLayout({
           <div>
             <h2 className="text-2xl font-bold text-gray-900 mb-2">Manager Access Required</h2>
             <p className="text-gray-600 mb-4">
-              You need to have the &quot;Manager&quot; role to access this dashboard.
+              You need to be assigned as a project manager or have the &quot;Manager&quot; role to access this dashboard.
             </p>
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-left">
               <p className="text-sm text-blue-800 mb-2">
                 <strong>Current Role:</strong> {user?.role || "employee"}
               </p>
               <p className="text-sm text-blue-700">
-                Please contact your administrator to assign you the Manager role.
+                Please contact your administrator to assign you as a project manager or update your role.
               </p>
             </div>
           </div>

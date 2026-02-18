@@ -17,6 +17,7 @@ import {
   Bell,
   CreditCard,
   ListChecks,
+  ArrowRightLeft,
 } from "lucide-react";
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -51,6 +52,7 @@ import {
 import { useAuth } from "@/context/AuthContext";
 import { useState, useEffect } from "react";
 import { getUnreadNotificationCount } from "@/lib/actions/notification.actions";
+import { Button } from "@/components/ui/button";
 
 const data = {
   user: {
@@ -122,6 +124,38 @@ export function EmployeeSidebar({
   const { user } = useAuth();
   const { setOpenMobile } = useSidebar();
   const [unreadCount, setUnreadCount] = useState(0);
+  const [isProjectManager, setIsProjectManager] = useState(false);
+  const [checkingManagerStatus, setCheckingManagerStatus] = useState(true);
+
+  // Check if user is a project manager
+  useEffect(() => {
+    const checkManagerStatus = async () => {
+      if (user?.id) {
+        try {
+          const token = localStorage.getItem("token");
+          const apiUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5001/api';
+          const response = await fetch(`${apiUrl}/auth/check-project-manager`, {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          });
+          const data = await response.json();
+          if (data.success) {
+            setIsProjectManager(data.isProjectManager);
+            console.log('Project manager status:', data.isProjectManager);
+          }
+        } catch (error) {
+          console.error("Failed to check manager status:", error);
+        } finally {
+          setCheckingManagerStatus(false);
+        }
+      } else {
+        setCheckingManagerStatus(false);
+      }
+    };
+
+    checkManagerStatus();
+  }, [user?.id]);
 
   useEffect(() => {
     const fetchUnreadCount = async () => {
@@ -157,6 +191,11 @@ export function EmployeeSidebar({
     router.push("/employee/notifications");
   };
 
+  const handleSwitchToManager = () => {
+    router.push("/manager/dashboard");
+    setOpenMobile(false);
+  };
+
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
@@ -177,6 +216,27 @@ export function EmployeeSidebar({
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
+        {/* Debug info - remove after testing */}
+        {process.env.NODE_ENV === 'development' && (
+          <div className="px-3 py-1 text-xs text-gray-500">
+            Manager Status: {checkingManagerStatus ? 'Checking...' : isProjectManager ? 'Yes' : 'No'}
+          </div>
+        )}
+
+        {/* Switch to Manager Dashboard Button */}
+        {isProjectManager && !checkingManagerStatus && (
+          <div className="px-3 py-2">
+            <Button
+              onClick={handleSwitchToManager}
+              className="w-full justify-start gap-2 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white shadow-md"
+              size="default"
+            >
+              <ArrowRightLeft className="h-4 w-4" />
+              <span className="font-semibold">Switch to Manager Dashboard</span>
+            </Button>
+          </div>
+        )}
+
         <SidebarGroup>
           <SidebarGroupLabel>Navigation</SidebarGroupLabel>
           <SidebarGroupContent>
