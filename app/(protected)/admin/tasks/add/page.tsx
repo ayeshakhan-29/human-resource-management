@@ -13,6 +13,7 @@ import { createTask } from "@/lib/actions/task.actions";
 import { CreateTaskRequest } from "@/lib/types/task.types";
 import { toast } from "sonner";
 import { getAllUsers } from "@/lib/actions/employee.actions";
+import { getDepartments, type Department } from "@/lib/actions/department.actions";
 import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -37,24 +38,39 @@ export default function AddTaskPage() {
   });
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const [users, setUsers] = useState<{ id: number; fullName: string; position?: string }[]>([]);
-  const [projects, setProjects] = useState<{ id: number; name: string }[]>([]);
+  const [users, setUsers] = useState<{ id: number; fullName: string; position?: string; department?: string }[]>([]);
+  const [departments, setDepartments] = useState<Department[]>([]);
+  const [selectedDepartment, setSelectedDepartment] = useState<string>("all");
+  const [projects, setProjects] = useState<{ id: number; name: string; managerId?: number }[]>([]);
   const [positions, setPositions] = useState<string[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
   useEffect(() => {
-    const fetchUsers = async () => {
+    const fetchInitialData = async () => {
       try {
-        const response = await getAllUsers();
-        if (response.success && response.data) {
-          const mapped = response.data.map((u) => ({ id: u.id, fullName: u.fullName, position: u.userInfo?.position }));
+        const [usersRes, deptRes] = await Promise.all([
+          getAllUsers(1, 1000), // Increase limit to fetch all users
+          getDepartments()
+        ]);
+
+        if (usersRes.success && usersRes.data) {
+          const mapped = usersRes.data.map((u) => ({
+            id: u.id,
+            fullName: u.fullName,
+            position: u.userInfo?.position,
+            department: u.userInfo?.department
+          }));
           setUsers(mapped);
           const posSet = new Set<string>();
           mapped.forEach((u) => { if (u.position) posSet.add(u.position); });
           setPositions(Array.from(posSet));
         }
+
+        if (deptRes.data) {
+          setDepartments(deptRes.data);
+        }
       } catch (error) {
-        console.error("Failed to fetch users:", error);
-        toast.error("Failed to load users. Please refresh the page.");
+        console.error("Failed to fetch initial data:", error);
+        toast.error("Failed to load initial data. Please refresh the page.");
       }
     };
 
@@ -78,11 +94,24 @@ export default function AddTaskPage() {
       }
     };
 
-    fetchUsers();
+    fetchInitialData();
     fetchProjects();
   }, []);
   const handleChange = (key: string, value: string) => {
-    setForm((p) => ({ ...p, [key]: value }));
+    const finalValue = value === "none" ? "" : value;
+    setForm((p) => {
+      const updated = { ...p, [key]: finalValue };
+      // If project changes, automatically set the manager
+      if (key === "projectId") {
+        const project = projects.find(proj => String(proj.id) === finalValue);
+        if (project) {
+          updated.managerId = String(project.managerId || "");
+        } else {
+          updated.managerId = "";
+        }
+      }
+      return updated;
+    });
     if (errors[key]) setErrors((e) => ({ ...e, [key]: "" }));
   };
 
@@ -224,6 +253,25 @@ export default function AddTaskPage() {
                 )}
               </div>
 
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="department">Department Filter</Label>
+                  <Select value={selectedDepartment} onValueChange={setSelectedDepartment}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="All Departments" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Departments</SelectItem>
+                      {departments.map((dept) => (
+                        <SelectItem key={dept.id} value={dept.name}>
+                          {dept.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="assigneeId">Assignee *</Label>
@@ -235,8 +283,13 @@ export default function AddTaskPage() {
                       <SelectValue placeholder="Select assignee" />
                     </SelectTrigger>
                     <SelectContent>
+                      <SelectItem value="none">Select assignee</SelectItem>
                       {users
-                        .filter((u) => !form.assigneePosition || form.assigneePosition === "all" || u.position === form.assigneePosition)
+                        .filter((u) => {
+                          const matchesDept = selectedDepartment === "all" || (u.department || "").toLowerCase() === selectedDepartment.toLowerCase();
+                          const matchesPos = !form.assigneePosition || form.assigneePosition === "all" || u.position === form.assigneePosition;
+                          return matchesDept && matchesPos;
+                        })
                         .map((user) => (
                           <SelectItem key={user.id} value={user.id.toString()}>
                             {user.fullName}{user.position ? ` — ${user.position}` : ""}
@@ -250,27 +303,14 @@ export default function AddTaskPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="managerId">Manager *</Label>
-                  <Select
-                    value={form.managerId}
-                    onValueChange={(v) => handleChange("managerId", v)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select manager" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {users
-                        .filter((u) => !form.managerPosition || form.managerPosition === "all" || u.position === form.managerPosition)
-                        .map((user) => (
-                          <SelectItem key={user.id} value={user.id.toString()}>
-                            {user.fullName}{user.position ? ` — ${user.position}` : ""}
-                          </SelectItem>
-                        ))}
-                    </SelectContent>
-                  </Select>
-                  {errors.managerId && (
-                    <div className="flex items-center gap-2 text-sm text-red-600"><AlertCircle className="h-4 w-4" />{errors.managerId}</div>
-                  )}
+                  <Label>Project Manager</Label>
+                  <div className="flex h-10 w-full rounded-md border border-input bg-gray-50 px-3 py-2 text-sm text-gray-500">
+                    {form.projectId ? (
+                      users.find(u => String(u.id) === form.managerId)?.fullName || "Loading manager..."
+                    ) : (
+                      "Select a project first"
+                    )}
+                  </div>
                 </div>
 
 

@@ -39,6 +39,7 @@ import {
   SidebarMenuSub,
   SidebarMenuSubItem,
   SidebarMenuSubButton,
+  useSidebar,
 } from "@/components/ui/sidebar";
 import {
   Collapsible,
@@ -104,6 +105,7 @@ export function ManagerSidebar({
 }: React.ComponentProps<typeof Sidebar>) {
   const pathname = usePathname();
   const { user, logout } = useAuth();
+  const { setOpenMobile } = useSidebar();
 
   return (
     <Sidebar collapsible="icon" {...props}>
@@ -111,7 +113,7 @@ export function ManagerSidebar({
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild>
-              <Link href="/manager/dashboard">
+              <Link href="/manager/dashboard" onClick={() => setOpenMobile(false)}>
                 <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-green-600 text-white">
                   <Building2 className="size-4" />
                 </div>
@@ -154,7 +156,7 @@ export function ManagerSidebar({
                                   asChild
                                   isActive={pathname === subItem.url}
                                 >
-                                  <Link href={subItem.url}>
+                                  <Link href={subItem.url} onClick={() => setOpenMobile(false)}>
                                     <subItem.icon />
                                     <span>{subItem.title}</span>
                                   </Link>
@@ -174,7 +176,7 @@ export function ManagerSidebar({
                       tooltip={item.title}
                       isActive={pathname === item.url}
                     >
-                      <Link href={item.url}>
+                      <Link href={item.url} onClick={() => setOpenMobile(false)}>
                         <item.icon />
                         <span>{item.title}</span>
                       </Link>

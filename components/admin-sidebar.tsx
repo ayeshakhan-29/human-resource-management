@@ -49,6 +49,7 @@ import {
   SidebarMenuSub,
   SidebarMenuSubItem,
   SidebarMenuSubButton,
+  useSidebar,
 } from "@/components/ui/sidebar";
 import {
   Collapsible,
@@ -141,8 +142,8 @@ const data = {
           title: "Manage Projects",
           url: "/admin/projects/manage-project",
           icon: Settings2,
-        }, 
-         {
+        },
+        {
           title: "Projects Reports ",
           url: "/admin/projects/project-reports",
           icon: BarChart3,
@@ -194,6 +195,7 @@ export function AdminSidebar({
 }: React.ComponentProps<typeof Sidebar>) {
   const pathname = usePathname();
   const { user } = useAuth();
+  const { setOpenMobile } = useSidebar();
 
   return (
     <Sidebar collapsible="icon" {...props}>
@@ -201,7 +203,7 @@ export function AdminSidebar({
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild>
-              <Link href="/admin/dashboard">
+              <Link href="/admin/dashboard" onClick={() => setOpenMobile(false)}>
                 <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-blue-600 text-white">
                   <Building2 className="size-4" />
                 </div>
@@ -244,7 +246,7 @@ export function AdminSidebar({
                                   asChild
                                   isActive={pathname === subItem.url}
                                 >
-                                  <Link href={subItem.url}>
+                                  <Link href={subItem.url} onClick={() => setOpenMobile(false)}>
                                     <subItem.icon />
                                     <span>{subItem.title}</span>
                                   </Link>
@@ -264,7 +266,7 @@ export function AdminSidebar({
                       tooltip={item.title}
                       isActive={pathname === item.url}
                     >
-                      <Link href={item.url}>
+                      <Link href={item.url} onClick={() => setOpenMobile(false)}>
                         <item.icon />
                         <span>{item.title}</span>
                       </Link>

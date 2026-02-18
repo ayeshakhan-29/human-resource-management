@@ -33,6 +33,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarRail,
+  useSidebar,
 } from "@/components/ui/sidebar";
 import { useAuth } from "@/context/AuthContext";
 import { useState, useEffect } from "react";
@@ -62,6 +63,7 @@ export function ClientSidebar({
   const pathname = usePathname();
   const router = useRouter();
   const { user, logout } = useAuth();
+  const { setOpenMobile } = useSidebar();
   const [unreadCount, setUnreadCount] = useState(0);
   const [isMounted, setIsMounted] = useState(false);
 
@@ -117,7 +119,7 @@ export function ClientSidebar({
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild>
-              <Link href="/client/dashboard">
+              <Link href="/client/dashboard" onClick={() => setOpenMobile(false)}>
                 <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-blue-600 text-white">
                   <Building2 className="size-4" />
                 </div>
@@ -142,7 +144,7 @@ export function ClientSidebar({
                     tooltip={item.title}
                     isActive={pathname === item.url}
                   >
-                    <Link href={item.url}>
+                    <Link href={item.url} onClick={() => setOpenMobile(false)}>
                       <item.icon />
                       <span>{item.title}</span>
                       {item.title === "Notifications" && unreadCount > 0 && (
@@ -152,6 +154,7 @@ export function ClientSidebar({
                             e.preventDefault();
                             e.stopPropagation();
                             handleNotificationClick();
+                            setOpenMobile(false);
                           }}
                         >
                           {unreadCount > 99 ? "99+" : unreadCount}

@@ -41,6 +41,7 @@ import {
   SidebarMenuSub,
   SidebarMenuSubItem,
   SidebarMenuSubButton,
+  useSidebar,
 } from "@/components/ui/sidebar";
 import {
   Collapsible,
@@ -100,7 +101,7 @@ const data = {
         },
       ],
     },
-     {
+    {
       title: "My Tasks",
       url: "/employee/tasks",
       icon: ListChecks,
@@ -119,6 +120,7 @@ export function EmployeeSidebar({
   const pathname = usePathname();
   const router = useRouter();
   const { user } = useAuth();
+  const { setOpenMobile } = useSidebar();
   const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
@@ -161,7 +163,7 @@ export function EmployeeSidebar({
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild>
-              <Link href="/employee/dashboard">
+              <Link href="/employee/dashboard" onClick={() => setOpenMobile(false)}>
                 <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-blue-600 text-white">
                   <Building2 className="size-4" />
                 </div>
@@ -204,7 +206,7 @@ export function EmployeeSidebar({
                                   asChild
                                   isActive={pathname === subItem.url}
                                 >
-                                  <Link href={subItem.url}>
+                                  <Link href={subItem.url} onClick={() => setOpenMobile(false)}>
                                     <subItem.icon />
                                     <span>{subItem.title}</span>
                                   </Link>
@@ -224,7 +226,7 @@ export function EmployeeSidebar({
                       tooltip={item.title}
                       isActive={pathname === item.url}
                     >
-                      <Link href={item.url}>
+                      <Link href={item.url} onClick={() => setOpenMobile(false)}>
                         <item.icon />
                         <span>{item.title}</span>
                         {item.title === "Notifications" && unreadCount > 0 && (
@@ -234,6 +236,7 @@ export function EmployeeSidebar({
                               e.preventDefault();
                               e.stopPropagation();
                               handleNotificationClick();
+                              setOpenMobile(false);
                             }}
                           >
                             {unreadCount > 99 ? "99+" : unreadCount}

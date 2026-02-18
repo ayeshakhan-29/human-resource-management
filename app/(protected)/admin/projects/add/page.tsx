@@ -26,6 +26,7 @@ import {
   X
 } from "lucide-react";
 import { getAllEmployees } from "@/lib/actions/employee.actions";
+import { getDepartments, type Department } from "@/lib/actions/department.actions";
 import type { Employee } from "@/lib/types/employee.types";
 
 interface TeamMember {
@@ -61,10 +62,18 @@ export default function AddProjectPage() {
 
   // Team state
   const [allEmployees, setAllEmployees] = useState<Employee[]>([]);
+  const [departments, setDepartments] = useState<Department[]>([]);
+  const [selectedDepartment, setSelectedDepartment] = useState<string>("all");
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>("");
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+
+  // Filtered employees based on department
+  const filteredEmployees = useMemo(() => {
+    if (selectedDepartment === "all") return allEmployees;
+    return allEmployees.filter(emp => (emp.userInfo?.department || "").toLowerCase() === selectedDepartment.toLowerCase());
+  }, [allEmployees, selectedDepartment]);
 
   // Fetch clients on component mount
   useEffect(() => {
@@ -97,7 +106,8 @@ export default function AddProjectPage() {
   };
 
   const handleInputChange = (field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    const finalValue = value === "none" ? "" : value;
+    setFormData(prev => ({ ...prev, [field]: finalValue }));
     // Clear error when user starts typing
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: '' }));
@@ -202,16 +212,23 @@ export default function AddProjectPage() {
     setSelectedFile(null);
   };
 
-  // Fetch employees once
+  // Fetch employees and departments
   useEffect(() => {
     const run = async () => {
       try {
-        const res = await getAllEmployees();
-        if (res.success) {
-          setAllEmployees(res.data || []);
+        const [empRes, deptRes] = await Promise.all([
+          getAllEmployees(1, 1000), // Increase limit to fetch all employees
+          getDepartments()
+        ]);
+
+        if (empRes.success) {
+          setAllEmployees(empRes.data || []);
+        }
+        if (deptRes.data) {
+          setDepartments(deptRes.data);
         }
       } catch (err) {
-        // silently ignore; team picker will be empty
+        console.error("Failed to fetch initial data:", err);
       }
     };
     run();
@@ -388,50 +405,70 @@ export default function AddProjectPage() {
               <CardDescription>Assign project manager and team members</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="manager">Project Manager *</Label>
-              <Select value={formData.manager} onValueChange={(v) => handleInputChange('manager', v)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select project manager" />
-                </SelectTrigger>
-                <SelectContent>
-                  {allEmployees.map((emp: Employee) => (
-                    <SelectItem key={emp.id} value={String(emp.id)}>
-                      {emp.fullName} ({emp.email})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {errors.manager && (
-                <div className="flex items-center gap-2 text-sm text-red-600">
-                  <AlertCircle className="h-4 w-4" />
-                  {errors.manager}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="department-filter">Filter by Department</Label>
+                  <Select value={selectedDepartment} onValueChange={setSelectedDepartment}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="All Departments" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Departments</SelectItem>
+                      {departments.map((dept) => (
+                        <SelectItem key={dept.id} value={dept.name}>
+                          {dept.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
-              )}
-            </div>
 
-            {/* Team Member Selection */}
-            <div className="space-y-2">
-              <Label htmlFor="teamAdd">Add Team Member</Label>
-              <div className="flex gap-2">
-                <Select value={selectedEmployeeId} onValueChange={setSelectedEmployeeId}>
-                  <SelectTrigger className="flex-1">
-                    <SelectValue placeholder="Select employee" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {allEmployees.map((emp: Employee) => (
-                      <SelectItem key={emp.id} value={String(emp.id)}>
-                        {emp.fullName} ({emp.email}) - {emp.userInfo?.department || 'No Dept'}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Button type="button" variant="outline" onClick={addTeamMember} disabled={!selectedEmployeeId}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add
-                </Button>
+                <div className="space-y-2">
+                  <Label htmlFor="manager">Project Manager *</Label>
+                  <Select value={formData.manager} onValueChange={(v) => handleInputChange('manager', v)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select project manager" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Select project manager</SelectItem>
+                      {filteredEmployees.map((emp: Employee) => (
+                        <SelectItem key={emp.id} value={String(emp.id)}>
+                          {emp.fullName} ({emp.email})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {errors.manager && (
+                    <div className="flex items-center gap-2 text-sm text-red-600">
+                      <AlertCircle className="h-4 w-4" />
+                      {errors.manager}
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
+
+              {/* Team Member Selection */}
+              <div className="space-y-2">
+                <Label htmlFor="teamAdd">Add Team Member</Label>
+                <div className="flex gap-2">
+                  <Select value={selectedEmployeeId} onValueChange={setSelectedEmployeeId}>
+                    <SelectTrigger className="flex-1">
+                      <SelectValue placeholder="Select employee" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {filteredEmployees.map((emp: Employee) => (
+                        <SelectItem key={emp.id} value={String(emp.id)}>
+                          {emp.fullName} ({emp.email}) - {emp.userInfo?.department || 'No Dept'}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Button type="button" variant="outline" onClick={addTeamMember} disabled={!selectedEmployeeId}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add
+                  </Button>
+                </div>
+              </div>
 
               {/* Team Members */}
               <div className="space-y-4">
@@ -445,7 +482,7 @@ export default function AddProjectPage() {
                         <div key={member.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                           <div>
                             <div className="font-medium">{member.name}</div>
-                          <div className="text-sm text-gray-600">{member.email}</div>
+                            <div className="text-sm text-gray-600">{member.email}</div>
                           </div>
                           <Button
                             type="button"
@@ -477,8 +514,8 @@ export default function AddProjectPage() {
             <CardContent className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="clientId">Client</Label>
-                <Select 
-                  value={formData.clientId} 
+                <Select
+                  value={formData.clientId}
                   onValueChange={(value) => handleInputChange('clientId', value === 'none' ? '' : value)}
                   disabled={loadingClients}
                 >
@@ -522,10 +559,10 @@ export default function AddProjectPage() {
                     </p>
                     <p className="text-xs text-gray-500">PDF, DOC, DOCX, XLS, XLSX, PNG, JPG, GIF (MAX. 20MB)</p>
                   </div>
-                  <input 
-                    id="dropzone-file" 
-                    type="file" 
-                    className="hidden" 
+                  <input
+                    id="dropzone-file"
+                    type="file"
+                    className="hidden"
                     onChange={handleFileChange}
                     accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg,.gif,.txt"
                   />
