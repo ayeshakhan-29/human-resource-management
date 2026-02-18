@@ -163,11 +163,19 @@ export default function AdminDailyWorkRecordsPage() {
 
   const formatTime = (timeString: string | null) => {
     if (!timeString) return "-";
-    const [hours, minutes] = timeString.split(":");
-    const hour = parseInt(hours, 10);
-    const ampm = hour >= 12 ? "PM" : "AM";
-    const formattedHour = hour % 12 || 12;
-    return `${formattedHour}:${minutes} ${ampm}`;
+    const date = new Date(timeString);
+    if (!isNaN(date.getTime())) {
+      return date.toLocaleTimeString([], { hour: "numeric", minute: "2-digit", hour12: true });
+    }
+    const parts = timeString.split(":");
+    if (parts.length >= 2) {
+      const hour = parseInt(parts[0], 10);
+      const minutes = parts[1];
+      const ampm = hour >= 12 ? "PM" : "AM";
+      const formattedHour = hour % 12 || 12;
+      return `${formattedHour}:${minutes} ${ampm}`;
+    }
+    return timeString;
   };
 
   const exportToCSV = () => {

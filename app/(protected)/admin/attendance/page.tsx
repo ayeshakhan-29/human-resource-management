@@ -68,11 +68,19 @@ export default function AttendanceReportsPage() {
 
   const formatTime = (time?: string | null) => {
     if (!time) return "-";
-    const [h, m] = time.split(":");
-    const hour = parseInt(h, 10);
-    const ampm = hour >= 12 ? "PM" : "AM";
-    const formattedHour = hour % 12 || 12;
-    return `${formattedHour}:${m} ${ampm}`;
+    const date = new Date(time);
+    if (!isNaN(date.getTime())) {
+      return date.toLocaleTimeString([], { hour: "numeric", minute: "2-digit", hour12: true });
+    }
+    const parts = time.split(":");
+    if (parts.length >= 2) {
+      const hour = parseInt(parts[0], 10);
+      const minutes = parts[1];
+      const ampm = hour >= 12 ? "PM" : "AM";
+      const formattedHour = hour % 12 || 12;
+      return `${formattedHour}:${minutes} ${ampm}`;
+    }
+    return time;
   };
 
   const statusBadge = (status: string) => {
