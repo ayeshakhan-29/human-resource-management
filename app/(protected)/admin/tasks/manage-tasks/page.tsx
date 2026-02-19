@@ -134,7 +134,8 @@ export default function ManageTasksPage() {
   }, [tasks]);
 
   const assignees = useMemo(() => {
-    return ['Unassigned', ...users.map(u => u.fullName)];
+    const names = users.map(u => u.fullName).filter(Boolean);
+    return ['Unassigned', ...Array.from(new Set(names))];
   }, [users]);
 
   const filtered = useMemo(() => {

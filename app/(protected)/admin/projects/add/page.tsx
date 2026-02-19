@@ -23,11 +23,14 @@ import {
   AlertCircle,
   Paperclip,
   Plus,
-  X
+  X,
+  Loader2
 } from "lucide-react";
 import { getAllEmployees } from "@/lib/actions/employee.actions";
 import { getDepartments, type Department } from "@/lib/actions/department.actions";
 import type { Employee } from "@/lib/types/employee.types";
+import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 
 interface TeamMember {
   id: string;
@@ -68,6 +71,8 @@ export default function AddProjectPage() {
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>("");
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const router = useRouter();
 
   // Filtered employees based on department
   const filteredEmployees = useMemo(() => {
@@ -165,6 +170,7 @@ export default function AddProjectPage() {
 
     if (validateForm()) {
       try {
+        setIsSubmitting(true);
         // Prepare data to match backend API
         const projectData = {
           name: formData.name,
@@ -182,17 +188,22 @@ export default function AddProjectPage() {
 
         const response = await createProjectWithAttachment(projectData, selectedFile || undefined);
         if (response.success) {
-          alert('Project created successfully!');
+          toast.success('Project created successfully!');
           handleReset();
+          // Redirect to project management page
+          router.push('/admin/projects/manage-project');
         } else {
-          alert('Failed to create project: ' + response.message);
+          toast.error('Failed to create project: ' + response.message);
         }
       } catch (error: unknown) {
         const message = error instanceof Error ? error.message : 'Unknown error';
-        alert('Error creating project: ' + message);
+        toast.error('Error creating project: ' + message);
+      } finally {
+        setIsSubmitting(false);
       }
     }
   };
+
 
   const handleReset = () => {
     setFormData({
@@ -603,10 +614,21 @@ export default function AddProjectPage() {
             <Button
               type="submit"
               className="w-full sm:w-auto"
+              disabled={isSubmitting}
             >
-              <Save className="h-4 w-4 mr-2" />
-              Create Project
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Creating...
+                </>
+              ) : (
+                <>
+                  <Save className="h-4 w-4 mr-2" />
+                  Create Project
+                </>
+              )}
             </Button>
+
           </div>
         </form>
       </div>

@@ -138,18 +138,27 @@ export function ManagerSidebar({
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
-        {/* Switch to Employee Dashboard Button - only show if user's primary role is employee */}
+        {/* Professional Switcher Design */}
         {isEmployeeWithManagerRole && (
-          <SidebarGroup>
+          <SidebarGroup className="py-2 px-2 mt-2">
             <SidebarGroupContent>
-              <Button
-                onClick={handleSwitchToEmployee}
-                className="w-full justify-start gap-2 bg-blue-600 hover:bg-blue-700 text-white"
-                size="sm"
-              >
-                <ArrowRightLeft className="h-4 w-4" />
-                Switch to Employee Dashboard
-              </Button>
+              <SidebarMenu>
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    onClick={handleSwitchToEmployee}
+                    className="w-full text-slate-600 hover:text-slate-900 hover:bg-slate-100 border border-slate-200 rounded-md transition-all duration-200 shadow-sm font-medium bg-white"
+                    tooltip="Switch to Employee Portal"
+                  >
+                    <div className="flex items-center justify-between w-full">
+                      <div className="flex items-center gap-2">
+                        <ArrowRightLeft className="h-4 w-4 text-slate-500" />
+                        <span>View Employee Portal</span>
+                      </div>
+                      <ChevronRight className="h-3 w-3 text-slate-400" />
+                    </div>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
         )}

@@ -1,6 +1,7 @@
 "use client";
 
-import { ListChecks, AlertCircle, CheckCircle, Timer, FolderKanban, Eye, Users, Calendar } from "lucide-react";
+import { useEffect } from "react";
+import { ListChecks, AlertCircle, CheckCircle, Timer, FolderKanban, Eye, Users, Calendar, ArrowRightLeft, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
@@ -45,8 +46,21 @@ export default function ManagerDashboard() {
   const { user } = useAuth();
   const router = useRouter();
 
-  const { data: response, isLoading } = useApi<{ success: boolean; data: DashboardData }>("/dashboard/summary");
+  const { data: response, isLoading } = useApi<{ success: boolean; data: DashboardData }>("/dashboard/summary?view=manager");
   const dashboardData = response?.data;
+
+  // Redirection logic: if all projects are completed/cancelled and user's role is employee
+  // (meaning they only have manager access because of project assignment), redirect back to employee dashboard.
+  useEffect(() => {
+    if (!isLoading && dashboardData) {
+      const activeProjects = dashboardData.stats.activeProjects || 0;
+      const isPrimaryEmployee = user?.role?.toLowerCase() === 'employee';
+
+      if (activeProjects === 0 && isPrimaryEmployee) {
+        router.push('/employee/dashboard');
+      }
+    }
+  }, [isLoading, dashboardData, user, router]);
 
   if (isLoading) {
     return (
@@ -89,9 +103,11 @@ export default function ManagerDashboard() {
         </div>
 
         <div className="flex justify-end">
-          <Button asChild variant="outline">
-            <Link href="/employee/dashboard">
-              Go to Employee Dashboard
+          <Button asChild variant="outline" className="text-slate-600 hover:text-slate-900 bg-white border-slate-200 shadow-sm transition-all duration-200">
+            <Link href="/employee/dashboard" className="flex items-center gap-2">
+              <ArrowRightLeft className="h-4 w-4 text-slate-500" />
+              <span>View Employee Portal</span>
+              <ChevronRight className="h-3 w-3 text-slate-400" />
             </Link>
           </Button>
         </div>

@@ -223,18 +223,29 @@ export function EmployeeSidebar({
           </div>
         )}
 
-        {/* Switch to Manager Dashboard Button */}
+        {/* Professional Switcher Design */}
         {isProjectManager && !checkingManagerStatus && (
-          <div className="px-3 py-2">
-            <Button
-              onClick={handleSwitchToManager}
-              className="w-full justify-start gap-2 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white shadow-md"
-              size="default"
-            >
-              <ArrowRightLeft className="h-4 w-4" />
-              <span className="font-semibold">Switch to Manager Dashboard</span>
-            </Button>
-          </div>
+          <SidebarGroup className="py-2 px-2 my-1">
+            <SidebarGroupContent>
+              <SidebarMenu>
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    onClick={handleSwitchToManager}
+                    className="w-full text-slate-700 hover:text-slate-900 hover:bg-slate-100 border border-slate-200 rounded-md transition-all duration-200 shadow-sm font-semibold bg-white"
+                    tooltip="Switch to Manager Portal"
+                  >
+                    <div className="flex items-center justify-between w-full">
+                      <div className="flex items-center gap-2">
+                        <ArrowRightLeft className="h-4 w-4 text-slate-500" />
+                        <span>View Manager Portal</span>
+                      </div>
+                      <ChevronRight className="h-3 w-3 text-slate-400" />
+                    </div>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
         )}
 
         <SidebarGroup>

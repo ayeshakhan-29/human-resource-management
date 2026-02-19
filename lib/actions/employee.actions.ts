@@ -118,6 +118,10 @@ export const getEmployeeBankDetails = async (employeeId: number) => {
       }
     );
 
+    if (response.status === 404) {
+      return null;
+    }
+
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
       throw new Error(errorData.message || "Failed to fetch bank details");

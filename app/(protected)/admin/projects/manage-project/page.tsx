@@ -13,13 +13,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { 
-  Search, 
-  Filter, 
-  Plus, 
-  Calendar, 
-  Users, 
-  Target, 
+import {
+  Search,
+  Filter,
+  Plus,
+  Calendar,
+  Users,
+  Target,
   TrendingUp,
   Clock,
   CheckCircle,
@@ -32,13 +32,16 @@ import {
   BarChart3,
   Settings,
   Download,
-  Loader2
+  Loader2,
+  AlertTriangle
 } from "lucide-react";
 import { getAllProjects, changeProjectStatus, deleteProject, updateProjectProgress } from "@/lib/actions/project.action";
 import { getAllTasks, getTasksByProject, getTaskStatistics } from "@/lib/actions/task.actions";
 import { Project as BackendProject, ProjectStatus, ProjectPriority } from "@/lib/types/project.types";
 import { Task as BackendTask } from "@/lib/types/task.types";
 import { toast } from "sonner";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { useRouter } from "next/navigation";
 
 
 
@@ -77,7 +80,12 @@ export default function ProjectManagementPage() {
   const [selectedProject, setSelectedProject] = useState<FrontendProject | null>(null);
   const [viewMode, setViewMode] = useState<'overview' | 'details' | 'tasks'>('overview');
   const [projectTasks, setProjectTasks] = useState<FrontendTask[]>([]);
-  
+  const router = useRouter();
+
+  // Dialog state
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [projectToDelete, setProjectToDelete] = useState<string | null>(null);
+
   // Data state
   const [projects, setProjects] = useState<FrontendProject[]>([]);
   const [allTasks, setAllTasks] = useState<FrontendTask[]>([]);
@@ -125,7 +133,7 @@ export default function ProjectManagementPage() {
     try {
       setLoading(true);
       setError(null);
-      
+
       const response = await getAllProjects(page, limit, {
         status: statusFilter !== 'all' ? statusFilter : undefined,
         priority: priorityFilter !== 'all' ? priorityFilter : undefined,
@@ -265,11 +273,11 @@ export default function ProjectManagementPage() {
   // Filter projects based on search and filters
   const filteredProjects = projects.filter(project => {
     const matchesSearch = project.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         project.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         project.manager.toLowerCase().includes(searchTerm.toLowerCase());
+      project.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      project.manager.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === "all" || project.status === statusFilter;
     const matchesPriority = priorityFilter === "all" || project.priority === priorityFilter;
-    
+
     return matchesSearch && matchesStatus && matchesPriority;
   });
 
@@ -290,20 +298,20 @@ export default function ProjectManagementPage() {
     try {
       setRefreshing(true);
       console.log('Changing project status:', { projectId, newStatus });
-      
+
       const response = await changeProjectStatus(parseInt(projectId), { status: newStatus as ProjectStatus });
       console.log('Status change response:', response);
-      
+
       if (response.success) {
         // Update local state
-        setProjects(prev => prev.map(p => 
+        setProjects(prev => prev.map(p =>
           p.id === projectId ? { ...p, status: newStatus as ProjectStatus } : p
         ));
-        
+
         if (selectedProject?.id === projectId) {
           setSelectedProject(prev => prev ? { ...prev, status: newStatus as ProjectStatus } : null);
         }
-        
+
         toast.success('Project status updated successfully');
       } else {
         throw new Error(response.message || 'Failed to update project status');
@@ -321,17 +329,17 @@ export default function ProjectManagementPage() {
     try {
       setRefreshing(true);
       const response = await updateProjectProgress(parseInt(projectId), newProgress);
-      
+
       if (response.success) {
         // Update local state
-        setProjects(prev => prev.map(p => 
+        setProjects(prev => prev.map(p =>
           p.id === projectId ? { ...p, progress: newProgress } : p
         ));
-        
+
         if (selectedProject?.id === projectId) {
           setSelectedProject(prev => prev ? { ...prev, progress: newProgress } : null);
         }
-        
+
         toast.success('Project progress updated successfully');
       } else {
         throw new Error(response.message || 'Failed to update project progress');
@@ -344,28 +352,44 @@ export default function ProjectManagementPage() {
     }
   };
 
-  const handleDeleteProject = async (projectId: string) => {
-    if (confirm('Are you sure you want to delete this project?')) {
-      try {
-        setRefreshing(true);
-        await deleteProject(parseInt(projectId));
-        
+  const handleDeleteProject = (projectId: string) => {
+    setProjectToDelete(projectId);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const confirmDeleteProject = async () => {
+    if (!projectToDelete) return;
+
+    try {
+      setRefreshing(true);
+      const response = await deleteProject(parseInt(projectToDelete));
+
+      if (response.success) {
         // Update local state
-        setProjects(prev => prev.filter(p => p.id !== projectId));
-        
-        if (selectedProject?.id === projectId) {
+        setProjects(prev => prev.filter(p => p.id !== projectToDelete));
+
+        if (selectedProject?.id === projectToDelete) {
           setSelectedProject(null);
         }
-        
-        toast.success('Project deleted successfully');
-      } catch (err) {
-        console.error('Error deleting project:', err);
-        toast.error('Failed to delete project');
-      } finally {
-        setRefreshing(false);
+
+        toast.success('Project and associated tasks deleted successfully');
+        setIsDeleteDialogOpen(false);
+        setProjectToDelete(null);
+
+        // Refresh local view
+        router.refresh();
+      } else {
+        throw new Error(response.message || 'Failed to delete project');
       }
+    } catch (err) {
+      console.error('Error deleting project:', err);
+      const errorMessage = err instanceof Error ? err.message : 'Failed to delete project';
+      toast.error(errorMessage);
+    } finally {
+      setRefreshing(false);
     }
   };
+
 
   const handleEditTasks = (project: FrontendProject) => {
     // Store the selected project in localStorage to pass to task management page
@@ -397,8 +421,8 @@ export default function ProjectManagementPage() {
               <h1 className="text-3xl font-bold text-gray-900">Project Management</h1>
               <p className="text-gray-600">Monitor, manage, and control all company projects</p>
             </div>
-            <Button 
-              onClick={handleRefresh} 
+            <Button
+              onClick={handleRefresh}
               disabled={refreshing}
               variant="outline"
               size="sm"
@@ -532,7 +556,7 @@ export default function ProjectManagementPage() {
                   />
                 </div>
               </div>
-              
+
               <Select value={statusFilter} onValueChange={setStatusFilter}>
                 <SelectTrigger className="w-full sm:w-[150px]">
                   <SelectValue placeholder="Status" />
@@ -599,11 +623,10 @@ export default function ProjectManagementPage() {
                     {filteredProjects.map((project) => (
                       <div
                         key={project.id}
-                        className={`p-4 border rounded-lg cursor-pointer transition-colors ${
-                          selectedProject?.id === project.id
-                            ? 'border-blue-500 bg-blue-50'
-                            : 'border-gray-200 hover:border-gray-300'
-                        }`}
+                        className={`p-4 border rounded-lg cursor-pointer transition-colors ${selectedProject?.id === project.id
+                          ? 'border-blue-500 bg-blue-50'
+                          : 'border-gray-200 hover:border-gray-300'
+                          }`}
                         onClick={() => handleProjectSelect(project)}
                       >
                         <div className="flex items-start justify-between mb-2">
@@ -649,9 +672,9 @@ export default function ProjectManagementPage() {
                         </CardDescription>
                       </div>
                       <div className="flex items-center gap-2">
-                        
-                        <Button 
-                          variant="outline" 
+
+                        <Button
+                          variant="outline"
                           size="sm"
                           onClick={() => handleEditTasks(selectedProject)}
                           className="text-blue-600 hover:text-blue-700"
@@ -659,8 +682,8 @@ export default function ProjectManagementPage() {
                           <Edit className="h-4 w-4 mr-2" />
                           Edit Tasks
                         </Button>
-                        <Button 
-                          variant="outline" 
+                        <Button
+                          variant="outline"
                           size="sm"
                           onClick={() => handleDeleteProject(selectedProject.id)}
                           className="text-red-600 hover:text-red-700"
@@ -734,8 +757,8 @@ export default function ProjectManagementPage() {
                           <div className="p-4 bg-gray-50 rounded-lg">
                             <h4 className="font-medium mb-2">Quick Actions</h4>
                             <div className="space-y-2">
-                              <Select 
-                                value={selectedProject.status} 
+                              <Select
+                                value={selectedProject.status}
                                 onValueChange={(value) => handleStatusChange(selectedProject.id, value)}
                                 disabled={refreshing}
                               >
@@ -843,6 +866,17 @@ export default function ProjectManagementPage() {
             )}
           </div>
         </div>
+
+        <ConfirmDialog
+          open={isDeleteDialogOpen}
+          onOpenChange={setIsDeleteDialogOpen}
+          onConfirm={confirmDeleteProject}
+          title="Delete Project"
+          description="Are you sure you want to delete this project? This will also delete all associated tasks. This action cannot be undone."
+          confirmText="Delete Project"
+          variant="destructive"
+          loading={refreshing}
+        />
       </div>
     </>
   );
