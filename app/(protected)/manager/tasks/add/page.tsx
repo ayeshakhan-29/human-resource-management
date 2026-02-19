@@ -20,10 +20,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ListChecks, Save, AlertCircle } from "lucide-react";
+import { ListChecks, Save, AlertCircle, Search } from "lucide-react";
 
 export default function ManagerAddTaskPage() {
   const { user } = useAuth();
+  const [searchTerm, setSearchTerm] = useState("");
   const [form, setForm] = useState({
     title: "",
     description: "",
@@ -65,7 +66,7 @@ export default function ManagerAddTaskPage() {
       try {
         const baseUrl = (process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5001/api/").replace(/\/?$/, "/");
         const token = typeof window !== 'undefined' ? localStorage.getItem("token") : null;
-        
+
         // Fetch only projects managed by this user
         const res = await fetch(`${baseUrl}projects/get-all-projects?managerId=${user?.id}`, {
           headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
@@ -245,24 +246,58 @@ export default function ManagerAddTaskPage() {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="assigneeId">Assign to Team Member *</Label>
+                <div className="space-y-3">
+                  <Label htmlFor="assigneeId text-sm font-semibold">Assign to Team Member *</Label>
+                  <div className="flex flex-col sm:flex-row gap-2 mb-1">
+                    <div className="relative flex-1">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                      <Input
+                        placeholder="Search by name..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="pl-9 h-9 text-xs"
+                      />
+                    </div>
+                    <Select
+                      value={form.assigneePosition || "all"}
+                      onValueChange={(v) => handleChange("assigneePosition", v)}
+                    >
+                      <SelectTrigger className="w-full sm:w-[150px] h-9 text-xs">
+                        <SelectValue placeholder="All Positions" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Positions</SelectItem>
+                        {positions.map((p) => (
+                          <SelectItem key={p} value={p}>{p}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                   <Select
                     value={form.assigneeId}
                     onValueChange={(v) => handleChange("assigneeId", v)}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className={errors.assigneeId ? "border-red-500" : ""}>
                       <SelectValue placeholder="Select team member" />
                     </SelectTrigger>
                     <SelectContent>
                       {users
                         .filter((u) => u.id.toString() !== user?.id) // Don't allow assigning to self
                         .filter((u) => !form.assigneePosition || form.assigneePosition === "all" || u.position === form.assigneePosition)
+                        .filter((u) => !searchTerm || u.fullName.toLowerCase().includes(searchTerm.toLowerCase()))
                         .map((user) => (
                           <SelectItem key={user.id} value={user.id.toString()}>
                             {user.fullName}{user.position ? ` — ${user.position}` : ""}
                           </SelectItem>
                         ))}
+                      {users.length > 0 &&
+                        users
+                          .filter((u) => u.id.toString() !== user?.id)
+                          .filter((u) => !form.assigneePosition || form.assigneePosition === "all" || u.position === form.assigneePosition)
+                          .filter((u) => !searchTerm || u.fullName.toLowerCase().includes(searchTerm.toLowerCase()))
+                          .length === 0 && (
+                          <div className="p-2 text-sm text-gray-500 text-center">No members match your filters</div>
+                        )}
                     </SelectContent>
                   </Select>
                   {errors.assigneeId && (
