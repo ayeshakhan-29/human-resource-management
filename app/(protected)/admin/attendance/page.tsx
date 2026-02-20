@@ -34,7 +34,7 @@ export default function AttendanceReportsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [dateFilter, setDateFilter] = useState("today");
+  const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split("T")[0]);
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
 
   const fetchAttendance = useCallback(async () => {
@@ -46,7 +46,7 @@ export default function AttendanceReportsPage() {
 
     try {
       setIsLoading(true);
-      const result = await getAllAttendance(token);
+      const result = await getAllAttendance(token, selectedDate);
       if (result.error) {
         setError(result.error);
       } else {
@@ -59,7 +59,7 @@ export default function AttendanceReportsPage() {
       setIsLoading(false);
       setLastRefresh(new Date());
     }
-  }, [token]);
+  }, [token, selectedDate]);
 
   useEffect(() => {
     // Initial fetch
@@ -219,17 +219,15 @@ export default function AttendanceReportsPage() {
                 </SelectContent>
               </Select>
 
-              <Select value={dateFilter} onValueChange={setDateFilter}>
-                <SelectTrigger className="w-full sm:w-[180px]">
-                  <SelectValue placeholder="Date Range" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="today">Today</SelectItem>
-                  <SelectItem value="week">This Week</SelectItem>
-                  <SelectItem value="month">This Month</SelectItem>
-                  <SelectItem value="custom">Custom Range</SelectItem>
-                </SelectContent>
-              </Select>
+              <div className="w-full sm:w-[200px] relative">
+                <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none z-10" />
+                <Input
+                  type="date"
+                  value={selectedDate}
+                  onChange={(e) => setSelectedDate(e.target.value)}
+                  className="pl-10 w-full"
+                />
+              </div>
 
               <Button onClick={handleRefresh} variant="outline" className="w-full sm:w-auto" disabled={isLoading}>
                 <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />

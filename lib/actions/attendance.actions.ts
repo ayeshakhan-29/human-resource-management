@@ -114,7 +114,7 @@ export async function clockOutAction(
     const files = checkoutData?.deliverables ?? [];
     const hasFiles = files.length > 0;
     const formData = new FormData();
-    
+
     if (hasFiles) {
       if (!checkoutData) {
         throw new Error("Missing checkout data for file upload");
@@ -214,7 +214,7 @@ export async function getActiveTasksForCheckout(token?: string): Promise<{
   }
 }
 
-export async function getAllAttendance(token?: string): Promise<{
+export async function getAllAttendance(token?: string, date?: string): Promise<{
   data?: AllAttendanceResponse;
   error?: string;
   status?: number;
@@ -225,8 +225,13 @@ export async function getAllAttendance(token?: string): Promise<{
       throw new Error("No authentication token found");
     }
 
+    let url = getApiUrl('attendance/today-all-employees');
+    if (date) {
+      url += `?date=${date}`;
+    }
+
     const response = await fetch(
-      getApiUrl('attendance/today-all-employees'),
+      url,
       {
         method: "GET",
         headers: {
