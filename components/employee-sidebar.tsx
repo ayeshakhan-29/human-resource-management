@@ -2,6 +2,7 @@
 
 import type * as React from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import {
   Building2,
@@ -121,7 +122,7 @@ export function EmployeeSidebar({
 }: React.ComponentProps<typeof Sidebar>) {
   const pathname = usePathname();
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, logout, refreshProfile } = useAuth();
   const { setOpenMobile } = useSidebar();
   const [unreadCount, setUnreadCount] = useState(0);
   const [isProjectManager, setIsProjectManager] = useState(false);
@@ -156,6 +157,12 @@ export function EmployeeSidebar({
 
     checkManagerStatus();
   }, [user?.id]);
+
+  useEffect(() => {
+    if (user?.id) {
+      refreshProfile?.();
+    }
+  }, [user?.id, refreshProfile]);
 
   useEffect(() => {
     const fetchUnreadCount = async () => {
@@ -331,31 +338,41 @@ export function EmployeeSidebar({
                   size="lg"
                   className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
                 >
-                  <Avatar className="h-8 w-8 rounded-lg">
-                    <AvatarFallback className="rounded-lg">
-                      {data.user.avatar}
+                  <Avatar className="h-8 w-8 rounded-full">
+                    {user?.profilePicture && (
+                      <Image
+                        src={user.profilePicture}
+                        alt={user?.fullName || "User"}
+                        width={32}
+                        height={32}
+                        className="rounded-full object-cover"
+                        unoptimized
+                      />
+                    )}
+                    <AvatarFallback className="rounded-full bg-blue-100 text-blue-700">
+                      {user?.fullName?.split(' ').map((n: string) => n[0]).join('').toUpperCase() || "??"}
                     </AvatarFallback>
                   </Avatar>
                   <div className="grid flex-1 text-left text-sm leading-tight">
                     <span className="truncate font-semibold">
-                      {data.user.name}
+                      {user?.fullName || "User Name"}
                     </span>
-                    <span className="truncate text-xs">{data.user.email}</span>
+                    <span className="truncate text-xs">{user?.email || "user@example.com"}</span>
                   </div>
                   <ChevronUp className="ml-auto size-4" />
                 </SidebarMenuButton>
               </DropdownMenuTrigger>
               <DropdownMenuContent
                 className="w-[--radix-dropdown-menu-trigger-width] min-w-56 rounded-lg"
-                side="bottom"
+                side="top"
                 align="end"
                 sideOffset={4}
               >
-                <DropdownMenuItem>
+                <DropdownMenuItem onClick={() => router.push("/employee/profile")}>
                   <Settings className="mr-2 h-4 w-4" />
                   Settings
                 </DropdownMenuItem>
-                <DropdownMenuItem>
+                <DropdownMenuItem onClick={() => logout()}>
                   <LogOut className="mr-2 h-4 w-4" />
                   Log out
                 </DropdownMenuItem>

@@ -2,6 +2,7 @@
 
 import type * as React from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import {
   Building2,
@@ -62,7 +63,7 @@ export function ClientSidebar({
 }: React.ComponentProps<typeof Sidebar>) {
   const pathname = usePathname();
   const router = useRouter();
-  const { user, logout } = useAuth();
+  const { user, logout, refreshProfile } = useAuth();
   const { setOpenMobile } = useSidebar();
   const [unreadCount, setUnreadCount] = useState(0);
   const [isMounted, setIsMounted] = useState(false);
@@ -79,6 +80,9 @@ export function ClientSidebar({
 
   useEffect(() => {
     setIsMounted(true);
+    if (user?.id) {
+      refreshProfile?.();
+    }
 
     const fetchUnreadCount = async () => {
       if (user?.id) {
@@ -107,7 +111,7 @@ export function ClientSidebar({
       clearInterval(interval);
       window.removeEventListener('notificationRead', handleNotificationRead);
     };
-  }, [user?.id]);
+  }, [user?.id, refreshProfile]);
 
   const handleNotificationClick = () => {
     router.push("/client/notifications");
@@ -177,14 +181,24 @@ export function ClientSidebar({
                   size="lg"
                   className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
                 >
-                  <Avatar className="h-8 w-8 rounded-lg">
-                    <AvatarFallback suppressHydrationWarning className="rounded-lg bg-blue-600 text-white">
-                      {isMounted ? getUserInitials(user?.name) : ""}
+                  <Avatar className="h-8 w-8 rounded-full">
+                    {user?.profilePicture && (
+                      <Image
+                        src={user.profilePicture}
+                        alt={user?.name || user?.fullName || "User"}
+                        width={32}
+                        height={32}
+                        className="rounded-full object-cover"
+                        unoptimized
+                      />
+                    )}
+                    <AvatarFallback suppressHydrationWarning className="rounded-full bg-blue-600 text-white">
+                      {isMounted ? getUserInitials(user?.name || user?.fullName) : ""}
                     </AvatarFallback>
                   </Avatar>
                   <div className="grid flex-1 text-left text-sm leading-tight">
                     <span className="truncate font-semibold">
-                      {user?.name || "Client User"}
+                      {user?.name || user?.fullName || "Client User"}
                     </span>
                     <span className="truncate text-xs">{user?.email || "client@company.com"}</span>
                   </div>
@@ -193,7 +207,7 @@ export function ClientSidebar({
               </DropdownMenuTrigger>
               <DropdownMenuContent
                 className="w-[--radix-dropdown-menu-trigger-width] min-w-56 rounded-lg"
-                side="bottom"
+                side="top"
                 align="end"
                 sideOffset={4}
               >
@@ -203,7 +217,7 @@ export function ClientSidebar({
                     Settings
                   </Link>
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={logout} className="text-red-600 focus:text-red-600 cursor-pointer">
+                <DropdownMenuItem onClick={() => logout()} className="text-red-600 focus:text-red-600 cursor-pointer">
                   <LogOut className="mr-2 h-4 w-4" />
                   Log out
                 </DropdownMenuItem>

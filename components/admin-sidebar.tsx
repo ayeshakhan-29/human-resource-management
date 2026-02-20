@@ -1,8 +1,9 @@
 "use client";
 
-import type * as React from "react";
+import React, { useEffect } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import Image from "next/image";
+import { usePathname, useRouter } from "next/navigation";
 import {
   Building2,
   Users,
@@ -194,8 +195,15 @@ export function AdminSidebar({
   ...props
 }: React.ComponentProps<typeof Sidebar>) {
   const pathname = usePathname();
-  const { user } = useAuth();
+  const { user, logout, refreshProfile } = useAuth();
+  const router = useRouter();
   const { setOpenMobile } = useSidebar();
+
+  useEffect(() => {
+    if (user?.id) {
+      refreshProfile?.();
+    }
+  }, [user?.id, refreshProfile]);
 
   return (
     <Sidebar collapsible="icon" {...props}>
@@ -287,29 +295,41 @@ export function AdminSidebar({
                   size="lg"
                   className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
                 >
-                  <Avatar className="h-8 w-8 rounded-lg">
-                    {/* <AvatarFallback className="rounded-lg">
-                      {data.user.avatar}
-                    </AvatarFallback> */}
+                  <Avatar className="h-8 w-8 rounded-full">
+                    {user?.profilePicture && (
+                      <Image
+                        src={user.profilePicture}
+                        alt={user?.name || user?.fullName || "User"}
+                        width={32}
+                        height={32}
+                        className="rounded-full object-cover"
+                        unoptimized
+                      />
+                    )}
+                    <AvatarFallback className="rounded-full bg-blue-100 text-blue-700">
+                      {(user?.name || user?.fullName)?.split(' ').map((n: string) => n[0]).join('').toUpperCase() || "A"}
+                    </AvatarFallback>
                   </Avatar>
                   <div className="grid flex-1 text-left text-sm leading-tight">
-                    <span className="truncate font-semibold">{user?.name}</span>
-                    <span className="truncate text-xs">{user?.email}</span>
+                    <span className="truncate font-semibold">
+                      {user?.name || user?.fullName || "Admin"}
+                    </span>
+                    <span className="truncate text-xs">{user?.email || "admin@example.com"}</span>
                   </div>
                   <ChevronUp className="ml-auto size-4" />
                 </SidebarMenuButton>
               </DropdownMenuTrigger>
               <DropdownMenuContent
                 className="w-[--radix-dropdown-menu-trigger-width] min-w-56 rounded-lg"
-                side="bottom"
+                side="top"
                 align="end"
                 sideOffset={4}
               >
-                <DropdownMenuItem>
+                <DropdownMenuItem onClick={() => router.push("/admin/dashboard")}>
                   <Settings className="mr-2 h-4 w-4" />
                   Settings
                 </DropdownMenuItem>
-                <DropdownMenuItem>
+                <DropdownMenuItem onClick={() => logout()}>
                   <LogOut className="mr-2 h-4 w-4" />
                   Log out
                 </DropdownMenuItem>

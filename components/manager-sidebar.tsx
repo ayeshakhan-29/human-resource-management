@@ -1,7 +1,8 @@
 "use client";
 
-import type * as React from "react";
+import React, { useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import {
   Building2,
@@ -107,7 +108,7 @@ export function ManagerSidebar({
 }: React.ComponentProps<typeof Sidebar>) {
   const pathname = usePathname();
   const router = useRouter();
-  const { user, logout } = useAuth();
+  const { user, logout, refreshProfile } = useAuth();
   const { setOpenMobile } = useSidebar();
 
   const handleSwitchToEmployee = () => {
@@ -117,6 +118,12 @@ export function ManagerSidebar({
 
   // Check if user's primary role is employee (meaning they're an employee who was assigned as project manager)
   const isEmployeeWithManagerRole = user?.role?.toLowerCase() === "employee";
+
+  useEffect(() => {
+    if (user?.id) {
+      refreshProfile?.();
+    }
+  }, [user?.id, refreshProfile]);
 
   return (
     <Sidebar collapsible="icon" {...props}>
@@ -233,29 +240,41 @@ export function ManagerSidebar({
                   size="lg"
                   className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
                 >
-                  <Avatar className="h-8 w-8 rounded-lg">
-                    <AvatarFallback className="rounded-lg">
-                      {user?.name?.charAt(0) || user?.fullName?.charAt(0) || "M"}
+                  <Avatar className="h-8 w-8 rounded-full">
+                    {user?.profilePicture && (
+                      <Image
+                        src={user.profilePicture}
+                        alt={user?.name || user?.fullName || "User"}
+                        width={32}
+                        height={32}
+                        className="rounded-full object-cover"
+                        unoptimized
+                      />
+                    )}
+                    <AvatarFallback className="rounded-full bg-green-100 text-green-700">
+                      {(user?.name || user?.fullName)?.split(' ').map((n: string) => n[0]).join('').toUpperCase() || "M"}
                     </AvatarFallback>
                   </Avatar>
                   <div className="grid flex-1 text-left text-sm leading-tight">
-                    <span className="truncate font-semibold">{user?.name || user?.fullName}</span>
-                    <span className="truncate text-xs">{user?.email}</span>
+                    <span className="truncate font-semibold">
+                      {user?.name || user?.fullName || "Manager"}
+                    </span>
+                    <span className="truncate text-xs">{user?.email || "manager@example.com"}</span>
                   </div>
                   <ChevronUp className="ml-auto size-4" />
                 </SidebarMenuButton>
               </DropdownMenuTrigger>
               <DropdownMenuContent
                 className="w-[--radix-dropdown-menu-trigger-width] min-w-56 rounded-lg"
-                side="bottom"
+                side="top"
                 align="end"
                 sideOffset={4}
               >
-                <DropdownMenuItem>
+                <DropdownMenuItem onClick={() => router.push("/manager/dashboard")}>
                   <Settings className="mr-2 h-4 w-4" />
                   Settings
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={logout}>
+                <DropdownMenuItem onClick={() => logout()}>
                   <LogOut className="mr-2 h-4 w-4" />
                   Log out
                 </DropdownMenuItem>
