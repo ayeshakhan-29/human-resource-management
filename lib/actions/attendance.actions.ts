@@ -12,8 +12,9 @@ const API_BASE_URL =
 
 // Helper function to ensure proper URL construction
 const getApiUrl = (endpoint: string) => {
-  const baseUrl = API_BASE_URL.endsWith('/') ? API_BASE_URL : `${API_BASE_URL}/`;
-  return `${baseUrl}${endpoint}`;
+  const baseUrl = API_BASE_URL.replace(/\/$/, "");
+  const cleanEndpoint = endpoint.startsWith("/") ? endpoint : `/${endpoint}`;
+  return `${baseUrl}${cleanEndpoint}`;
 };
 
 interface ApiError extends Error {

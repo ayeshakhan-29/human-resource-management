@@ -110,6 +110,11 @@ const data = {
       icon: ListChecks,
     },
     {
+      title: "Payslips & Salary",
+      url: "/employee/payroll",
+      icon: FileText,
+    },
+    {
       title: "Notifications",
       url: "/employee/notifications",
       icon: Bell,

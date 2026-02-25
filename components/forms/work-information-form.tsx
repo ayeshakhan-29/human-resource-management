@@ -149,7 +149,7 @@ export function WorkInformationForm({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Salary */}
           <div className="space-y-2">
-            <Label htmlFor="salary">Monthly Salary</Label>
+            <Label htmlFor="salary">Monthly Salary (Rs)</Label>
             <Input
               id="salary"
               type="number"

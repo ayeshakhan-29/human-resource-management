@@ -1,5 +1,5 @@
 "use client";
-import { Clock, Calendar, User, Loader2 } from "lucide-react";
+import { Clock, Calendar, User, Loader2, FileText } from "lucide-react";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 
@@ -189,6 +189,12 @@ export default function EmployeeDashboard() {
                   Apply for Leave
                 </Button>
               </Link>
+              <Link href="/employee/payroll" className="w-full">
+                <Button className="w-full justify-start" variant="outline">
+                  <FileText className="mr-2 h-4 w-4" />
+                  View Payslips & Salary
+                </Button>
+              </Link>
             </CardContent>
           </Card>
 
@@ -207,8 +213,8 @@ export default function EmployeeDashboard() {
                         <span className="text-xs text-gray-500 capitalize">{task.priority} Priority</span>
                       </div>
                       <span className={`text-xs px-2 py-1 rounded-full capitalize ${task.status === 'completed' ? 'bg-green-100 text-green-700' :
-                          task.status === 'in-progress' ? 'bg-blue-100 text-blue-700' :
-                            'bg-gray-100 text-gray-700'
+                        task.status === 'in-progress' ? 'bg-blue-100 text-blue-700' :
+                          'bg-gray-100 text-gray-700'
                         }`}>
                         {task.status}
                       </span>

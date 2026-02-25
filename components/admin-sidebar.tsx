@@ -26,6 +26,7 @@ import {
   CalendarCheck,
   IdCard,
   Briefcase,
+  CreditCard,
 } from "lucide-react";
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -185,6 +186,22 @@ const data = {
           title: "Add Client",
           url: "/admin/clients/add",
           icon: UserPlus,
+        },
+      ],
+    },
+    {
+      title: "Payroll Management",
+      icon: CreditCard,
+      items: [
+        {
+          title: "Payroll Dashboard",
+          url: "/admin/payroll",
+          icon: BarChart3,
+        },
+        {
+          title: "Payroll Profiles",
+          url: "/admin/payroll/profiles",
+          icon: IdCard,
         },
       ],
     },

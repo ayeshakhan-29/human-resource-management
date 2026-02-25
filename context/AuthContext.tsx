@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 
 type UserType = {
@@ -30,9 +30,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return null;
     }
   });
+  const [isProfileFetched, setIsProfileFetched] = useState(false);
+  const fetchingRef = React.useRef(false); // Prevent concurrent fetches
 
-  const fetchProfile = async (userId: string, token: string) => {
+  const fetchProfile = useCallback(async (userId: string, token: string) => {
+    // Prevent duplicate concurrent requests
+    if (fetchingRef.current) {
+      return null;
+    }
+
     try {
+      fetchingRef.current = true;
       const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5005/api";
       const baseUrl = API_BASE_URL.endsWith('/') ? API_BASE_URL : `${API_BASE_URL}/`;
       const response = await fetch(`${baseUrl}employee/${userId}/user-info`, {
@@ -44,13 +52,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const data = await response.json();
         if (data.success && data.data) {
           const updatedUser = {
-            ...user,
             id: data.data.id.toString(),
             fullName: data.data.fullName,
             email: data.data.email,
             profilePicture: data.data.profilePicture,
             role: data.data.role,
-            token: token // Keep existing token
+            token: token
           };
           setUser(updatedUser);
           localStorage.setItem("user", JSON.stringify(updatedUser));
@@ -59,16 +66,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     } catch (error) {
       console.error("Failed to fetch profile:", error);
+    } finally {
+      fetchingRef.current = false;
     }
     return null;
-  };
+  }, []);
 
   useEffect(() => {
+    if (isProfileFetched) return; // Prevent multiple fetches
+    
     const token = localStorage.getItem("token");
-    if (user?.id && token) {
-      fetchProfile(user.id, token);
+    if (user?.id && token && !user.fullName) {
+      // Only fetch if we don't have full profile data
+      fetchProfile(user.id, token).then(() => {
+        setIsProfileFetched(true);
+      });
+    } else {
+      setIsProfileFetched(true);
     }
-  }, []);
+  }, []); // Empty dependency array - run once on mount
 
   const login = (userData: UserType) => {
     setUser(userData);
@@ -99,8 +115,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     router.push("/login");
   };
 
+  const refreshProfile = useCallback(() => {
+    if (user?.id && user?.token) {
+      return fetchProfile(user.id, user.token);
+    }
+    return Promise.resolve(null);
+  }, [user?.id, user?.token, fetchProfile]);
+
   return (
-    <AuthContext.Provider value={{ user, login, logout, refreshProfile: () => user?.id && user?.token && fetchProfile(user.id, user.token), token: user?.token }}>
+    <AuthContext.Provider value={{ 
+      user, 
+      login, 
+      logout, 
+      refreshProfile, 
+      token: user?.token 
+    }}>
       {children}
     </AuthContext.Provider>
   );

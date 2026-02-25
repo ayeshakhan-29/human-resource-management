@@ -158,14 +158,14 @@ export function AddEmployeeForm({ onSuccess }: AddEmployeeFormProps) {
 
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label htmlFor="salary">Salary</Label>
+          <Label htmlFor="salary">Salary (Rs)</Label>
           <Input
             id="salary"
             value={formData.salary}
             onChange={(e) =>
               setFormData((prev) => ({ ...prev, salary: e.target.value }))
             }
-            placeholder="$75,000"
+            placeholder="Rs 75,000"
             required
           />
         </div>

@@ -118,24 +118,15 @@ export default function EmployeeAttendancePage() {
       formattedTotalHours: string;
     };
   }>(
-    `${process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5005/api"
-    }/attendance/weekly`,
+    `${(process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5005/api").replace(/\/$/, "")}/attendance/weekly`,
     fetcher,
     {
-      // Refresh every 5 seconds for near real-time updates
-      refreshInterval: 5000,
-      // Keep refreshing even when window is not focused
-      refreshWhenHidden: true,
-      // Keep refreshing even when offline
-      refreshWhenOffline: true,
-      // Don't stop refreshing on error
+      // Refresh every 5 minutes instead of 5 seconds to reduce server load
+      refreshInterval: 300000,
+      revalidateOnFocus: true,
       shouldRetryOnError: true,
-      // Number of retries on error
       errorRetryCount: 3,
-      // Shorter retry delay for faster recovery
-      errorRetryInterval: 1000,
-      // Disable deduping interval to ensure we always get fresh data
-      dedupingInterval: 0,
+      dedupingInterval: 10000,
     }
   );
 
@@ -154,11 +145,11 @@ export default function EmployeeAttendancePage() {
       currentPage: number;
     };
   }>(
-    `${process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5005/api"}/attendance/history?page=${historyPage}&limit=${historyLimit}${filterDate ? `&date=${filterDate}` : ""}${historyStatus !== "all" ? `&status=${historyStatus}` : ""}`,
+    `${(process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5005/api").replace(/\/$/, "")}/attendance/history?page=${historyPage}&limit=${historyLimit}${filterDate ? `&date=${filterDate}` : ""}${historyStatus !== "all" ? `&status=${historyStatus}` : ""}`,
     fetcher,
     {
       revalidateOnFocus: true,
-      dedupingInterval: 2000,
+      dedupingInterval: 5000,
     }
   );
 
