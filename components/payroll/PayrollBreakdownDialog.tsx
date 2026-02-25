@@ -16,7 +16,7 @@ import {
     TooltipProvider,
     TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { EmployeePayroll } from "@/lib/types/payroll.types";
+import { EmployeePayroll, PayrollSnapshot } from "@/lib/types/payroll.types";
 
 interface PayrollBreakdownDialogProps {
     payroll: EmployeePayroll | null;
@@ -34,9 +34,9 @@ export function PayrollBreakdownDialog({
     if (!payroll) return null;
 
     // Handle case where snapshot might be stringified (comes from DB as JSON string in some setups)
-    const snapshot = typeof payroll.snapshot === 'string'
+    const snapshot = (typeof payroll.snapshot === 'string'
         ? JSON.parse(payroll.snapshot)
-        : payroll.snapshot;
+        : payroll.snapshot) as PayrollSnapshot;
 
     const standardDays = Number(snapshot?.standardWorkingDays || 22);
     const baseSalary = Number(snapshot?.baseSalary || 0);
@@ -103,7 +103,7 @@ export function PayrollBreakdownDialog({
                             </span>
                         </div>
                         {/* Individual Bonuses */}
-                        {snapshot?.adjustments?.filter((adj: any) => adj.type === 'bonus').map((adj: any, idx: number) => (
+                        {snapshot?.adjustments?.filter((adj) => adj.type === 'bonus').map((adj, idx: number) => (
                             <div key={`bonus-${idx}`} className="flex justify-between text-sm items-center">
                                 <div className="flex items-center gap-1.5">
                                     <span>Bonus</span>
@@ -185,7 +185,7 @@ export function PayrollBreakdownDialog({
                             </span>
                         </div>
                         {/* Individual Penalties & Negative Corrections */}
-                        {snapshot?.adjustments?.filter((adj: any) => adj.type === 'penalty' || (adj.type === 'correction' && Number(adj.amount) < 0)).map((adj: any, idx: number) => (
+                        {snapshot?.adjustments?.filter((adj) => adj.type === 'penalty' || (adj.type === 'correction' && Number(adj.amount) < 0)).map((adj, idx: number) => (
                             <div key={`penalty-${idx}`} className="flex justify-between text-sm items-center">
                                 <div className="flex items-center gap-1.5">
                                     <span>{adj.type === 'penalty' ? 'Penalty' : 'Adjustment'}</span>
