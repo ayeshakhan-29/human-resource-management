@@ -132,16 +132,16 @@ export default function CreatePayrollProfilePage() {
                 ]}
             />
 
-            <div className="flex flex-1 flex-col gap-6 p-6">
+            <div className="flex flex-1 flex-col gap-6 p-4 sm:p-6">
                 <div className="flex items-center gap-4">
                     <Button variant="outline" size="icon" onClick={() => router.back()}>
                         <ArrowLeft className="h-4 w-4" />
                     </Button>
-                    <div>
-                        <h1 className="text-2xl font-bold tracking-tight">
+                    <div className="min-w-0">
+                        <h1 className="text-xl sm:text-2xl font-bold tracking-tight truncate">
                             Create Payroll Profile
                         </h1>
-                        <p className="text-muted-foreground">
+                        <p className="text-muted-foreground text-sm">
                             Set up salary configuration for an employee.
                         </p>
                     </div>
@@ -387,16 +387,17 @@ export default function CreatePayrollProfilePage() {
                             </div>
 
                             {/* Actions */}
-                            <div className="flex justify-end gap-3 pt-4">
+                            <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-3 pt-4">
                                 <Button
                                     type="button"
                                     variant="outline"
                                     onClick={() => router.back()}
                                     disabled={isSubmitting}
+                                    className="w-full sm:w-auto"
                                 >
                                     Cancel
                                 </Button>
-                                <Button type="submit" disabled={isSubmitting}>
+                                <Button type="submit" disabled={isSubmitting} className="w-full sm:w-auto">
                                     {isSubmitting ? (
                                         <>
                                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />

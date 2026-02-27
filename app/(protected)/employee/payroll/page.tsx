@@ -74,10 +74,10 @@ export default function EmployeePayrollPage() {
                 ]}
             />
 
-            <div className="flex flex-1 flex-col gap-6 p-6">
+            <div className="flex flex-1 flex-col gap-6 p-4 sm:p-6">
                 <div>
-                    <h1 className="text-2xl font-bold tracking-tight">My Payroll History</h1>
-                    <p className="text-muted-foreground">View your salary breakdowns and download payslips.</p>
+                    <h1 className="text-xl sm:text-2xl font-bold tracking-tight">My Payroll History</h1>
+                    <p className="text-muted-foreground text-sm sm:text-base">View your salary breakdowns and download payslips.</p>
                 </div>
 
                 {lastPaid && (
@@ -105,30 +105,30 @@ export default function EmployeePayrollPage() {
                         </CardHeader>
 
                         <CardContent className="relative z-10">
-                            <div className="flex flex-col md:flex-row items-end justify-between gap-8 py-4">
+                            <div className="flex flex-col lg:flex-row items-start lg:items-end justify-between gap-6 py-4">
                                 <div className="space-y-2">
                                     <p className="text-sm font-medium text-slate-400">Calculated Salary</p>
-                                    <div className="flex items-baseline gap-2">
-                                        <span className="text-5xl font-extrabold tracking-tight text-white">
+                                    <div className="flex items-baseline gap-2 flex-wrap">
+                                        <span className="text-3xl sm:text-5xl font-extrabold tracking-tight text-white">
                                             Rs {Math.floor(Number(lastPaid.net_salary)).toLocaleString()}
                                         </span>
-                                        <span className="text-xl font-medium text-blue-400">PKR</span>
+                                        <span className="text-lg sm:text-xl font-medium text-blue-400">PKR</span>
                                     </div>
                                 </div>
 
-                                <div className="flex flex-wrap items-center gap-4 w-full md:w-auto">
-                                    <div className="flex flex-col items-center justify-center rounded-2xl bg-white/5 border border-white/10 p-4 min-w-[120px] backdrop-blur-sm relative group">
+                                <div className="flex flex-wrap items-center gap-3 sm:gap-4 w-full lg:w-auto">
+                                    <div className="flex flex-col items-center justify-center rounded-2xl bg-white/5 border border-white/10 p-3 sm:p-4 min-w-[100px] sm:min-w-[120px] backdrop-blur-sm relative group flex-1 sm:flex-none">
                                         <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Gross Pay</span>
-                                        <span className="text-lg font-bold text-white">Rs {Number(lastPaid.gross_salary).toLocaleString()}</span>
+                                        <span className="text-base sm:text-lg font-bold text-white">Rs {Number(lastPaid.gross_salary).toLocaleString()}</span>
                                         {Number(lastPaid.snapshot?.totalBonuses || 0) > 0 && (
                                             <Badge variant="outline" className="absolute -top-2 -right-2 bg-green-500 text-[8px] h-4 px-1 border-none text-white animate-pulse">
                                                 +{Number(lastPaid.snapshot?.totalBonuses).toLocaleString()}
                                             </Badge>
                                         )}
                                     </div>
-                                    <div className="flex flex-col items-center justify-center rounded-2xl bg-red-500/5 border border-red-500/10 p-4 min-w-[120px] backdrop-blur-sm text-red-400 relative">
+                                    <div className="flex flex-col items-center justify-center rounded-2xl bg-red-500/5 border border-red-500/10 p-3 sm:p-4 min-w-[100px] sm:min-w-[120px] backdrop-blur-sm text-red-400 relative flex-1 sm:flex-none">
                                         <span className="text-[10px] font-bold uppercase tracking-wider text-red-500/70">Deductions</span>
-                                        <span className="text-lg font-bold">Rs {Number(lastPaid.total_deductions).toLocaleString()}</span>
+                                        <span className="text-base sm:text-lg font-bold">Rs {Number(lastPaid.total_deductions).toLocaleString()}</span>
                                         {Number(lastPaid.snapshot?.totalAdjustmentPenalties || 0) > 0 && (
                                             <Badge variant="outline" className="absolute -top-2 -right-2 bg-red-600 text-[8px] h-4 px-1 border-none text-white animate-pulse">
                                                 -{Number(lastPaid.snapshot?.totalAdjustmentPenalties).toLocaleString()}
@@ -138,7 +138,7 @@ export default function EmployeePayrollPage() {
                                     <Button
                                         variant="default"
                                         size="lg"
-                                        className="bg-blue-600 hover:bg-blue-500 text-white font-bold h-16 px-8 rounded-2xl shadow-lg shadow-blue-600/20 transition-all hover:scale-[1.02] active:scale-[0.98]"
+                                        className="bg-blue-600 hover:bg-blue-500 text-white font-bold h-12 sm:h-16 px-4 sm:px-8 rounded-2xl shadow-lg shadow-blue-600/20 transition-all hover:scale-[1.02] active:scale-[0.98] w-full sm:w-auto"
                                         onClick={() => setSelectedPayroll(lastPaid)}
                                     >
                                         View Breakdown
@@ -192,8 +192,8 @@ export default function EmployeePayrollPage() {
                                 description="Contact HR if you believe this is an error."
                             />
                         ) : (
-                            <div className="rounded-md border overflow-hidden">
-                                <Table>
+                            <div className="rounded-md border overflow-x-auto">
+                                <Table className="min-w-[700px]">
                                     <TableHeader className="bg-muted/50">
                                         <TableRow>
                                             <TableHead>Payroll Period</TableHead>

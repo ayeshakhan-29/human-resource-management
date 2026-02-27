@@ -96,12 +96,12 @@ export default function PayrollDashboardPage() {
             const res = await createPayrollPeriod(formData);
             if (res.success) {
                 toast.success("Payroll period generated successfully");
-                
+
                 // Show warning if some employees were skipped
                 if (res.warning) {
                     toast.warning(res.warning, { duration: 6000 });
                 }
-                
+
                 setIsCreateDialogOpen(false);
                 setFormData({ name: "", startDate: "", endDate: "", payrollType: "monthly" });
                 fetchPeriods();
@@ -138,20 +138,20 @@ export default function PayrollDashboardPage() {
                 ]}
             />
             <div className="flex flex-1 flex-col gap-6 p-6">
-                <div className="flex justify-between items-center">
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
                     <div>
                         <h1 className="text-2xl font-bold tracking-tight">Payroll Dashboard</h1>
                         <p className="text-muted-foreground">Manage payroll periods and employee disbursements.</p>
                     </div>
-                    <div className="flex gap-2">
-                        <Button variant="outline" asChild>
+                    <div className="flex flex-col sm:flex-row gap-2">
+                        <Button variant="outline" asChild className="w-full sm:w-auto">
                             <Link href="/admin/payroll/profiles">
                                 Manage Profiles
                             </Link>
                         </Button>
                         <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
                             <DialogTrigger asChild>
-                                <Button>
+                                <Button className="w-full sm:w-auto">
                                     <Plus className="mr-2 h-4 w-4" />
                                     Generate Payroll
                                 </Button>
@@ -225,7 +225,7 @@ export default function PayrollDashboardPage() {
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                     <PayrollStatsCard
                         title="Pending Approvals"
                         value={periods.filter(p => p.status === 'reviewed').length}
@@ -251,12 +251,12 @@ export default function PayrollDashboardPage() {
 
                 <Card>
                     <CardHeader>
-                        <div className="flex items-center justify-between">
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                             <div>
                                 <CardTitle>Payroll History</CardTitle>
                                 <CardDescription>View and manage historical payroll periods.</CardDescription>
                             </div>
-                            <div className="relative w-72">
+                            <div className="relative w-full sm:w-72">
                                 <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                                 <Input
                                     placeholder="Search periods..."

@@ -39,37 +39,37 @@ export function PayrollPeriodCard({ period, href, onDelete }: PayrollPeriodCardP
     return (
         <div className="group relative">
             <Link href={href} className="block transition-all">
-                <div className="flex items-center justify-between p-4 rounded-lg border hover:bg-muted/50 transition-all">
-                    <div className="flex items-center gap-4">
-                        <div className="h-10 w-10 flex items-center justify-center rounded-full bg-blue-100 text-blue-600">
-                            <Calendar className="h-5 w-5" />
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between p-3 sm:p-4 rounded-lg border hover:bg-muted/50 transition-all gap-3 sm:gap-0">
+                    <div className="flex items-center gap-3 sm:gap-4 min-w-0">
+                        <div className="h-9 w-9 sm:h-10 sm:w-10 flex-shrink-0 flex items-center justify-center rounded-full bg-blue-100 text-blue-600">
+                            <Calendar className="h-4 w-4 sm:h-5 sm:w-5" />
                         </div>
-                        <div>
-                            <div className="flex items-center gap-2">
-                                <h3 className="font-semibold">{period.name}</h3>
-                                {getStatusBadge(period.status)}
+                        <div className="min-w-0 flex-1">
+                            <div className="flex flex-wrap items-center gap-2">
+                                <h3 className="font-semibold text-sm sm:text-base truncate">{period.name}</h3>
+                                <span className="flex-shrink-0">{getStatusBadge(period.status)}</span>
                             </div>
-                            <p className="text-sm text-muted-foreground">
+                            <p className="text-xs sm:text-sm text-muted-foreground truncate">
                                 {new Date(period.start_date).toLocaleDateString()} -{" "}
                                 {new Date(period.end_date).toLocaleDateString()}
                             </p>
                         </div>
                     </div>
-                    <div className="flex items-center gap-8 text-sm">
-                        <div className="hidden md:block">
-                            <p className="text-muted-foreground">Created By</p>
-                            <p className="font-medium">{period.creator?.fullName || "Admin"}</p>
+                    <div className="flex items-center justify-between sm:justify-end gap-0 sm:gap-6 text-sm">
+                        <div className="hidden lg:block">
+                            <p className="text-muted-foreground text-xs">Created By</p>
+                            <p className="font-medium text-xs truncate">{period.creator?.fullName || "Admin"}</p>
                         </div>
                         <div className="hidden md:block">
-                            <p className="text-muted-foreground">Type</p>
-                            <p className="font-medium capitalize">{period.payroll_type}</p>
+                            <p className="text-muted-foreground text-xs">Type</p>
+                            <p className="font-medium text-xs capitalize">{period.payroll_type}</p>
                         </div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-1 sm:gap-2 ml-auto">
                             {onDelete && (
                                 <Button
                                     variant="ghost"
                                     size="icon"
-                                    className="text-muted-foreground hover:text-red-600 hover:bg-red-50"
+                                    className="text-muted-foreground hover:text-red-600 hover:bg-red-50 h-8 w-8"
                                     onClick={(e) => {
                                         e.preventDefault();
                                         e.stopPropagation();
@@ -82,7 +82,7 @@ export function PayrollPeriodCard({ period, href, onDelete }: PayrollPeriodCardP
                             <Button
                                 variant="ghost"
                                 size="icon"
-                                className="group-hover:translate-x-1 transition-transform"
+                                className="group-hover:translate-x-1 transition-transform h-8 w-8"
                             >
                                 <ChevronRight className="h-5 w-5" />
                             </Button>

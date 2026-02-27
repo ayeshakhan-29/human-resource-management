@@ -113,14 +113,14 @@ export default function PayrollProfilesPage() {
             />
 
             <div className="flex flex-1 flex-col gap-6 p-6">
-                <div className="flex justify-between items-center">
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
                     <div>
                         <h1 className="text-2xl font-bold tracking-tight">Payroll Profiles</h1>
                         <p className="text-muted-foreground">
                             Manage employee salary configurations and payroll settings.
                         </p>
                     </div>
-                    <Button asChild>
+                    <Button asChild className="w-full sm:w-auto">
                         <Link href="/admin/payroll/profiles/create">
                             <Plus className="mr-2 h-4 w-4" />
                             Create Profile
@@ -147,13 +147,13 @@ export default function PayrollProfilesPage() {
                                 {missingProfiles.map((emp) => (
                                     <div
                                         key={emp.id}
-                                        className="flex items-center justify-between p-3 bg-white rounded-lg border"
+                                        className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-3 bg-white rounded-lg border gap-3"
                                     >
                                         <div>
                                             <p className="font-medium">{emp.fullName}</p>
                                             <p className="text-sm text-muted-foreground">{emp.email}</p>
                                         </div>
-                                        <Button size="sm" asChild>
+                                        <Button size="sm" asChild className="w-full sm:w-auto">
                                             <Link href={`/admin/payroll/profiles/create?employeeId=${emp.id}`}>
                                                 Create Profile
                                             </Link>
@@ -191,14 +191,14 @@ export default function PayrollProfilesPage() {
 
                 <Card>
                     <CardHeader>
-                        <div className="flex items-center justify-between">
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                             <div>
                                 <CardTitle>Employee Payroll Profiles</CardTitle>
                                 <CardDescription>
                                     View and manage salary configurations for all employees.
                                 </CardDescription>
                             </div>
-                            <div className="relative w-72">
+                            <div className="relative w-full sm:w-72">
                                 <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                                 <Input
                                     placeholder="Search employees..."
@@ -222,8 +222,8 @@ export default function PayrollProfilesPage() {
                                 description="Create profiles for employees to enable payroll generation."
                             />
                         ) : (
-                            <div className="rounded-md border overflow-hidden">
-                                <Table>
+                            <div className="rounded-md border overflow-x-auto">
+                                <Table className="min-w-[700px]">
                                     <TableHeader className="bg-muted/50">
                                         <TableRow>
                                             <TableHead>Employee</TableHead>

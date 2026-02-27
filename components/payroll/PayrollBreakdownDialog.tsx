@@ -43,16 +43,16 @@ export function PayrollBreakdownDialog({
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="max-w-2xl">
+            <DialogContent className="max-w-2xl w-[95vw] sm:w-full max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
-                    <DialogTitle>Salary Breakdown: {payroll.period?.name}</DialogTitle>
+                    <DialogTitle className="text-lg sm:text-xl">Salary Breakdown: {payroll.period?.name}</DialogTitle>
                     <DialogDescription>
                         Detailed calculation snapshot for this payroll period.
                     </DialogDescription>
                 </DialogHeader>
-                <div className="grid gap-6 py-4">
+                <div className="grid gap-4 sm:gap-6 py-4">
                     {/* Attendance Summary */}
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-muted/40 rounded-lg">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 p-3 sm:p-4 bg-muted/40 rounded-lg">
                         <div className="space-y-1 text-center">
                             <p className="text-[10px] uppercase font-bold text-muted-foreground">
                                 Attendance
@@ -216,20 +216,20 @@ export function PayrollBreakdownDialog({
                     </div>
 
                     {/* Net Payable */}
-                    <div className="bg-blue-50 p-4 rounded-lg flex justify-between items-center border border-blue-100 mt-2">
-                        <span className="text-blue-900 font-extrabold text-xl uppercase tracking-tighter">
+                    <div className="bg-blue-50 p-3 sm:p-4 rounded-lg flex flex-col sm:flex-row justify-between items-start sm:items-center border border-blue-100 mt-2 gap-2">
+                        <span className="text-blue-900 font-extrabold text-lg sm:text-xl uppercase tracking-tighter">
                             Calculated Salary
                         </span>
-                        <span className="text-blue-900 font-extrabold text-3xl tracking-tighter">
+                        <span className="text-blue-900 font-extrabold text-2xl sm:text-3xl tracking-tighter">
                             Rs {Math.floor(Number(payroll.net_salary))}
                         </span>
                     </div>
                 </div>
-                <DialogFooter>
-                    <Button variant="outline" onClick={() => onOpenChange(false)}>
+                <DialogFooter className="flex-col-reverse sm:flex-row gap-2">
+                    <Button variant="outline" onClick={() => onOpenChange(false)} className="w-full sm:w-auto">
                         Close Breakdown
                     </Button>
-                    <Button onClick={() => onDownload(payroll.id)}>
+                    <Button onClick={() => onDownload(payroll.id)} className="w-full sm:w-auto">
                         <Download className="w-4 h-4 mr-2" />
                         Download Payslip
                     </Button>

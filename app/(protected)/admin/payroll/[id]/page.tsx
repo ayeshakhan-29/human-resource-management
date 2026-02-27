@@ -233,40 +233,40 @@ export default function PayrollPeriodDetailsPage() {
             />
 
             <div className="flex flex-1 flex-col gap-6 p-6">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="flex flex-col gap-4">
                     <div className="flex items-center gap-4">
                         <Button variant="outline" size="icon" onClick={() => router.back()}>
                             <ArrowLeft className="h-4 w-4" />
                         </Button>
-                        <div>
-                            <h1 className="text-2xl font-bold tracking-tight">{period.name}</h1>
-                            <p className="text-muted-foreground">
+                        <div className="min-w-0">
+                            <h1 className="text-xl sm:text-2xl font-bold tracking-tight truncate">{period.name}</h1>
+                            <p className="text-muted-foreground text-sm">
                                 Period: {new Date(period.start_date).toLocaleDateString()} to {new Date(period.end_date).toLocaleDateString()}
                             </p>
                         </div>
                     </div>
 
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                         {period.status === "draft" && (
                             <>
-                                <Button variant="outline" onClick={handleCalculateAll} disabled={isProcessing !== null}>
+                                <Button variant="outline" className="flex-1 sm:flex-none" onClick={handleCalculateAll} disabled={isProcessing !== null}>
                                     {isProcessing === "all" ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Calculator className="w-4 h-4 mr-2" />}
                                     Calculate All
                                 </Button>
-                                <Button onClick={() => handleStatusTransition('review')} disabled={isProcessing !== null}>
+                                <Button className="flex-1 sm:flex-none" onClick={() => handleStatusTransition('review')} disabled={isProcessing !== null}>
                                     {isProcessing === "review" ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <FileCheck className="w-4 h-4 mr-2" />}
                                     Submit for Review
                                 </Button>
                             </>
                         )}
                         {period.status === "reviewed" && (
-                            <Button onClick={() => handleStatusTransition('approve')} disabled={isProcessing !== null} className="bg-blue-600 hover:bg-blue-700">
+                            <Button className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700" onClick={() => handleStatusTransition('approve')} disabled={isProcessing !== null}>
                                 {isProcessing === "approve" ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <CheckCircle className="w-4 h-4 mr-2" />}
                                 Approve Payroll
                             </Button>
                         )}
                         {period.status === "approved" && (
-                            <Button onClick={() => handleStatusTransition('pay')} disabled={isProcessing !== null} className="bg-green-600 hover:bg-green-700">
+                            <Button className="w-full sm:w-auto bg-green-600 hover:bg-green-700" onClick={() => handleStatusTransition('pay')} disabled={isProcessing !== null}>
                                 {isProcessing === "pay" ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <CreditCard className="w-4 h-4 mr-2" />}
                                 Mark as Paid
                             </Button>
@@ -279,7 +279,7 @@ export default function PayrollPeriodDetailsPage() {
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                     <PayrollStatsCard
                         title="Total Gross"
                         value={`Rs ${(period.payrolls?.reduce((sum, p) => sum + (Number(p.gross_salary) || 0), 0) || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
@@ -308,12 +308,12 @@ export default function PayrollPeriodDetailsPage() {
 
                 <Card>
                     <CardHeader>
-                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                             <div>
                                 <CardTitle>Employee Disbursements</CardTitle>
                                 <CardDescription>Individual payroll records for this period.</CardDescription>
                             </div>
-                            <div className="relative w-full md:w-72">
+                            <div className="relative w-full sm:w-72">
                                 <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                                 <Input
                                     placeholder="Search employees..."
@@ -324,9 +324,9 @@ export default function PayrollPeriodDetailsPage() {
                             </div>
                         </div>
                     </CardHeader>
-                    <CardContent>
-                        <div className="rounded-md border overflow-hidden">
-                            <Table>
+                    <CardContent className="p-0 sm:p-6">
+                        <div className="rounded-md border overflow-x-auto">
+                            <Table className="min-w-[700px]">
                                 <TableHeader className="bg-muted/50">
                                     <TableRow>
                                         <TableHead>Employee</TableHead>
