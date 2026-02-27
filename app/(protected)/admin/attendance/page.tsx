@@ -24,7 +24,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { getAllAttendance } from "@/lib/actions/attendance.actions";
 import { useAuth } from "@/context/AuthContext";
-import { Loader2, Search, Download, Calendar, Users, Clock, TrendingUp, Filter, RefreshCw } from "lucide-react";
+import { Loader2, Search, Download, Calendar, Users, Clock, TrendingUp, Filter, RefreshCw, ChevronLeft, ChevronRight } from "lucide-react";
 import { AllAttendanceResponse } from "@/lib/types/attendance.types";
 
 export default function AttendanceReportsPage() {
@@ -36,6 +36,10 @@ export default function AttendanceReportsPage() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split("T")[0]);
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
   const fetchAttendance = useCallback(async () => {
     if (!token) {
@@ -110,6 +114,23 @@ export default function AttendanceReportsPage() {
     const matchesStatus = statusFilter === "all" || emp.status?.toLowerCase() === statusFilter;
     return matchesSearch && matchesStatus;
   }) || [];
+
+  // Pagination logic
+  const totalPages = Math.ceil(filteredData.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedData = filteredData.slice(startIndex, endIndex);
+
+  // Reset to first page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, statusFilter, selectedDate]);
+
+  const handlePageChange = (page: number) => {
+    if (page >= 1 && page <= totalPages) {
+      setCurrentPage(page);
+    }
+  };
 
   const handleExport = () => {
     // TODO: Implement export functionality
@@ -249,7 +270,7 @@ export default function AttendanceReportsPage() {
             <CardDescription>
               {error
                 ? "Failed to load attendance data"
-                : `Date: ${data?.date ?? "-"} • Showing ${filteredData.length} of ${data?.count ?? 0} records • Last updated: ${lastRefresh.toLocaleTimeString()}`}
+                : `Date: ${data?.date ?? "-"} • Showing ${paginatedData.length} of ${filteredData.length} records (Page ${currentPage} of ${totalPages || 1}) • Last updated: ${lastRefresh.toLocaleTimeString()}`}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -285,8 +306,8 @@ export default function AttendanceReportsPage() {
                         </div>
                       </TableCell>
                     </TableRow>
-                  ) : filteredData.length > 0 ? (
-                    filteredData.map((rec) => (
+                  ) : paginatedData.length > 0 ? (
+                    paginatedData.map((rec) => (
                       <TableRow key={`${rec.id}-${rec.email}-${rec.date}`} className="hover:bg-gray-50">
                         <TableCell className="font-medium">
                           <div className="flex items-center gap-3">
@@ -348,6 +369,46 @@ export default function AttendanceReportsPage() {
                 </TableBody>
               </Table>
             </div>
+            
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between mt-4 pt-4 border-t">
+                <div className="text-sm text-gray-600">
+                  Showing {startIndex + 1} to {Math.min(endIndex, filteredData.length)} of {filteredData.length} records
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handlePageChange(currentPage - 1)}
+                    disabled={currentPage === 1}
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                  
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                    <Button
+                      key={page}
+                      variant={currentPage === page ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => handlePageChange(page)}
+                      className="min-w-[32px]"
+                    >
+                      {page}
+                    </Button>
+                  ))}
+                  
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handlePageChange(currentPage + 1)}
+                    disabled={currentPage === totalPages}
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
