@@ -1,7 +1,9 @@
 "use client";
 
-import { Download, Info } from "lucide-react";
+import { Download, Info, Calendar, Clock, Briefcase, AlertCircle, TrendingUp, TrendingDown, Wallet } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
 import {
     Dialog,
     DialogContent,
@@ -41,195 +43,271 @@ export function PayrollBreakdownDialog({
     const standardDays = Number(snapshot?.standardWorkingDays || 22);
     const baseSalary = Number(snapshot?.baseSalary || 0);
 
+    const bonuses = snapshot?.adjustments?.filter((adj) => adj.type === 'bonus') || [];
+    const penalties = snapshot?.adjustments?.filter((adj) => adj.type === 'penalty' || (adj.type === 'correction' && Number(adj.amount) < 0)) || [];
+
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="max-w-2xl w-[95vw] sm:w-full max-h-[90vh] overflow-y-auto">
-                <DialogHeader>
-                    <DialogTitle className="text-lg sm:text-xl">Salary Breakdown: {payroll.period?.name}</DialogTitle>
-                    <DialogDescription>
-                        Detailed calculation snapshot for this payroll period.
-                    </DialogDescription>
-                </DialogHeader>
-                <div className="grid gap-4 sm:gap-6 py-4">
-                    {/* Attendance Summary */}
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 p-3 sm:p-4 bg-muted/40 rounded-lg">
-                        <div className="space-y-1 text-center">
-                            <p className="text-[10px] uppercase font-bold text-muted-foreground">
-                                Attendance
-                            </p>
-                            <p className="text-lg font-bold">
-                                {snapshot?.totalAttendanceDays || 0} Days
-                            </p>
+            <DialogContent className="max-w-2xl w-[95vw] sm:w-full max-h-[90vh] overflow-y-auto p-0">
+                {/* Header Section */}
+                <div className="bg-slate-50 px-6 py-5 border-b">
+                    <DialogHeader className="space-y-2">
+                        <div className="flex items-center gap-2 text-slate-500 text-sm">
+                            <Calendar className="h-4 w-4" />
+                            <span>Pay Period: {payroll.period?.name}</span>
                         </div>
-                        <div className="space-y-1 text-center">
-                            <p className="text-[10px] uppercase font-bold text-muted-foreground">
-                                Worked hrs
+                        <DialogTitle className="text-xl font-semibold text-slate-900">
+                            Salary Statement
+                        </DialogTitle>
+                        <DialogDescription className="text-slate-500">
+                            Detailed breakdown of earnings and deductions for this period
+                        </DialogDescription>
+                    </DialogHeader>
+                </div>
+
+                <div className="px-6 py-5 space-y-6">
+                    {/* Attendance Metrics */}
+                    <div className="grid grid-cols-4 gap-3">
+                        <div className="bg-white border rounded-lg p-3 text-center">
+                            <div className="flex items-center justify-center gap-1.5 mb-1">
+                                <Briefcase className="h-3.5 w-3.5 text-slate-400" />
+                                <span className="text-xs text-slate-500">Present</span>
+                            </div>
+                            <p className="text-lg font-semibold text-slate-700">
+                                {snapshot?.totalAttendanceDays || 0}
                             </p>
-                            <p className="text-lg font-bold">
-                                {Number(snapshot?.totalWorkedHours || 0).toFixed(1)} hrs
-                            </p>
+                            <p className="text-[10px] text-slate-400">days</p>
                         </div>
-                        <div className="space-y-1 text-center">
-                            <p className="text-[10px] uppercase font-bold text-muted-foreground">
-                                Overtime
+                        <div className="bg-white border rounded-lg p-3 text-center">
+                            <div className="flex items-center justify-center gap-1.5 mb-1">
+                                <Clock className="h-3.5 w-3.5 text-slate-400" />
+                                <span className="text-xs text-slate-500">Hours</span>
+                            </div>
+                            <p className="text-lg font-semibold text-slate-700">
+                                {Number(snapshot?.totalWorkedHours || 0).toFixed(1)}
                             </p>
-                            <p className="text-lg font-bold text-blue-600">
-                                {Number(snapshot?.overtimeHours || 0).toFixed(1)} hrs
-                            </p>
+                            <p className="text-[10px] text-slate-400">worked</p>
                         </div>
-                        <div className="space-y-1 text-center">
-                            <p className="text-[10px] uppercase font-bold text-muted-foreground">
-                                Lates
+                        <div className="bg-white border rounded-lg p-3 text-center">
+                            <div className="flex items-center justify-center gap-1.5 mb-1">
+                                <TrendingUp className="h-3.5 w-3.5 text-emerald-500" />
+                                <span className="text-xs text-slate-500">OT</span>
+                            </div>
+                            <p className="text-lg font-semibold text-emerald-600">
+                                {Number(snapshot?.overtimeHours || 0).toFixed(1)}
                             </p>
-                            <p className="text-lg font-bold text-red-600">
+                            <p className="text-[10px] text-slate-400">hours</p>
+                        </div>
+                        <div className="bg-white border rounded-lg p-3 text-center">
+                            <div className="flex items-center justify-center gap-1.5 mb-1">
+                                <AlertCircle className="h-3.5 w-3.5 text-amber-500" />
+                                <span className="text-xs text-slate-500">Late</span>
+                            </div>
+                            <p className="text-lg font-semibold text-amber-600">
                                 {snapshot?.lateCounts || 0}
                             </p>
+                            <p className="text-[10px] text-slate-400">occurrences</p>
                         </div>
                     </div>
+
+                    <Separator />
 
                     {/* Earnings Section */}
                     <div className="space-y-3">
-                        <h4 className="font-bold border-b pb-1">Earnings</h4>
-                        <div className="flex justify-between text-sm">
-                            <span>Base Salary ({snapshot?.salaryType})</span>
-                            <span className="font-medium">
-                                Rs {baseSalary.toFixed(2)}
-                            </span>
+                        <div className="flex items-center gap-2 mb-3">
+                            <div className="h-8 w-8 rounded-full bg-emerald-50 flex items-center justify-center">
+                                <TrendingUp className="h-4 w-4 text-emerald-600" />
+                            </div>
+                            <h4 className="font-semibold text-slate-900">Earnings</h4>
                         </div>
-                        <div className="flex justify-between text-sm">
-                            <span>Overtime Pay</span>
-                            <span className="font-medium text-blue-600">
-                                +Rs {Number(snapshot?.overtimePay || 0).toFixed(2)}
-                            </span>
-                        </div>
-                        {/* Individual Bonuses */}
-                        {snapshot?.adjustments?.filter((adj) => adj.type === 'bonus').map((adj, idx: number) => (
-                            <div key={`bonus-${idx}`} className="flex justify-between text-sm items-center">
-                                <div className="flex items-center gap-1.5">
-                                    <span>Bonus</span>
-                                    <TooltipProvider>
-                                        <Tooltip>
-                                            <TooltipTrigger asChild>
-                                                <button className="text-muted-foreground hover:text-blue-600 transition-colors">
-                                                    <Info className="h-3.5 w-3.5" />
-                                                </button>
-                                            </TooltipTrigger>
-                                            <TooltipContent>
-                                                <p className="max-w-xs">{adj.reason || "No reason provided"}</p>
-                                            </TooltipContent>
-                                        </Tooltip>
-                                    </TooltipProvider>
-                                </div>
-                                <span className="font-medium text-green-600">
-                                    +Rs {Number(adj.amount).toFixed(2)}
+                        
+                        <div className="space-y-2">
+                            <div className="flex justify-between items-center py-1.5">
+                                <span className="text-sm text-slate-600">Base Salary ({snapshot?.salaryType})</span>
+                                <span className="text-sm font-medium text-slate-900">
+                                    Rs {baseSalary.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                 </span>
                             </div>
-                        ))}
-                        <div className="flex justify-between font-bold text-lg pt-2 border-t">
-                            <span>Gross Totals</span>
-                            <span>Rs {Number(payroll.gross_salary).toFixed(2)}</span>
+                            
+                            {Number(snapshot?.overtimePay || 0) > 0 && (
+                                <div className="flex justify-between items-center py-1.5">
+                                    <span className="text-sm text-slate-600">Overtime Pay</span>
+                                    <span className="text-sm font-medium text-emerald-600">
+                                        +Rs {Number(snapshot?.overtimePay || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                    </span>
+                                </div>
+                            )}
+                            
+                            {bonuses.map((adj, idx: number) => (
+                                <div key={`bonus-${idx}`} className="flex justify-between items-center py-1.5">
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-sm text-slate-600">Bonus</span>
+                                        <TooltipProvider>
+                                            <Tooltip>
+                                                <TooltipTrigger asChild>
+                                                    <button className="text-slate-400 hover:text-slate-600 transition-colors">
+                                                        <Info className="h-3.5 w-3.5" />
+                                                    </button>
+                                                </TooltipTrigger>
+                                                <TooltipContent side="top" className="max-w-xs">
+                                                    <p className="text-xs">{adj.reason || "No reason provided"}</p>
+                                                </TooltipContent>
+                                            </Tooltip>
+                                        </TooltipProvider>
+                                    </div>
+                                    <span className="text-sm font-medium text-emerald-600">
+                                        +Rs {Number(adj.amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                    </span>
+                                </div>
+                            ))}
+                        </div>
+                        
+                        <div className="flex justify-between items-center pt-3 border-t border-slate-100">
+                            <span className="font-semibold text-slate-900">Gross Earnings</span>
+                            <span className="font-semibold text-slate-900">
+                                Rs {Number(payroll.gross_salary).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            </span>
                         </div>
                     </div>
 
+                    <Separator />
+
                     {/* Deductions Section */}
                     <div className="space-y-3">
-                        <h4 className="font-bold border-b pb-1">Deductions</h4>
-                        <div className="flex justify-between text-sm">
-                            <span>
-                                Unpaid Leave ({snapshot?.unpaidLeaveDays || 0} days)
-                            </span>
-                            <span className="font-medium text-red-600">
-                                -Rs {(Number(snapshot?.unpaidLeaveDays || 0) * (baseSalary / standardDays)).toFixed(2)}
-                            </span>
-                        </div>
-                        {Number(snapshot?.absentDays || 0) > 0 && (
-                            <div className="flex justify-between text-sm">
-                                <span>
-                                    Absent Days ({snapshot?.absentDays} days)
-                                </span>
-                                <span className="font-medium text-red-600">
-                                    -Rs {(Number(snapshot?.absentDays) * (baseSalary / standardDays)).toFixed(2)}
-                                </span>
+                        <div className="flex items-center gap-2 mb-3">
+                            <div className="h-8 w-8 rounded-full bg-red-50 flex items-center justify-center">
+                                <TrendingDown className="h-4 w-4 text-red-600" />
                             </div>
-                        )}
-                        {Number(snapshot?.unaccountedDays || 0) > 0 && (
-                            <div className="flex justify-between text-sm">
-                                <span>
-                                    Missing Days ({snapshot?.unaccountedDays} days)
-                                    <TooltipProvider>
-                                        <Tooltip>
-                                            <TooltipTrigger asChild>
-                                                <button className="ml-1 text-muted-foreground"><Info className="h-3 w-3" /></button>
-                                            </TooltipTrigger>
-                                            <TooltipContent>Days without attendance or leave records within working schedule.</TooltipContent>
-                                        </Tooltip>
-                                    </TooltipProvider>
-                                </span>
-                                <span className="font-medium text-red-600">
-                                    -Rs {(Number(snapshot?.unaccountedDays) * (baseSalary / standardDays)).toFixed(2)}
-                                </span>
-                            </div>
-                        )}
-                        <div className="flex justify-between text-sm">
-                            <span>
-                                Lateness Penalty ({snapshot?.lateCounts || 0} times)
-                            </span>
-                            <span className="font-medium text-red-600">
-                                -Rs {Number(snapshot?.latePenalty || 0).toFixed(2)}
-                            </span>
+                            <h4 className="font-semibold text-slate-900">Deductions</h4>
                         </div>
-                        <div className="flex justify-between text-sm">
-                            <span>Tax ({snapshot?.taxPercentage || 0}%)</span>
-                            <span className="font-medium text-red-600">
-                                -Rs {Number(snapshot?.taxAmount || 0).toFixed(2)}
-                            </span>
-                        </div>
-                        {/* Individual Penalties & Negative Corrections */}
-                        {snapshot?.adjustments?.filter((adj) => adj.type === 'penalty' || (adj.type === 'correction' && Number(adj.amount) < 0)).map((adj, idx: number) => (
-                            <div key={`penalty-${idx}`} className="flex justify-between text-sm items-center">
-                                <div className="flex items-center gap-1.5">
-                                    <span>{adj.type === 'penalty' ? 'Penalty' : 'Adjustment'}</span>
-                                    <TooltipProvider>
-                                        <Tooltip>
-                                            <TooltipTrigger asChild>
-                                                <button className="text-muted-foreground hover:text-red-600 transition-colors">
-                                                    <Info className="h-3.5 w-3.5" />
-                                                </button>
-                                            </TooltipTrigger>
-                                            <TooltipContent>
-                                                <p className="max-w-xs">{adj.reason || "No reason provided"}</p>
-                                            </TooltipContent>
-                                        </Tooltip>
-                                    </TooltipProvider>
+                        
+                        <div className="space-y-2">
+                            {Number(snapshot?.unpaidLeaveDays || 0) > 0 && (
+                                <div className="flex justify-between items-center py-1.5">
+                                    <span className="text-sm text-slate-600">
+                                        Unpaid Leave ({snapshot?.unpaidLeaveDays} days)
+                                    </span>
+                                    <span className="text-sm font-medium text-red-600">
+                                        -Rs {(Number(snapshot?.unpaidLeaveDays || 0) * (baseSalary / standardDays)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                    </span>
                                 </div>
-                                <span className="font-medium text-red-600">
-                                    -Rs {Math.abs(Number(adj.amount)).toFixed(2)}
-                                </span>
-                            </div>
-                        ))}
-                        <div className="flex justify-between font-bold border-t pt-2">
-                            <span>Total Deductions</span>
-                            <span className="text-red-600">
-                                -Rs {Number(payroll.total_deductions).toFixed(2)}
+                            )}
+                            
+                            {Number(snapshot?.absentDays || 0) > 0 && (
+                                <div className="flex justify-between items-center py-1.5">
+                                    <span className="text-sm text-slate-600">
+                                        Absent Days ({snapshot?.absentDays} days)
+                                    </span>
+                                    <span className="text-sm font-medium text-red-600">
+                                        -Rs {(Number(snapshot?.absentDays) * (baseSalary / standardDays)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                    </span>
+                                </div>
+                            )}
+                            
+                            {Number(snapshot?.unaccountedDays || 0) > 0 && (
+                                <div className="flex justify-between items-center py-1.5">
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-sm text-slate-600">
+                                            Missing Days ({snapshot?.unaccountedDays} days)
+                                        </span>
+                                        <TooltipProvider>
+                                            <Tooltip>
+                                                <TooltipTrigger asChild>
+                                                    <button className="text-slate-400 hover:text-slate-600">
+                                                        <Info className="h-3.5 w-3.5" />
+                                                    </button>
+                                                </TooltipTrigger>
+                                                <TooltipContent side="top">
+                                                    <p className="text-xs max-w-[200px]">Days without attendance or leave records within working schedule.</p>
+                                                </TooltipContent>
+                                            </Tooltip>
+                                        </TooltipProvider>
+                                    </div>
+                                    <span className="text-sm font-medium text-red-600">
+                                        -Rs {(Number(snapshot?.unaccountedDays) * (baseSalary / standardDays)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                    </span>
+                                </div>
+                            )}
+                            
+                            {Number(snapshot?.latePenalty || 0) > 0 && (
+                                <div className="flex justify-between items-center py-1.5">
+                                    <span className="text-sm text-slate-600">
+                                        Late Penalty ({snapshot?.lateCounts || 0} occurrences)
+                                    </span>
+                                    <span className="text-sm font-medium text-red-600">
+                                        -Rs {Number(snapshot?.latePenalty || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                    </span>
+                                </div>
+                            )}
+                            
+                            {Number(snapshot?.taxAmount || 0) > 0 && (
+                                <div className="flex justify-between items-center py-1.5">
+                                    <span className="text-sm text-slate-600">Tax ({snapshot?.taxPercentage || 0}%)</span>
+                                    <span className="text-sm font-medium text-red-600">
+                                        -Rs {Number(snapshot?.taxAmount || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                    </span>
+                                </div>
+                            )}
+                            
+                            {penalties.map((adj, idx: number) => (
+                                <div key={`penalty-${idx}`} className="flex justify-between items-center py-1.5">
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-sm text-slate-600">{adj.type === 'penalty' ? 'Penalty' : 'Adjustment'}</span>
+                                        <TooltipProvider>
+                                            <Tooltip>
+                                                <TooltipTrigger asChild>
+                                                    <button className="text-slate-400 hover:text-slate-600">
+                                                        <Info className="h-3.5 w-3.5" />
+                                                    </button>
+                                                </TooltipTrigger>
+                                                <TooltipContent side="top" className="max-w-xs">
+                                                    <p className="text-xs">{adj.reason || "No reason provided"}</p>
+                                                </TooltipContent>
+                                            </Tooltip>
+                                        </TooltipProvider>
+                                    </div>
+                                    <span className="text-sm font-medium text-red-600">
+                                        -Rs {Math.abs(Number(adj.amount)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                    </span>
+                                </div>
+                            ))}
+                        </div>
+                        
+                        <div className="flex justify-between items-center pt-3 border-t border-slate-100">
+                            <span className="font-semibold text-slate-900">Total Deductions</span>
+                            <span className="font-semibold text-red-600">
+                                -Rs {Number(payroll.total_deductions).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                             </span>
                         </div>
                     </div>
 
                     {/* Net Payable */}
-                    <div className="bg-blue-50 p-3 sm:p-4 rounded-lg flex flex-col sm:flex-row justify-between items-start sm:items-center border border-blue-100 mt-2 gap-2">
-                        <span className="text-blue-900 font-extrabold text-lg sm:text-xl uppercase tracking-tighter">
-                            Calculated Salary
-                        </span>
-                        <span className="text-blue-900 font-extrabold text-2xl sm:text-3xl tracking-tighter">
-                            Rs {Math.floor(Number(payroll.net_salary))}
-                        </span>
+                    <div className="bg-slate-900 rounded-xl p-5 text-white">
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <div className="h-10 w-10 rounded-full bg-white/10 flex items-center justify-center">
+                                    <Wallet className="h-5 w-5 text-white" />
+                                </div>
+                                <div>
+                                    <p className="text-sm text-slate-300">Net Take Home</p>
+                                    <p className="text-xs text-slate-400">After all deductions</p>
+                                </div>
+                            </div>
+                            <div className="text-right">
+                                <p className="text-2xl sm:text-3xl font-bold">
+                                    Rs {Number(payroll.net_salary).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                </p>
+                            </div>
+                        </div>
                     </div>
                 </div>
-                <DialogFooter className="flex-col-reverse sm:flex-row gap-2">
+
+                {/* Footer */}
+                <DialogFooter className="px-6 py-4 border-t bg-slate-50 flex-col-reverse sm:flex-row gap-3">
                     <Button variant="outline" onClick={() => onOpenChange(false)} className="w-full sm:w-auto">
-                        Close Breakdown
+                        Close
                     </Button>
-                    <Button onClick={() => onDownload(payroll.id)} className="w-full sm:w-auto">
+                    <Button onClick={() => onDownload(payroll.id)} className="w-full sm:w-auto bg-slate-900 hover:bg-slate-800">
                         <Download className="w-4 h-4 mr-2" />
                         Download Payslip
                     </Button>
