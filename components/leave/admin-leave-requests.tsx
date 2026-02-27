@@ -9,7 +9,7 @@ import { getAllLeavesAdminAction, approveLeaveAction, rejectLeaveAction } from "
 import { LeaveRequest } from "@/lib/types/leave.types";
 import { format } from "date-fns";
 import { toast } from "sonner";
-import { Check, X, RotateCcw, User, Eye } from "lucide-react";
+import { Check, X, RotateCcw, User, Eye, ChevronLeft, ChevronRight } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
@@ -23,16 +23,32 @@ export function AdminLeaveRequests() {
     const [rejectionDialogOpen, setRejectionDialogOpen] = useState(false);
     const [processing, setProcessing] = useState(false);
 
+    // Pagination state
+    const [currentPage, setCurrentPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
+    const [totalItems, setTotalItems] = useState(0);
+    const limit = 10;
+
     const fetchLeaves = async () => {
         setLoading(true);
-        const res = await getAllLeavesAdminAction({ status: "pending" });
-        if ('data' in res && res.data) setLeaves(res.data);
+        const res = await getAllLeavesAdminAction({
+            status: "pending",
+            page: currentPage,
+            limit: limit
+        });
+        if ('data' in res && res.data) {
+            setLeaves(res.data);
+            if (res.pagination) {
+                setTotalPages(res.pagination.totalPages);
+                setTotalItems(res.pagination.totalItems);
+            }
+        }
         setLoading(false);
     };
 
     useEffect(() => {
         fetchLeaves();
-    }, []);
+    }, [currentPage]);
 
     const handleApprove = async (id: number) => {
         setProcessing(true);
@@ -176,6 +192,44 @@ export function AdminLeaveRequests() {
                         </Table>
                     </div>
                 </div>
+
+                {/* Pagination Controls */}
+                {!loading && totalPages > 1 && (
+                    <div className="flex items-center justify-between mt-6 px-2">
+                        <p className="text-sm text-muted-foreground">
+                            Showing <span className="font-medium">{(currentPage - 1) * limit + 1}</span> to{" "}
+                            <span className="font-medium">
+                                {Math.min(currentPage * limit, totalItems)}
+                            </span>{" "}
+                            of <span className="font-medium">{totalItems}</span> requests
+                        </p>
+                        <div className="flex items-center space-x-2">
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                                disabled={currentPage === 1}
+                                className="h-8"
+                            >
+                                <ChevronLeft className="h-4 w-4 mr-1" />
+                                Previous
+                            </Button>
+                            <div className="flex items-center px-4 text-sm font-medium">
+                                Page {currentPage} of {totalPages}
+                            </div>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+                                disabled={currentPage === totalPages}
+                                className="h-8"
+                            >
+                                Next
+                                <ChevronRight className="h-4 w-4 ml-1" />
+                            </Button>
+                        </div>
+                    </div>
+                )}
             </CardContent>
 
             <Dialog open={rejectionDialogOpen} onOpenChange={setRejectionDialogOpen}>

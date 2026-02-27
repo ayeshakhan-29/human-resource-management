@@ -96,6 +96,12 @@ export default function PayrollDashboardPage() {
             const res = await createPayrollPeriod(formData);
             if (res.success) {
                 toast.success("Payroll period generated successfully");
+                
+                // Show warning if some employees were skipped
+                if (res.warning) {
+                    toast.warning(res.warning, { duration: 6000 });
+                }
+                
                 setIsCreateDialogOpen(false);
                 setFormData({ name: "", startDate: "", endDate: "", payrollType: "monthly" });
                 fetchPeriods();

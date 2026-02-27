@@ -32,7 +32,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ListChecks, Calendar, Users, BarChart3 } from "lucide-react";
+import { ListChecks, Calendar, Users, BarChart3, ChevronLeft, ChevronRight } from "lucide-react";
 
 export default function EmployeeTasksPage() {
   const { user } = useAuth();
@@ -40,6 +40,8 @@ export default function EmployeeTasksPage() {
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState("all");
   const [priorityFilter, setPriorityFilter] = useState("all");
+  const [currentPage, setCurrentPage] = useState(1);
+  const limit = 10;
 
   // Fetch tasks assigned to current user
   useEffect(() => {
@@ -48,7 +50,8 @@ export default function EmployeeTasksPage() {
 
       try {
         setLoading(true);
-        const response = await getTasksByAssignee(parseInt(user.id));
+        // Fetch all tasks for local pagination and accurate stats
+        const response = await getTasksByAssignee(parseInt(user.id), 1, 1000);
         setTasks(response.data);
       } catch (error) {
         console.error("Failed to fetch tasks:", error);
@@ -71,12 +74,25 @@ export default function EmployeeTasksPage() {
   }, [tasks]);
 
   const filteredTasks = useMemo(() => {
-    return tasks.filter((task) => {
+    const filtered = tasks.filter((task) => {
       const matchesStatus = statusFilter === "all" || task.status === statusFilter;
       const matchesPriority = priorityFilter === "all" || task.priority === priorityFilter;
       return matchesStatus && matchesPriority;
     });
+    return filtered;
   }, [tasks, statusFilter, priorityFilter]);
+
+  // Handle local pagination
+  const totalPages = Math.ceil(filteredTasks.length / limit);
+  const paginatedTasks = useMemo(() => {
+    const start = (currentPage - 1) * limit;
+    return filteredTasks.slice(start, start + limit);
+  }, [filteredTasks, currentPage]);
+
+  // Reset to first page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [statusFilter, priorityFilter]);
 
   const formatDate = (iso: string) =>
     new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
@@ -225,7 +241,7 @@ export default function EmployeeTasksPage() {
           <CardHeader>
             <CardTitle>My Tasks</CardTitle>
             <CardDescription>
-              {loading ? "Loading tasks..." : `Showing ${filteredTasks.length} of ${tasks.length} tasks`}
+              {loading ? "Loading tasks..." : `Showing ${paginatedTasks.length} of ${filteredTasks.length} tasks`}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -247,14 +263,14 @@ export default function EmployeeTasksPage() {
                         Loading tasks...
                       </TableCell>
                     </TableRow>
-                  ) : filteredTasks.length === 0 ? (
+                  ) : paginatedTasks.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={5} className="text-center py-10 text-gray-500">
                         No tasks found. Adjust filters or check with your manager.
                       </TableCell>
                     </TableRow>
                   ) : (
-                    filteredTasks.map((task) => (
+                    paginatedTasks.map((task) => (
                       <TableRow key={task.id}>
                         <TableCell>
                           <div className="flex flex-col">
@@ -272,9 +288,45 @@ export default function EmployeeTasksPage() {
                 </TableBody>
               </Table>
             </div>
+
+            {/* Pagination Controls */}
+            {!loading && totalPages > 1 && (
+              <div className="flex items-center justify-between mt-6">
+                <p className="text-sm text-muted-foreground">
+                  Showing <span className="font-medium">{(currentPage - 1) * limit + 1}</span> to{" "}
+                  <span className="font-medium">
+                    {Math.min(currentPage * limit, filteredTasks.length)}
+                  </span>{" "}
+                  of <span className="font-medium">{filteredTasks.length}</span> tasks
+                </p>
+                <div className="flex items-center space-x-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                    disabled={currentPage === 1}
+                  >
+                    <ChevronLeft className="h-4 w-4 mr-1" />
+                    Previous
+                  </Button>
+                  <div className="flex items-center px-4 text-sm font-medium">
+                    Page {currentPage} of {totalPages}
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+                    disabled={currentPage === totalPages}
+                  >
+                    Next
+                    <ChevronRight className="h-4 w-4 ml-1" />
+                  </Button>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
     </>
   );
-}
+};

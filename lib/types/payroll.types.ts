@@ -47,6 +47,7 @@ export interface PayrollResponse<T> {
     success: boolean;
     message: string;
     data: T;
+    warning?: string;
 }
 
 export interface PayrollSnapshot {

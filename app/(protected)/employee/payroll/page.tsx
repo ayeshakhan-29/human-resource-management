@@ -160,7 +160,7 @@ export default function EmployeePayrollPage() {
                     />
                     <PayrollStatsCard
                         title="Total Deductions (YTD)"
-                        value={`Rs ${Math.floor(payrolls.reduce((sum, p) => sum + Number(p.total_deductions), 0)).toLocaleString()}`}
+                        value={`Rs ${Math.floor(payrolls.reduce((sum, p) => sum + (Number(p.total_deductions) || 0), 0)).toLocaleString()}`}
                         description="Taxes, penalties & leaves"
                         icon={TrendingDown}
                         iconColor="text-red-600"

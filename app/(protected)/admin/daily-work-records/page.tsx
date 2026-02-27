@@ -37,7 +37,7 @@ import {
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
-import { Loader2, ExternalLink, Download, Eye, Clock, Calendar, User, FileText, Link as LinkIcon, Paperclip, CheckCircle2 } from "lucide-react";
+import { Loader2, ExternalLink, Download, Eye, Clock, Calendar, User, FileText, Link as LinkIcon, Paperclip, CheckCircle2, ChevronLeft, ChevronRight } from "lucide-react";
 import { getAuthToken } from "@/lib/auth/token";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -84,6 +84,12 @@ export default function AdminDailyWorkRecordsPage() {
     employeeId: "all",
     taskStatus: "all",
   });
+  const [pagination, setPagination] = useState({
+    currentPage: 1,
+    totalPages: 1,
+    totalItems: 0,
+    limit: 10,
+  });
   const [allEmployees, setAllEmployees] = useState<
     { id: number; name: string; email: string }[]
   >([]);
@@ -102,6 +108,8 @@ export default function AdminDailyWorkRecordsPage() {
       if (filters.date) params.append("date", filters.date);
       if (filters.employeeId && filters.employeeId !== "all") params.append("employeeId", filters.employeeId);
       if (filters.taskStatus && filters.taskStatus !== "all") params.append("taskStatus", filters.taskStatus);
+      params.append("page", pagination.currentPage.toString());
+      params.append("limit", pagination.limit.toString());
 
       const response = await fetch(
         `${API_BASE_URL}/attendance/daily-work-records?${params.toString()}`,
@@ -118,30 +126,48 @@ export default function AdminDailyWorkRecordsPage() {
         throw new Error(errorData.message || "Failed to fetch daily work records");
       }
 
-      const data: { data: DailyWorkRecord[] } = await response.json();
+      const data = await response.json();
       setRecords(data.data || []);
 
-      // Extract unique employees
-      const uniqueEmployees: { id: number; name: string; email: string }[] = Array.from(
+      if (data.pagination) {
+        setPagination(prev => ({
+          ...prev,
+          totalPages: data.pagination.totalPages,
+          totalItems: data.pagination.totalItems,
+        }));
+      }
+
+      // Extract unique employees - only for the current page, which is fine for the filter list
+      // Better: we should have a separate endpoint for all employees, but for now this works as it builds up
+      const currentEmployees: { id: number; name: string; email: string }[] = Array.from(
         new Map(
           data.data?.map((r: DailyWorkRecord) => [
             r.employee.id,
             r.employee,
           ]) || []
         ).values()
-      );
-      setAllEmployees(uniqueEmployees);
+      ) as { id: number; name: string; email: string }[];
+
+      setAllEmployees(prev => {
+        const combined = [...prev, ...currentEmployees];
+        return Array.from(new Map(combined.map(e => [e.id, e])).values()) as { id: number; name: string; email: string }[];
+      });
     } catch (error) {
       console.error("Error fetching daily work records:", error);
       toast.error("Failed to load daily work records");
     } finally {
       setLoading(false);
     }
-  }, [filters.date, filters.employeeId, filters.taskStatus]);
+  }, [filters.date, filters.employeeId, filters.taskStatus, pagination.currentPage, pagination.limit]);
 
   useEffect(() => {
     fetchRecords();
   }, [fetchRecords]);
+
+  // Reset to first page when filters change
+  useEffect(() => {
+    setPagination(prev => ({ ...prev, currentPage: 1 }));
+  }, [filters.date, filters.employeeId, filters.taskStatus]);
 
   const getStatusBadgeVariant = (status: string | null) => {
     if (!status) return "outline";
@@ -441,6 +467,42 @@ export default function AdminDailyWorkRecordsPage() {
                     ))}
                   </TableBody>
                 </Table>
+              </div>
+            )}
+
+            {/* Pagination Controls */}
+            {!loading && pagination.totalPages > 1 && (
+              <div className="flex items-center justify-between mt-6">
+                <p className="text-sm text-muted-foreground">
+                  Showing <span className="font-medium">{(pagination.currentPage - 1) * pagination.limit + 1}</span> to{" "}
+                  <span className="font-medium">
+                    {Math.min(pagination.currentPage * pagination.limit, pagination.totalItems)}
+                  </span>{" "}
+                  of <span className="font-medium">{pagination.totalItems}</span> records
+                </p>
+                <div className="flex items-center space-x-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setPagination(prev => ({ ...prev, currentPage: Math.max(prev.currentPage - 1, 1) }))}
+                    disabled={pagination.currentPage === 1}
+                  >
+                    <ChevronLeft className="h-4 w-4 mr-1" />
+                    Previous
+                  </Button>
+                  <div className="flex items-center px-4 text-sm font-medium">
+                    Page {pagination.currentPage} of {pagination.totalPages}
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setPagination(prev => ({ ...prev, currentPage: Math.min(prev.currentPage + 1, prev.totalPages) }))}
+                    disabled={pagination.currentPage === pagination.totalPages}
+                  >
+                    Next
+                    <ChevronRight className="h-4 w-4 ml-1" />
+                  </Button>
+                </div>
               </div>
             )}
           </CardContent>

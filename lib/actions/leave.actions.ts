@@ -156,7 +156,7 @@ export async function getAllLeavesAdminAction(params?: Record<string, string | n
         });
         const result = await response.json();
         if (!response.ok) throw new Error(result.message || "Failed to fetch all leaves");
-        return { data: result.data };
+        return { data: result.data, pagination: result.pagination };
     } catch (error) {
         return handleApiError(error, "Failed to fetch all leaves");
     }

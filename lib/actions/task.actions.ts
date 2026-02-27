@@ -248,20 +248,27 @@ export const assignTaskToUser = async (
 };
 
 // Get tasks by assignee
-export const getTasksByAssignee = async (assigneeId: number): Promise<TasksResponse> => {
+export const getTasksByAssignee = async (
+  assigneeId: number,
+  page = 1,
+  limit = 10
+): Promise<TasksResponse> => {
   const token = getAuthToken();
   if (!token) {
     throw new Error("No authentication token found");
   }
 
-  const response = await fetch(`${API_BASE_URL}/tasks/assignee/${assigneeId}`, {
-    method: "GET",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-    cache: "no-store",
-  });
+  const response = await fetch(
+    `${API_BASE_URL}/tasks/assignee/${assigneeId}?page=${page}&limit=${limit}`,
+    {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      cache: "no-store",
+    }
+  );
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));

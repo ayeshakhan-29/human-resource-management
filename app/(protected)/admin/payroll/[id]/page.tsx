@@ -282,19 +282,19 @@ export default function PayrollPeriodDetailsPage() {
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                     <PayrollStatsCard
                         title="Total Gross"
-                        value={`Rs ${period.payrolls?.reduce((sum, p) => sum + Number(p.gross_salary), 0).toLocaleString()}`}
+                        value={`Rs ${(period.payrolls?.reduce((sum, p) => sum + (Number(p.gross_salary) || 0), 0) || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
                         icon={DollarSign}
                         iconColor="text-blue-600"
                     />
                     <PayrollStatsCard
                         title="Total Deductions"
-                        value={`Rs ${period.payrolls?.reduce((sum, p) => sum + Number(p.total_deductions), 0).toLocaleString()}`}
+                        value={`Rs ${(period.payrolls?.reduce((sum, p) => sum + (Number(p.total_deductions) || 0), 0) || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
                         icon={TrendingDown}
                         iconColor="text-red-600"
                     />
                     <PayrollStatsCard
                         title="Net Disbursement"
-                        value={`Rs ${period.payrolls?.reduce((sum, p) => sum + Number(p.net_salary), 0).toLocaleString()}`}
+                        value={`Rs ${(period.payrolls?.reduce((sum, p) => sum + (Number(p.net_salary) || 0), 0) || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
                         icon={TrendingUp}
                         iconColor="text-green-600"
                     />
@@ -400,7 +400,7 @@ export default function PayrollPeriodDetailsPage() {
                                                     )}
                                                 </div>
                                             </TableCell>
-                                            <TableCell className="text-right font-bold text-green-600">Rs {Math.floor(Number(payroll.net_salary))}</TableCell>
+                                            <TableCell className="text-right font-bold text-green-600">Rs {Number(payroll.net_salary).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
                                             <TableCell className="text-center">
                                                 <DropdownMenu>
                                                     <DropdownMenuTrigger asChild>
