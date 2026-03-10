@@ -1,11 +1,10 @@
 "use client"
-
+import { Header } from "@/components/header"
 import React from "react"
 import {
   Mail,
   Phone,
   Building2,
-  MoreHorizontal,
   Eye,
   Pencil,
   Trash2,
@@ -85,37 +84,47 @@ const getStatusColor = (status: string) => {
 
 export default function LeadsPage() {
   return (
-    <div className="p-6 space-y-6">
+    <>
+     <Header
+        breadcrumbs={[
+          { label: "Admin", href: "/admin/dashboard" },
+          { label: "Leads" },
+      
+        ]}
+      />
+       <div className="p-4 sm:p-6 space-y-6"></div>
+  
+    <div className="p-4 sm:p-6 space-y-6">
 
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
 
         <div>
-          <h1 className="text-2xl font-bold">Lead Management</h1>
-          <p className="text-gray-500 text-sm">
+          <h1 className="text-xl sm:text-2xl font-bold">Lead Management</h1>
+          <p className="text-gray-500 text-xs sm:text-sm">
             Track and manage your sales leads
           </p>
         </div>
 
-        <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium">
+        <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium w-full sm:w-auto">
           + Add Lead
         </button>
 
       </div>
 
       {/* Table */}
-      <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
+      <div className="bg-white rounded-xl shadow-sm border overflow-x-auto">
 
-        <table className="w-full text-sm">
+        <table className="w-full min-w-[700px] text-sm">
 
           {/* Table Head */}
           <thead className="bg-gray-50 border-b text-gray-600">
             <tr>
-              <th className="p-4 text-left">Lead</th>
-              <th className="p-4 text-left">Company</th>
-              <th className="p-4 text-left">Contact</th>
-              <th className="p-4 text-left">Status</th>
-              <th className="p-4 text-right">Actions</th>
+              <th className="p-3 sm:p-4 text-left">Lead</th>
+              <th className="p-3 sm:p-4 text-left">Company</th>
+              <th className="p-3 sm:p-4 text-left">Contact</th>
+              <th className="p-3 sm:p-4 text-left">Status</th>
+              <th className="p-3 sm:p-4 text-right">Actions</th>
             </tr>
           </thead>
 
@@ -129,11 +138,11 @@ export default function LeadsPage() {
                 className="border-b hover:bg-gray-50 transition"
               >
 
-                {/* Lead Name + Avatar */}
-                <td className="p-4">
+                {/* Lead Name */}
+                <td className="p-3 sm:p-4">
                   <div className="flex items-center gap-3">
 
-                    <div className="h-9 w-9 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-semibold text-sm">
+                    <div className="h-8 w-8 sm:h-9 sm:w-9 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-semibold text-sm">
                       {lead.name.charAt(0)}
                     </div>
 
@@ -146,7 +155,7 @@ export default function LeadsPage() {
                 </td>
 
                 {/* Company */}
-                <td className="p-4 text-gray-600">
+                <td className="p-3 sm:p-4 text-gray-600">
 
                   <div className="flex items-center gap-2">
                     <Building2 size={16} />
@@ -156,11 +165,11 @@ export default function LeadsPage() {
                 </td>
 
                 {/* Contact */}
-                <td className="p-4 text-gray-600 space-y-1">
+                <td className="p-3 sm:p-4 text-gray-600 space-y-1">
 
                   <div className="flex items-center gap-2">
                     <Mail size={14} />
-                    {lead.email}
+                    <span className="break-all">{lead.email}</span>
                   </div>
 
                   <div className="flex items-center gap-2">
@@ -171,7 +180,7 @@ export default function LeadsPage() {
                 </td>
 
                 {/* Status */}
-                <td className="p-4">
+                <td className="p-3 sm:p-4">
 
                   <span
                     className={`px-3 py-1 text-xs rounded-full font-medium ${getStatusColor(
@@ -184,7 +193,7 @@ export default function LeadsPage() {
                 </td>
 
                 {/* Actions */}
-                <td className="p-4 text-right">
+                <td className="p-3 sm:p-4 text-right">
 
                   <div className="flex justify-end gap-2">
 
@@ -219,5 +228,6 @@ export default function LeadsPage() {
       </div>
 
     </div>
+      </>
   )
 }
