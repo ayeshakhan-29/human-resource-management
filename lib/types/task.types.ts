@@ -1,6 +1,6 @@
 // Task types based on backend model
 
-export type TaskStatus = 'pending' | 'in-progress' | 'completed' | 'blocked' | 'cancelled';
+export type TaskStatus = 'pending' | 'in-progress' | 'in-review' | 'completed' | 'blocked' | 'cancelled';
 export type TaskPriority = 'low' | 'medium' | 'high' | 'urgent';
 
 export interface Task {
@@ -115,6 +115,7 @@ export interface TaskStatisticsResponse {
     total: number;
     pending: number;
     inProgress: number;
+    inReview: number;
     completed: number;
     blocked: number;
     overdue: number;

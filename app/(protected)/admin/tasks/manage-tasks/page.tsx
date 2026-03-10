@@ -42,7 +42,7 @@ interface TaskItem {
   id: string;
   title: string;
   description: string;
-  status: "pending" | "in-progress" | "completed" | "blocked" | "cancelled";
+  status: "pending" | "in-progress" | "in-review" | "completed" | "blocked" | "cancelled";
   priority: "low" | "medium" | "high" | "urgent";
   assignee: string;
   dueDate: string;
@@ -176,12 +176,14 @@ export default function ManageTasksPage() {
         return <Badge className="bg-green-100 text-green-800 border-green-200">Completed</Badge>;
       case "in-progress":
         return <Badge className="bg-blue-100 text-blue-800 border-blue-200">In Progress</Badge>;
+      case "in-review":
+        return <Badge className="bg-purple-100 text-purple-800 border-purple-200">In Review</Badge>;
       case "pending":
         return <Badge className="bg-gray-100 text-gray-800 border-gray-200">Pending</Badge>;
       case "blocked":
         return <Badge className="bg-red-100 text-red-800 border-red-200">Blocked</Badge>;
       case "cancelled":
-        return <Badge className="bg-gray-100 text-gray-800 border-gray-200">Cancelled</Badge>;
+        return <Badge className="bg-gray-100 text-gray-500 border-gray-200 line-through">Cancelled</Badge>;
       default:
         return <Badge variant="secondary">{status}</Badge>;
     }
@@ -591,8 +593,10 @@ export default function ManageTasksPage() {
                             <SelectContent>
                               <SelectItem value="pending">Pending</SelectItem>
                               <SelectItem value="in-progress">In Progress</SelectItem>
+                              <SelectItem value="in-review">In Review</SelectItem>
                               <SelectItem value="completed">Completed</SelectItem>
                               <SelectItem value="blocked">Blocked</SelectItem>
+                              <SelectItem value="cancelled">Cancelled</SelectItem>
                             </SelectContent>
                           </Select>
                         </div>

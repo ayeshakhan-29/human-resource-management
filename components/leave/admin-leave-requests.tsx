@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -29,7 +29,7 @@ export function AdminLeaveRequests() {
     const [totalItems, setTotalItems] = useState(0);
     const limit = 10;
 
-    const fetchLeaves = async () => {
+    const fetchLeaves = useCallback(async () => {
         setLoading(true);
         const res = await getAllLeavesAdminAction({
             status: "pending",
@@ -44,11 +44,11 @@ export function AdminLeaveRequests() {
             }
         }
         setLoading(false);
-    };
+    }, [currentPage]);
 
     useEffect(() => {
         fetchLeaves();
-    }, [currentPage]);
+    }, [fetchLeaves]);
 
     const handleApprove = async (id: number) => {
         setProcessing(true);

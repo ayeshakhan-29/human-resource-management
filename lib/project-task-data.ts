@@ -19,7 +19,7 @@ export interface Project {
 export interface Task {
   id: string;
   name: string;
-  status: 'pending' | 'in-progress' | 'completed' | 'blocked';
+  status: 'pending' | 'in-progress' | 'in-review' | 'completed' | 'blocked' | 'cancelled';
   assignee: string;
   dueDate: string;
   priority: 'low' | 'medium' | 'high' | 'urgent';

@@ -27,6 +27,7 @@ import {
   IdCard,
   Briefcase,
   CreditCard,
+  LayoutGrid,
 } from "lucide-react";
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -144,6 +145,11 @@ const data = {
           title: "Manage Projects",
           url: "/admin/projects/manage-project",
           icon: Settings2,
+        },
+        {
+          title: "Project Board",
+          url: "/admin/kanban",
+          icon: LayoutGrid,
         },
         {
           title: "Projects Reports ",

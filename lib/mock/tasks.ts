@@ -1,4 +1,4 @@
-export type TaskStatus = "pending" | "in-progress" | "completed" | "blocked";
+export type TaskStatus = "pending" | "in-progress" | "in-review" | "completed" | "blocked" | "cancelled";
 export type TaskPriority = "low" | "medium" | "high" | "urgent";
 
 export interface TaskItem {
