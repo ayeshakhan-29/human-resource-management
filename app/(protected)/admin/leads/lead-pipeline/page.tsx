@@ -1,9 +1,15 @@
 "use client"
-
+import { Header } from "@/components/header"
 import React, { useState } from "react"
 import { Mail, Phone } from "lucide-react"
-import { DndContext, useDraggable, useDroppable } from "@dnd-kit/core"
-import type { DragEndEvent } from "@dnd-kit/core"
+import {
+  DndContext,
+  useDraggable,
+  useDroppable,
+  DragOverlay,
+} from "@dnd-kit/core"
+import type { DragEndEvent, DragStartEvent } from "@dnd-kit/core"
+
 type Lead = {
   id: number
   name: string
@@ -60,25 +66,11 @@ const statuses = [
   "Lost",
 ]
 
-/* ---------------- Draggable Card ---------------- */
+/* ---------------- Lead Card UI (Reusable) ---------------- */
 
-function LeadCard({ lead }: { lead: Lead }) {
-  const { attributes, listeners, setNodeRef, transform } = useDraggable({
-    id: lead.id,
-  })
-
-  const style = transform
-    ? { transform: `translate(${transform.x}px, ${transform.y}px)` }
-    : undefined
-
+function LeadCardUI({ lead }: { lead: Lead }) {
   return (
-    <div
-      ref={setNodeRef}
-      style={style}
-      {...listeners}
-      {...attributes}
-      className="bg-white border rounded-lg p-3 shadow-sm hover:shadow-md transition cursor-grab"
-    >
+    <div className="bg-white border rounded-lg p-3 shadow-md">
       <div className="flex items-center gap-3 mb-3">
         <div className="h-9 w-9 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-sm font-semibold">
           {lead.name.charAt(0)}
@@ -103,6 +95,30 @@ function LeadCard({ lead }: { lead: Lead }) {
   )
 }
 
+/* ---------------- Draggable Card ---------------- */
+
+function LeadCard({ lead }: { lead: Lead }) {
+  const { attributes, listeners, setNodeRef, transform } = useDraggable({
+    id: lead.id,
+  })
+
+  const style = transform
+    ? { transform: `translate(${transform.x}px, ${transform.y}px)` }
+    : undefined
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      {...listeners}
+      {...attributes}
+      className="cursor-grab"
+    >
+      <LeadCardUI lead={lead} />
+    </div>
+  )
+}
+
 /* ---------------- Droppable Column ---------------- */
 
 function Column({
@@ -123,7 +139,6 @@ function Column({
     >
       <div className="p-4 border-b bg-white rounded-t-xl flex justify-between items-center">
         <h3 className="font-semibold text-sm">{status}</h3>
-
         <span className="text-xs bg-gray-200 px-2 py-1 rounded-full">
           {leads.length}
         </span>
@@ -148,60 +163,85 @@ function Column({
 
 export default function LeadsPipeline() {
   const [leads, setLeads] = useState(initialLeads)
+  const [activeLead, setActiveLead] = useState<Lead | null>(null)
 
- const handleDragEnd = (event: DragEndEvent) => {
-  const { active, over } = event
+  const handleDragStart = (event: DragStartEvent) => {
+    const leadId = Number(event.active.id)
+    const found = leads.find((lead) => lead.id === leadId) || null
+    setActiveLead(found)
+  }
 
-  if (!over) return
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event
+    if (!over) {
+      setActiveLead(null)
+      return
+    }
 
-  const leadId = Number(active.id)
-  const newStatus = String(over.id)
+    const leadId = Number(active.id)
+    const newStatus = String(over.id)
 
-  setLeads((prev) =>
-    prev.map((lead) =>
-      lead.id === leadId
-        ? { ...lead, status: newStatus }
-        : lead
+    setLeads((prev) =>
+      prev.map((lead) =>
+        lead.id === leadId
+          ? { ...lead, status: newStatus }
+          : lead
+      )
     )
-  )
-}
+
+    setActiveLead(null)
+  }
 
   return (
-    <div className="p-6 w-full overflow-hidden">
+    <>
+      <Header
+        breadcrumbs={[
+          { label: "Admin", href: "/admin/dashboard" },
+          { label: "Leads-pipeline" },
+        ]}
+      />
 
-      {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold">Lead Pipeline</h1>
-        <p className="text-gray-500 text-sm">
-          Visualize and manage your sales pipeline
-        </p>
-      </div>
+      <div className="p-6 w-full">
 
-      <DndContext onDragEnd={handleDragEnd}>
-
-        <div className="w-full overflow-x-auto">
-
-          <div className="flex gap-6 min-w-max pb-4">
-
-            {statuses.map((status) => {
-              const columnLeads = leads.filter(
-                (lead) => lead.status === status
-              )
-
-              return (
-                <Column
-                  key={status}
-                  status={status}
-                  leads={columnLeads}
-                />
-              )
-            })}
-
-          </div>
-
+        <div className="mb-6">
+          <h1 className="text-2xl font-bold">Lead Pipeline</h1>
+          <p className="text-gray-500 text-sm">
+            Visualize and manage your sales pipeline
+          </p>
         </div>
 
-      </DndContext>
-    </div>
+        <DndContext
+          onDragStart={handleDragStart}
+          onDragEnd={handleDragEnd}
+        >
+          <div className="w-full overflow-x-auto">
+            <div className="flex gap-6 min-w-max pb-4">
+              {statuses.map((status) => {
+                const columnLeads = leads.filter(
+                  (lead) => lead.status === status
+                )
+
+                return (
+                  <Column
+                    key={status}
+                    status={status}
+                    leads={columnLeads}
+                  />
+                )
+              })}
+            </div>
+          </div>
+
+          {/* 🔥 Drag Overlay Fix */}
+          <DragOverlay>
+            {activeLead ? (
+              <div className="scale-105 shadow-2xl">
+                <LeadCardUI lead={activeLead} />
+              </div>
+            ) : null}
+          </DragOverlay>
+        </DndContext>
+      </div>
+    </>
   )
 }
