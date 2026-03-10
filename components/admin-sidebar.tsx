@@ -28,6 +28,10 @@ import {
   Briefcase,
   CreditCard,
   LayoutGrid,
+  UserCheck,
+  UserSearch,
+  TrendingUp,
+  Phone,
 } from "lucide-react";
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -211,6 +215,24 @@ const data = {
         },
       ],
     },
+    {
+  title: "Lead Management",
+  icon: TrendingUp,
+  items: [
+    {
+      title: "All Leads",
+      url: "/admin/leads/all-leads",
+      icon: UserSearch,
+    },
+    {
+      title: "Lead Pipeline",
+      url: "/admin/leads/lead-pipeline",
+      icon: BarChart3,
+    },
+    
+   
+  ],
+},
   ],
 };
 
