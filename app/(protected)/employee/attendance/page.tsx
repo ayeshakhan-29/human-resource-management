@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { CheckCircle2, AlertCircle } from "lucide-react";
+import { useEffect, useState, useRef } from "react";
+import { CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { toast } from "sonner";
 import useSWR, { useSWRConfig } from "swr";
@@ -91,11 +91,12 @@ export default function EmployeeAttendancePage() {
   const [showSuccess, setShowSuccess] = useState(false);
   const [showCheckoutForm, setShowCheckoutForm] = useState(false);
 
-  // History State
   const [historyPage, setHistoryPage] = useState(1);
   const [historyLimit] = useState(10);
   const [filterDate, setFilterDate] = useState("");
   const [historyStatus, setHistoryStatus] = useState("all");
+  const [isActionInProgress, setIsActionInProgress] = useState(false);
+  const isFetchedRef = useRef(false);
 
   const { mutate: globalMutate } = useSWRConfig();
 
@@ -163,11 +164,13 @@ export default function EmployeeAttendancePage() {
 
   // Check attendance status on component mount
   useEffect(() => {
+    if (isFetchedRef.current) return;
+    
     const checkAttendanceStatus = async () => {
       try {
         setIsLoading(true);
+        isFetchedRef.current = true;
 
-        console.log("Calling getTodaysAttendance()...");
         const token = getAuthToken();
         if (!token) {
           throw new Error("No authentication token found");
@@ -175,7 +178,7 @@ export default function EmployeeAttendancePage() {
 
         // Fetch today's attendance
         const { data: attendance, error } = await getTodaysAttendance(token);
-        console.log(attendance, "attendance response");
+        
         if (error) {
           console.error("Error in getTodaysAttendance:", error);
           throw new Error(error);
@@ -236,6 +239,8 @@ export default function EmployeeAttendancePage() {
 
   // Handle check in with SWR mutation
   const handleCheckIn = async () => {
+    if (isActionInProgress) return;
+    
     const token = getAuthToken();
     if (!token) {
       throw new Error("No authentication token found");
@@ -349,6 +354,7 @@ export default function EmployeeAttendancePage() {
       }
     } finally {
       setIsLoading(false);
+      setIsActionInProgress(false);
     }
   };
 
@@ -363,6 +369,8 @@ export default function EmployeeAttendancePage() {
     deliverableLink?: string;
     deliverables?: File[];
   }) => {
+    if (isActionInProgress) return;
+    
     const token = getAuthToken();
     if (!token) {
       throw new Error("No authentication token found");
@@ -435,6 +443,7 @@ export default function EmployeeAttendancePage() {
       throw error; // Re-throw to let the form handle it
     } finally {
       setIsLoading(false);
+      setIsActionInProgress(false);
     }
   };
 
@@ -513,9 +522,14 @@ export default function EmployeeAttendancePage() {
             </CardHeader>
             <CardContent className="text-center space-y-4">
               {attendanceStatus === "not_checked_in" ? (
-                <Button onClick={handleCheckIn} className="w-full" size="lg">
-                  <CheckCircle2 className="mr-2 h-5 w-5" />
-                  Check In
+                <Button 
+                  onClick={handleCheckIn} 
+                  className="w-full" 
+                  size="lg" 
+                  disabled={isLoading || isActionInProgress}
+                >
+                  {isActionInProgress ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <CheckCircle2 className="mr-2 h-5 w-5" />}
+                  {isActionInProgress ? "Checking In..." : "Check In"}
                 </Button>
               ) : attendanceStatus === "checked_in" ? (
                 <Button
@@ -523,9 +537,10 @@ export default function EmployeeAttendancePage() {
                   variant="destructive"
                   className="w-full"
                   size="lg"
+                  disabled={isLoading || isActionInProgress}
                 >
-                  <AlertCircle className="mr-2 h-5 w-5" />
-                  Check Out
+                  {isActionInProgress ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <AlertCircle className="mr-2 h-5 w-5" />}
+                  {isActionInProgress ? "Checking Out..." : "Check Out"}
                 </Button>
               ) : (
                 <Button disabled className="w-full" size="lg" variant="outline">
