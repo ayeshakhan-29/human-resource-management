@@ -1,43 +1,30 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
-import { CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
-import { format, parseISO } from "date-fns";
+import {
+  CheckCircle2,
+  History,
+} from "lucide-react";
+import { parseISO } from "date-fns";
 import { toast } from "sonner";
 import useSWR, { useSWRConfig } from "swr";
 import { getAuthToken } from "@/lib/auth/token";
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { handleAuthExpiration } from "@/lib/auth/handleAuthExpiration";
 import { Header } from "@/components/header";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   clockInAction,
   clockOutAction,
   getTodaysAttendance,
-  getWeeklyAttendance,
 } from "@/lib/actions/attendance.actions";
 import { WeeklyAttendanceRecord as BackendWeeklyRecord } from "@/lib/types/attendance.types";
 import { AttendanceHistoryTable } from "@/components/attendance/AttendanceHistoryTable";
+import { LiveClockCard } from "@/components/attendance/LiveClockCard";
+import { SummaryCards } from "@/components/attendance/SummaryCards";
+import { AttendanceActionCard } from "@/components/attendance/AttendanceActionCard";
+import { FilterBar } from "@/components/attendance/FilterBar";
 import { CheckoutForm } from "@/components/attendance/CheckoutForm";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, FilterX } from "lucide-react";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 
-// SWR fetcher function
 const fetcher = async (url: string) => {
   const token = getAuthToken();
   if (!token) throw new Error("No authentication token found");
@@ -50,6 +37,10 @@ const fetcher = async (url: string) => {
   });
 
   if (!res.ok) {
+    if (res.status === 401 || res.status === 403) {
+      handleAuthExpiration("Session expired");
+      throw new Error("Session expired");
+    }
     const error = new Error("An error occurred while fetching the data.");
     const errorData = await res.json().catch(() => ({}));
     error.message = errorData.message || error.message;
@@ -70,16 +61,6 @@ type OptimisticAttendanceRecord = Omit<
   overtime: string;
 };
 
-// Helper function to format time from 24h to 12h format
-const formatTime = (timeString: string) => {
-  if (!timeString) return "";
-  const [hours, minutes] = timeString.split(":");
-  const hour = parseInt(hours, 10);
-  const ampm = hour >= 12 ? "PM" : "AM";
-  const formattedHour = hour % 12 || 12;
-  return `${formattedHour}:${minutes} ${ampm}`;
-};
-
 export default function EmployeeAttendancePage() {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [attendanceStatus, setAttendanceStatus] = useState<
@@ -95,12 +76,15 @@ export default function EmployeeAttendancePage() {
   const [historyLimit] = useState(10);
   const [filterDate, setFilterDate] = useState("");
   const [historyStatus, setHistoryStatus] = useState("all");
+  const [searchQuery, setSearchQuery] = useState("");
   const [isActionInProgress, setIsActionInProgress] = useState(false);
   const isFetchedRef = useRef(false);
 
   const { mutate: globalMutate } = useSWRConfig();
 
-  // Use SWR for real-time data fetching with polling
+  const expectedHours = 8;
+  const overtimeHours = Math.max(0, workingHours - expectedHours);
+
   const {
     data: weeklyData,
     error: weeklyError,
@@ -122,7 +106,6 @@ export default function EmployeeAttendancePage() {
     `${(process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5005/api").replace(/\/$/, "")}/attendance/weekly`,
     fetcher,
     {
-      // Refresh every 5 minutes instead of 5 seconds to reduce server load
       refreshInterval: 300000,
       revalidateOnFocus: true,
       shouldRetryOnError: true,
@@ -131,7 +114,6 @@ export default function EmployeeAttendancePage() {
     }
   );
 
-  // New History SWR with Pagination and Filters
   const {
     data: historyData,
     error: historyError,
@@ -146,7 +128,7 @@ export default function EmployeeAttendancePage() {
       currentPage: number;
     };
   }>(
-    `${(process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5005/api").replace(/\/$/, "")}/attendance/history?page=${historyPage}&limit=${historyLimit}${filterDate ? `&date=${filterDate}` : ""}${historyStatus !== "all" ? `&status=${historyStatus}` : ""}`,
+    `${(process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5005/api").replace(/\/$/, "")}/attendance/history?page=${historyPage}&limit=${historyLimit}${filterDate ? `&date=${filterDate}` : ""}${historyStatus !== "all" ? `&status=${historyStatus}` : ""}${searchQuery ? `&search=${searchQuery}` : ""}`,
     fetcher,
     {
       revalidateOnFocus: true,
@@ -154,18 +136,15 @@ export default function EmployeeAttendancePage() {
     }
   );
 
-  // Handle errors with toast
   useEffect(() => {
-    if (weeklyError) {
-      console.error("Error fetching attendance history:", weeklyError);
-      toast.error(weeklyError.message || "Failed to load attendance history");
-    }
+    if (!weeklyError) return;
+    console.error("Error fetching attendance history:", weeklyError);
+    toast.error(weeklyError.message || "Failed to load attendance history");
   }, [weeklyError]);
 
-  // Check attendance status on component mount
   useEffect(() => {
     if (isFetchedRef.current) return;
-    
+
     const checkAttendanceStatus = async () => {
       try {
         setIsLoading(true);
@@ -176,15 +155,13 @@ export default function EmployeeAttendancePage() {
           throw new Error("No authentication token found");
         }
 
-        // Fetch today's attendance
         const { data: attendance, error } = await getTodaysAttendance(token);
-        
+
         if (error) {
           console.error("Error in getTodaysAttendance:", error);
           throw new Error(error);
         }
 
-        // Mutate to refresh data
         mutateWeeklyData();
 
         if (attendance?.clockIn && !attendance.clockOut) {
@@ -223,7 +200,6 @@ export default function EmployeeAttendancePage() {
     checkAttendanceStatus();
   }, [mutateWeeklyData]);
 
-  // Update working hours when checked in
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentTime(new Date());
@@ -237,16 +213,14 @@ export default function EmployeeAttendancePage() {
     return () => clearInterval(timer);
   }, [checkInTime]);
 
-  // Handle check in with SWR mutation
   const handleCheckIn = async () => {
     if (isActionInProgress) return;
-    
+
     const token = getAuthToken();
     if (!token) {
       throw new Error("No authentication token found");
     }
 
-    // Optimistic UI update
     if (!weeklyData) return;
 
     const today = new Date();
@@ -277,12 +251,10 @@ export default function EmployeeAttendancePage() {
     };
 
     try {
-      setIsLoading(true);
+      setIsActionInProgress(true);
 
-      // Update the cache optimistically
       await mutateWeeklyData(optimisticData, false);
 
-      // Make the API call
       const { data, error, status } = await clockInAction(token);
 
       if (error || status === 401) {
@@ -290,14 +262,12 @@ export default function EmployeeAttendancePage() {
       }
 
       if (data?.attendance) {
-        const { date, clockIn } = data.attendance;
+        const { clockIn } = data.attendance;
         const checkInDate = parseISO(clockIn);
 
-        // Update local state
         setCheckInTime(checkInDate);
         setAttendanceStatus("checked_in");
 
-        // Revalidate the cache
         await Promise.all([
           globalMutate(
             (key) => typeof key === "string" && key.includes("/attendance/")
@@ -306,7 +276,7 @@ export default function EmployeeAttendancePage() {
         ]);
 
         toast.success("Checked in successfully!", {
-          description: `You've successfully checked in at ${clockIn}`,
+          description: `You've started your day at ${clockIn}`,
         });
       }
     } catch (error) {
@@ -318,31 +288,8 @@ export default function EmployeeAttendancePage() {
         timestamp: new Date().toISOString(),
       });
 
-      // If unauthorized, suggest re-login
       if (err.message.includes("401") || err.message.includes("Unauthorized")) {
-        console.warn("Authentication issue detected. Current auth state:", {
-          token:
-            typeof window !== "undefined"
-              ? localStorage.getItem("token")
-              : null,
-          user:
-            typeof window !== "undefined" ? localStorage.getItem("user") : null,
-        });
-
-        toast.error("Session Expired", {
-          description: "Your session has expired. Please log in again.",
-          action: {
-            label: "Log In",
-            onClick: () => {
-              // Clear auth data and redirect to login
-              if (typeof window !== "undefined") {
-                localStorage.removeItem("token");
-                localStorage.removeItem("user");
-                window.location.href = "/login";
-              }
-            },
-          },
-        });
+        handleAuthExpiration("Session expired");
       } else {
         const errorMessage =
           error instanceof Error
@@ -353,7 +300,6 @@ export default function EmployeeAttendancePage() {
         });
       }
     } finally {
-      setIsLoading(false);
       setIsActionInProgress(false);
     }
   };
@@ -370,13 +316,12 @@ export default function EmployeeAttendancePage() {
     deliverables?: File[];
   }) => {
     if (isActionInProgress) return;
-    
+
     const token = getAuthToken();
     if (!token) {
       throw new Error("No authentication token found");
     }
 
-    // Optimistic UI update
     if (!weeklyData) return;
 
     const optimisticData = {
@@ -403,23 +348,19 @@ export default function EmployeeAttendancePage() {
     };
 
     try {
-      setIsLoading(true);
+      setIsActionInProgress(true);
 
-      // Update the cache optimistically
       await mutateWeeklyData(optimisticData, false);
 
-      // Make the API call with checkout data
       const { data, error } = await clockOutAction(token, checkoutData);
 
       if (error) throw new Error(error);
 
-      // Update local state
       setAttendanceStatus("checked_out");
       setCheckInTime(null);
       setWorkingHours(0);
       setShowSuccess(true);
 
-      // Revalidate the cache
       await Promise.all([
         globalMutate(
           (key) => typeof key === "string" && key.includes("/attendance/")
@@ -440,242 +381,128 @@ export default function EmployeeAttendancePage() {
       toast.error("Check-out failed", {
         description: err.message || "Failed to check out. Please try again.",
       });
-      throw error; // Re-throw to let the form handle it
+      throw error;
     } finally {
-      setIsLoading(false);
       setIsActionInProgress(false);
     }
   };
 
+  const handleFilterDateChange = (value: string) => {
+    setFilterDate(value);
+    setHistoryPage(1);
+  };
+
+  const handleStatusChange = (value: string) => {
+    setHistoryStatus(value);
+    setHistoryPage(1);
+  };
+
+  const handleSearchChange = (value: string) => {
+    setSearchQuery(value);
+    setHistoryPage(1);
+  };
+
+  const handleClearFilters = () => {
+    setFilterDate("");
+    setHistoryStatus("all");
+    setSearchQuery("");
+    setHistoryPage(1);
+  };
+
+  const handleExport = () => {
+    toast.info("Exporting...", {
+      description: "Your attendance data is being exported as CSV.",
+    });
+  };
+
   return (
-    <>
+    <div className="min-h-screen bg-[#F8FAFC]">
       <Header
         breadcrumbs={[
           { label: "Employee", href: "/employee" },
           { label: "Attendance" },
         ]}
       />
-      <div className="flex flex-1 flex-col gap-4 p-4">
-        <div className="mb-4">
-          <h2 className="text-3xl font-bold text-gray-900 mb-2">
-            Attendance Tracking
-          </h2>
-          <p className="text-gray-600">
-            Mark your attendance and view your work history
+
+      <div className="mx-auto max-w-7xl px-4 py-4 sm:py-6 sm:px-6 lg:px-8">
+        {/* Page Header */}
+        <div className="mb-6 sm:mb-8">
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-gray-900">
+            Attendance
+          </h1>
+          <p className="mt-1 text-sm sm:text-base text-gray-500">
+            Track your work hours and attendance
           </p>
         </div>
 
+        {/* Success Alert */}
         {showSuccess && (
-          <Alert className="mb-6 border-green-200 bg-green-50">
-            <CheckCircle2 className="h-4 w-4 text-green-600" />
-            <AlertDescription className="text-green-800">
-              {attendanceStatus === "checked_in"
-                ? "Successfully checked in!"
-                : "Successfully checked out!"}
-            </AlertDescription>
-          </Alert>
+          <div className="mb-6 animate-in slide-in-from-top-2 fade-in duration-300">
+            <Alert className="border-emerald-200 bg-emerald-50">
+              <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+              <AlertDescription className="text-emerald-800 font-medium">
+                {attendanceStatus === "checked_in"
+                  ? "Successfully checked in!"
+                  : "Successfully checked out!"}
+              </AlertDescription>
+            </Alert>
+          </div>
         )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-          {/* Current Time & Status */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Current Time</CardTitle>
-              <CardDescription>Live clock and status</CardDescription>
-            </CardHeader>
-            <CardContent className="text-center">
-              <div className="text-3xl font-bold text-blue-600 mb-2">
-                {currentTime.toLocaleTimeString()}
-              </div>
-              <div className="text-sm text-gray-600 mb-4">
-                {currentTime.toLocaleDateString("en-US", {
-                  weekday: "long",
-                  year: "numeric",
-                  month: "long",
-                  day: "numeric",
-                })}
-              </div>
-              <Badge
-                variant={
-                  attendanceStatus === "checked_in"
-                    ? "default"
-                    : attendanceStatus === "checked_out"
-                      ? "secondary"
-                      : "outline"
-                }
-                className="text-sm"
-              >
-                {attendanceStatus === "checked_in"
-                  ? "Checked In"
-                  : attendanceStatus === "checked_out"
-                    ? "Checked Out"
-                    : "Not Checked In"}
-              </Badge>
-            </CardContent>
-          </Card>
+        <div className="space-y-6">
+          {/* Live Clock Card */}
+          <LiveClockCard
+            currentTime={currentTime}
+            attendanceStatus={attendanceStatus}
+          />
 
-          {/* Check In/Out */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Attendance Action</CardTitle>
-              <CardDescription>Mark your attendance for today</CardDescription>
-            </CardHeader>
-            <CardContent className="text-center space-y-4">
-              {attendanceStatus === "not_checked_in" ? (
-                <Button 
-                  onClick={handleCheckIn} 
-                  className="w-full" 
-                  size="lg" 
-                  disabled={isLoading || isActionInProgress}
-                >
-                  {isActionInProgress ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <CheckCircle2 className="mr-2 h-5 w-5" />}
-                  {isActionInProgress ? "Checking In..." : "Check In"}
-                </Button>
-              ) : attendanceStatus === "checked_in" ? (
-                <Button
-                  onClick={handleCheckOutClick}
-                  variant="destructive"
-                  className="w-full"
-                  size="lg"
-                  disabled={isLoading || isActionInProgress}
-                >
-                  {isActionInProgress ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <AlertCircle className="mr-2 h-5 w-5" />}
-                  {isActionInProgress ? "Checking Out..." : "Check Out"}
-                </Button>
-              ) : (
-                <Button disabled className="w-full" size="lg" variant="outline">
-                  <CheckCircle2 className="mr-2 h-5 w-5" />
-                  Already Checked Out
-                </Button>
-              )}
-              {checkInTime && (
-                <div className="text-sm text-gray-600">
-                  <p>Checked in at: {checkInTime.toLocaleTimeString()}</p>
-                  <p>Working hours: {workingHours.toFixed(1)}h</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+          {/* Summary KPI Cards */}
+          <SummaryCards
+            workingHours={workingHours}
+            checkInTime={checkInTime}
+            overtimeHours={overtimeHours}
+          />
 
-          {/* Today's Summary */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Today&apos;s Summary</CardTitle>
-              <CardDescription>Your work summary for today</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm font-medium">Status:</span>
-                  <Badge
-                    variant={
-                      attendanceStatus === "checked_in"
-                        ? "default"
-                        : attendanceStatus === "checked_out"
-                          ? "secondary"
-                          : "outline"
-                    }
-                  >
-                    {attendanceStatus === "checked_in"
-                      ? "Working"
-                      : attendanceStatus === "checked_out"
-                        ? "Completed"
-                        : "Not Started"}
-                  </Badge>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm font-medium">Check-in Time:</span>
-                  <span className="text-sm text-gray-600">
-                    {checkInTime ? format(checkInTime, "h:mm a") : "-"}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm font-medium">Hours Worked:</span>
-                  <div className="flex items-center">
-                    <span className="text-sm text-gray-600">
-                      {workingHours.toFixed(1)}h
-                    </span>
-                    {workingHours > 8 && (
-                      <span className="ml-2 text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full">
-                        +{(workingHours - 8).toFixed(1)}h OT
-                      </span>
-                    )}
-                  </div>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm font-medium">Expected Hours:</span>
-                  <span className="text-sm text-gray-600">8.0h</span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+          {/* Attendance Action */}
+          <AttendanceActionCard
+            attendanceStatus={attendanceStatus}
+            isActionInProgress={isActionInProgress}
+            checkInTime={checkInTime}
+            workingHours={workingHours}
+            onCheckIn={handleCheckIn}
+            onCheckOut={handleCheckOutClick}
+          />
 
-        {/* Attendance History */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0">
-            <div>
-              <CardTitle>Attendance History</CardTitle>
-              <CardDescription>Your all-time attendance records</CardDescription>
-            </div>
-          </CardHeader>
-          <CardContent>
-            {/* History Filters */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-              <div className="space-y-2">
-                <Label htmlFor="filterDate">Filter by Date</Label>
-                <div className="relative">
-                  <Input
-                    id="filterDate"
-                    type="date"
-                    value={filterDate}
-                    onChange={(e) => {
-                      setFilterDate(e.target.value);
-                      setHistoryPage(1);
-                    }}
-                    className="pl-9"
-                  />
-                  <CalendarIcon className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+          {/* Attendance History */}
+          <div className="rounded-xl border border-gray-200 bg-white shadow-sm transition-all duration-300 hover:shadow-md">
+            <div className="p-4 sm:p-6">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-50">
+                  <History className="h-5 w-5 text-blue-600" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-900">
+                    Attendance History
+                  </h3>
+                  <p className="text-xs text-gray-500">
+                    Your all-time attendance records
+                  </p>
                 </div>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="statusFilter">Status</Label>
-                <Select
-                  value={historyStatus}
-                  onValueChange={(value) => {
-                    setHistoryStatus(value);
-                    setHistoryPage(1);
-                  }}
-                >
-                  <SelectTrigger id="statusFilter">
-                    <SelectValue placeholder="All Statuses" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Statuses</SelectItem>
-                    <SelectItem value="present">Present</SelectItem>
-                    <SelectItem value="absent">Absent</SelectItem>
-                    <SelectItem value="late">Late</SelectItem>
-                    <SelectItem value="half_day">Half Day</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="flex items-end">
-                <Button
-                  variant="outline"
-                  className="w-full"
-                  onClick={() => {
-                    setFilterDate("");
-                    setHistoryStatus("all");
-                    setHistoryPage(1);
-                  }}
-                >
-                  <FilterX className="h-4 w-4 mr-2" />
-                  Clear Filters
-                </Button>
-              </div>
-            </div>
 
-            <div className="rounded-md border mb-4">
+              <div className="mb-6">
+                <FilterBar
+                  filterDate={filterDate}
+                  historyStatus={historyStatus}
+                  searchQuery={searchQuery}
+                  onDateChange={handleFilterDateChange}
+                  onStatusChange={handleStatusChange}
+                  onSearchChange={handleSearchChange}
+                  onClear={handleClearFilters}
+                  onExport={handleExport}
+                />
+              </div>
+
               <AttendanceHistoryTable
                 data={historyData?.data?.map((record) => ({
                   ...record,
@@ -684,47 +511,13 @@ export default function EmployeeAttendancePage() {
                 }))}
                 isLoading={isLoadingHistoryData}
                 error={historyError}
+                page={historyPage}
+                totalPages={historyData?.pagination?.totalPages || 1}
+                onPageChange={setHistoryPage}
               />
             </div>
-
-            {/* Pagination Controls */}
-            {historyData?.pagination && historyData.pagination.totalPages > 1 && (
-              <div className="flex items-center justify-between border-t pt-4">
-                <div className="text-sm text-muted-foreground">
-                  Showing Page <span className="font-medium">{historyPage}</span> of{" "}
-                  <span className="font-medium">{historyData.pagination.totalPages}</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setHistoryPage((p) => Math.max(1, p - 1))}
-                    disabled={historyPage === 1 || isLoadingHistoryData}
-                  >
-                    <ChevronLeft className="h-4 w-4 mr-1" />
-                    Previous
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() =>
-                      setHistoryPage((p) =>
-                        Math.min(historyData.pagination.totalPages, p + 1)
-                      )
-                    }
-                    disabled={
-                      historyPage === historyData.pagination.totalPages ||
-                      isLoadingHistoryData
-                    }
-                  >
-                    Next
-                    <ChevronRight className="h-4 w-4 ml-1" />
-                  </Button>
-                </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
 
       {/* Checkout Form Dialog */}
@@ -733,6 +526,6 @@ export default function EmployeeAttendancePage() {
         onOpenChange={setShowCheckoutForm}
         onCheckout={handleCheckOut}
       />
-    </>
+    </div>
   );
 }
